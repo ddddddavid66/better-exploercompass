@@ -57,6 +57,7 @@ public final class ServerComparison {
     private static int index;
     private static long started;
     private static double previousMain;
+    private static double initialMain;
     private static final List<Double> ticks = new ArrayList<>();
     private static String failure = "";
     private static boolean requestPending;
@@ -74,7 +75,7 @@ public final class ServerComparison {
         server = event.getServer();
         try {
             access = new EngineAccess(); access.configure(); levels = levelMap();
-            Files.writeString(CSV, "engine,seed,target,cache,repeat,radius,wall_ms,main_ms,search_tick_p95_ms,search_tick_max_ms,worker_ms,preparation_ms,confirmation_ms,waiting_ms,samples,candidates,checks,chunk_requests,mode,result,verified,x,y,z\n");
+            Files.writeString(CSV, "engine,seed,target,cache,repeat,radius,wall_ms,main_ms,search_tick_p95_ms,search_tick_max_ms,worker_ms,preparation_ms,confirmation_ms,waiting_ms,samples,candidates,checks,chunk_requests,mode,result,verified,x,y,z,request_main_ms\n");
             next();
         } catch (Throwable error) { fail(error); }
     }
@@ -138,6 +139,7 @@ public final class ServerComparison {
         started = System.nanoTime();
         boolean accepted = access.start(player, stack, new ResourceLocation(TARGETS.get(target())), target() >= 3);
         previousMain = 0;
+        initialMain=access.mainNanos()/1e6;
         if (!accepted) throw new IllegalStateException("Normal request rejected " + TARGETS.get(target()));
         System.out.println("COMPASSBENCH start " + index + " " + TARGETS.get(target()) + " " + (warm() ? "warm" : "cold"));
         } catch (Throwable error) { fail(error); }
@@ -165,7 +167,7 @@ public final class ServerComparison {
                     access.metric("waitingNanos", "priorWaiting", false) / 1e6,
                     access.metric("samples", "priorSamples", false), access.metric("candidates", "priorCandidates", false),
                     access.metric("confirmations", "priorChecks", true), access.metric("chunkLoads", "priorChunks", true),
-                    access.mode(), result, verified, x, y, z);
+                    access.mode(), result, verified, x, y, z, initialMain);
             Files.writeString(CSV, row, java.nio.file.StandardOpenOption.APPEND);
             System.out.println("COMPASSBENCH result " + row.trim());
             access.cancel(player);

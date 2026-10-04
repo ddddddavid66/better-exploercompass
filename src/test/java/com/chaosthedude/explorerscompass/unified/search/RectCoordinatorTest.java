@@ -104,6 +104,27 @@ class RectCoordinatorTest {
             search.prime(pool); assertEquals(0,samples.get()); search.cancel();
         } finally {pool.shutdownNow();}
     }
+    @Test void cancellationBeforeQueuedLaunchNeverSamples() throws Exception {
+        var pool=Executors.newSingleThreadExecutor();var release=new CountDownLatch(1);var ready=new CountDownLatch(1);var calls=new AtomicInteger();
+        try {
+            pool.execute(()->{ready.countDown();try{release.await();}catch(InterruptedException ignored){}});
+            assertTrue(ready.await(1,TimeUnit.SECONDS));
+            var search=search(2000,true,p->{calls.incrementAndGet();return true;},p->true);
+            search.prime(pool);assertFalse(search.step(pool));search.cancel();release.countDown();
+            pool.submit(()->{}).get(1,TimeUnit.SECONDS);assertEquals(0,calls.get());assertNull(search.result());
+        }finally{release.countDown();pool.shutdownNow();}
+    }
+    @Test void rejectedLaunchRetainsAllUnprocessedBounds() throws Exception {
+        var pool=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(1),new ThreadPoolExecutor.AbortPolicy());
+        var release=new CountDownLatch(1);var ready=new CountDownLatch(1);var calls=new AtomicInteger();
+        try {
+            pool.execute(()->{ready.countDown();try{release.await();}catch(InterruptedException ignored){}});
+            assertTrue(ready.await(1,TimeUnit.SECONDS));pool.execute(()->{});
+            var search=search(2000,true,p->{calls.incrementAndGet();return true;},p->true);
+            search.prime(pool);assertFalse(search.step(pool));assertEquals(0,calls.get());
+            release.countDown();assertEquals(new Point(0,0),run(search,pool));
+        }finally{release.countDown();pool.shutdownNow();}
+    }
     @Test void boundedExecutorRejectsWithoutCallingSamplerOnMainThread() throws Exception {
         var pool = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(1), new ThreadPoolExecutor.AbortPolicy());
         var release = new CountDownLatch(1); var started = new CountDownLatch(1); var calls = new AtomicInteger();

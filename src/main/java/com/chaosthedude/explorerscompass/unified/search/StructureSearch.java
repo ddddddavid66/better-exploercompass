@@ -47,7 +47,7 @@ public final class StructureSearch extends SearchJob {
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
                 (long)radius * radius, async).withTieBreaker(Comparator.comparing((SearchCandidate candidate) -> candidate.key().toString())
                         .thenComparingInt(candidate -> candidate.position().getX()).thenComparingInt(candidate -> candidate.position().getZ()))
-                .withBatch(256, 4_000_000L).withConfirmation(this::confirm)
+                .withBatch(256, 4_000_000L).withEagerCandidates(false).withConfirmation(this::confirm)
                 .withCandidateLowerBound(this::candidateBound)
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
     }

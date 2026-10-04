@@ -44,6 +44,7 @@ public final class ScanCoordinator<T> {
     private final boolean async;
     private final long maximum;
     private final AtomicBoolean cancelled = new AtomicBoolean();
+    private final AtomicBoolean priming = new AtomicBoolean();
     private final AtomicLong priority = new AtomicLong();
     private final AtomicLong verifiedUpper = new AtomicLong();
     private final AtomicLong workerNanos = new AtomicLong(), submitted = new AtomicLong(), count = new AtomicLong();
@@ -63,7 +64,7 @@ public final class ScanCoordinator<T> {
         lanes.forEach(lane -> work.add(new Work(lane)));
     }
     public boolean step(ExecutorService executor) throws Exception {
-        if (done || cancelled.get()) return false;
+        if (done || cancelled.get() || priming.get()) return false;
         for (Work item : work) if (item.failure != null) throw new ExecutionException(item.failure);
         boolean progress = false;
         // 队列里的 packet 在主线程消费之前，旧下界一直保留，覆盖全部在途结果。
@@ -121,7 +122,22 @@ public final class ScanCoordinator<T> {
     /** 接受请求时只提交已准备好的后台工作；核对与兼容查询仍由 tick 的共享预算执行。 */
     public void prime(ExecutorService executor) {
         if (!async || done || cancelled.get()) return;
-        for (Work item : work) if (item.lane.backgroundAllowed() && item.lane.available(maximum)) submit(item, executor);
+        boolean background=false;
+        for (Work item : work) if (item.lane.backgroundAllowed()) { background=true;break; }
+        if (!background || !priming.compareAndSet(false,true)) return;
+        // 主线程仅入队一次；分区提交在池中展开，避免与快速缓存批次争抢队列锁。
+        // priming 屏障禁止主线程在展开期间读取可变分区游标。
+        try {
+            executor.execute(() -> {
+                try {
+                    if (done || cancelled.get()) return;
+                    for (Work item : work) if (!item.running.get() && item.output.isEmpty()
+                            && item.lane.backgroundAllowed() && item.lane.available(maximum)) submit(item,executor);
+                } catch (Throwable failure) { work.get(0).failure=failure; }
+                finally { priming.set(false); }
+            });
+            submitted.incrementAndGet();
+        } catch (RejectedExecutionException full) { priming.set(false); }
     }
     private long unresolvedBound() {
         long bound = pending.isEmpty() ? Long.MAX_VALUE : candidateBound.applyAsLong(pending.peek());
