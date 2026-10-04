@@ -77,7 +77,11 @@ src/main 是生产源码；src/test 为单元测试；src/smoke 为隔离原生�
 ./gradlew.bat microBenchmark '-PbaselineJar=/absolute/path/unified105.jar' '-PenhanceJar=/absolute/path/enhance160.jar' '-PbenchmarkArgs=TraversalBenchmark -prof gc -rf json -rff /outside/repository/jmh.json'
 ```
 
-五类热区块目标的跨种子中位耗时等权几何平均需相对 1.0.5 改善至少 15%；每类 P95、主线程累计和每 tick P95 不得出现可复现的超过 10% 退化。正确性必须全部通过。当前正式比较尚未完成，不能把初步测试或未达门槛的实验 jar 当作正式性能通过。原始数据和完整报告作为仓库外交付材料保存，仅最终摘要更新到本 README。不用服务端耗时推断客户端帧率。
+五类热区块目标的跨种子中位耗时等权几何平均需相对 1.0.5 改善至少 15%；每类 P95、主线程累计和每 tick P95 不得出现可复现的超过 10% 退化。正确性必须全部通过。
+
+第二轮完整 750 请求全部核实，统一版新旧坐标一致；五类热中位耗时的等权几何平均改善 **68.5%**。热中位毫秒：村庄 55.256 → 5.816、沙漠神殿 52.933 → 53.140、林地府邸 52.153 → 51.134、平原 4.821 → 2.085、繁茂洞穴 49.130 → 3.395。村庄、沙漠神殿和平原仍有 P95 超限，正在独立复测；**尚未通过正式发布门槛**。
+
+可通过 `tools/run-server-comparison.ps1` 的 `-WarmOnly -Repeats 20 -Prewarm 10 -EngineNames unified105,unified110 -RunName warm-reproduction` 进行独立尾部复测。预热请求仍完整记录为 warmup，不混入测量行；默认参数仍为原 750 请求矩阵。JMH、原生兼容回归和干净检出构建需要全部完成后才能正式发布。原始数据和完整报告作为仓库外交付材料保存，仅最终摘要更新到本 README。不用服务端耗时推断客户端帧率。
 
 ## Git 与 GitHub 上传
 
