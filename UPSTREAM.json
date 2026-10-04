@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/MattCzyr/ExplorersCompass",
+  "branch": "forge-1.20.1",
+  "commit": "e7f31c400bca0ced222d3086524da35e9bcc50de",
+  "version": "1.20.1-1.4.0-forge",
+  "import": "git archive of fixed commit; no upstream history imported"
+}
