@@ -86,4 +86,34 @@ class GenerationPrefixTest {
         assertFalse(prefix.covers(new net.minecraft.core.BlockPos(-17,64,31),Set.of(7L),99,45));
         assertFalse(prefix.covers(new net.minecraft.core.BlockPos(-17,64,31),Set.of(7L),100,44));
     }
+    @Test void immutableBiomeResultFinishesWithoutSchedulingOrChangingCoordinates() throws Exception {
+        var queried=new AtomicInteger();var point=new Point(-7,4);
+        var scan=new ScanCoordinator<Point>(List.of(),Point::distance,p->{queried.incrementAndGet();return true;},400,true)
+                .withUnconditionalConfirmation().withProvenSample(point);
+        var pool=Executors.newSingleThreadExecutor();pool.shutdownNow();
+        assertTrue(scan.step(pool)); // 已关闭的池不能接受任何后台工作。
+        assertEquals(point,scan.result());assertEquals(0,queried.get());assertEquals(1,scan.candidateCount());
+        assertEquals(0,scan.submittedBatches());assertFalse(scan.budgetLimited());
+    }
+    @Test void provenBiomeResultCannotBeUsedForMutableVerificationOrASecondScope() {
+        assertThrows(IllegalStateException.class,()->new ScanCoordinator<Point>(List.of(),Point::distance,p->false,400,true)
+                .withProvenSample(new Point(1,0)));
+        var scan=new ScanCoordinator<Point>(List.of(),Point::distance,p->true,400,true).withUnconditionalConfirmation();
+        assertThrows(IllegalStateException.class,()->scan.withProvenSample(new Point(21,0)));
+        scan.withProvenSample(new Point(1,0));
+        assertThrows(IllegalStateException.class,()->scan.withProvenSample(new Point(2,0)));
+    }
+    @Test void biomeMemoKeysIncludeEverySamplingAndExclusionCondition() {
+        var id=new net.minecraft.resources.ResourceLocation("minecraft:plains");
+        var origin=new net.minecraft.core.BlockPos(-17,64,31);
+        List<?> key=List.of(id,origin,32,64,4,List.of());
+        assertEquals(key,List.of(id,origin,32,64,4,List.of()));
+        assertNotEquals(key,List.of(id,origin.above(),32,64,4,List.of()));
+        assertNotEquals(key,List.of(id,origin.east(),32,64,4,List.of()));
+        assertNotEquals(key,List.of(id,origin,16,64,4,List.of()));
+        assertNotEquals(key,List.of(id,origin,32,0,4,List.of()));
+        assertNotEquals(key,List.of(id,origin,32,64,2,List.of()));
+        assertNotEquals(key,List.of(id,origin,32,64,4,List.of(origin)));
+        assertNotEquals(key,List.of(id)); // 不与结构注册 ID 列表共用键空间。
+    }
 }

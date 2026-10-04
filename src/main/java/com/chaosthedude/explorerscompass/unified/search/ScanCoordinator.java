@@ -269,6 +269,15 @@ public final class ScanCoordinator<T> {
             throw new IllegalArgumentException("Invalid generation prefix");
         coveredFloor=distanceSquared+1;return this;
     }
+    /** 仅复用相同不可变生成上下文及采样条件下、已经完整证明最近的群系结果。 */
+    public ScanCoordinator<T> withProvenSample(T candidate) {
+        long actual=distance.applyAsLong(candidate);
+        if(!unconditionalConfirmation || !work.isEmpty() || coveredFloor!=0 || actual<0 || actual>maximum || actual>=Long.MAX_VALUE
+                || submitted.get()!=0 || schedulingStep!=0 || done || cancelled.get())
+            throw new IllegalStateException("Proven sample requires an unused immutable query");
+        coveredFloor=actual+1;
+        if(admit(candidate))pending.add(candidate);return this;
+    }
     /** 已覆盖预测先核对；仅在需要外部范围时，在调用线程准备新的独立游标。 */
     public ScanCoordinator<T> withDeferredLanes(java.util.function.Supplier<List<Lane<T>>> prepare) {
         if(coveredFloor==0 || !work.isEmpty() || submitted.get()!=0 || schedulingStep!=0 || done || cancelled.get())

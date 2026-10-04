@@ -23,9 +23,21 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 
 public final class StructureSearch extends SearchJob {
     private static final ResourceLocation TREASURE=new ResourceLocation("minecraft:buried_treasure");
-    record Target(ResourceLocation key, Structure structure, Predicate<Holder<Biome>> biomes,
-                  DungeonsPrediction dungeons) {}
-    record Group(StructurePlacement placement, List<Target> targets) {}
+    // 快照按对象身份使用，无需 record 的动态比较器与字符串生成代码。
+    static final class Target {
+        private final ResourceLocation key;private final Structure structure;
+        private final Predicate<Holder<Biome>> biomes;private final DungeonsPrediction dungeons;
+        Target(ResourceLocation key,Structure structure,Predicate<Holder<Biome>> biomes,DungeonsPrediction dungeons) {
+            this.key=key;this.structure=structure;this.biomes=biomes;this.dungeons=dungeons;
+        }
+        ResourceLocation key(){return key;} Structure structure(){return structure;}
+        Predicate<Holder<Biome>> biomes(){return biomes;} DungeonsPrediction dungeons(){return dungeons;}
+    }
+    static final class Group {
+        private final StructurePlacement placement;private final List<Target> targets;
+        Group(StructurePlacement placement,List<Target> targets){this.placement=placement;this.targets=List.copyOf(targets);}
+        StructurePlacement placement(){return placement;} List<Target> targets(){return targets;}
+    }
     private final List<ResourceLocation> keys;
     private final Set<Long> excluded;
     private final int maximumSamples;
@@ -41,6 +53,7 @@ public final class StructureSearch extends SearchJob {
     private java.util.concurrent.ConcurrentLinkedQueue<SearchCandidate> predictedPrefix;
     private java.util.concurrent.atomic.AtomicInteger prefixCount;
     private WorldgenCache.Prefix prefix;
+    private Group prefixGroup;
     private boolean prefixEligible,outerReady;
     private volatile boolean prefixStored;
     public StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
@@ -70,10 +83,14 @@ public final class StructureSearch extends SearchJob {
         if (radius <= 0 || maximumSamples <= 0) return List.of();
         BlockPos origin = start;
         Set<Long> ignoredChunks = excluded;
-        var registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
-        ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
         WorldgenCache cached = WorldgenCache.get(level);
         context=cached;
+        // 前缀已经绑定本世界生成上下文和已审核规则，命中时不重复建立相同分组。
+        if(async && !compatiblePrediction && !outerReady)
+            prefix=cached.prefix(keys,origin,ignoredChunks,(long)radius*radius,maximumSamples);
+        if(prefix!=null && !outerReady)return replayPrefix(cached,origin,ignoredChunks);
+        var registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
         List<Group> groups=cached.structurePlan(keys,compatiblePrediction,()-> {
             Map<StructurePlacement,List<Target>> grouped=new LinkedHashMap<>();
             for(ResourceLocation key:keys) registry.getHolder(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE,key))
@@ -87,24 +104,7 @@ public final class StructureSearch extends SearchJob {
         boolean sourceSafe = BiomeSourceSafety.prepare(level).allowed();
         prefixEligible=async && !compatiblePrediction && sourceSafe && groups.size()==1
                 && cached.prefixRule(groups.get(0).placement(),level);
-        if(prefixEligible && !outerReady)prefix=cached.prefix(keys,origin,ignoredChunks,(long)radius*radius,maximumSamples);
-        if(prefix!=null && !outerReady) {
-            prefixStored=true;
-            for(SearchCandidate candidate:prefix.candidates)if(!ignoredChunks.contains(candidate.chunk().toLong()))hints.add(candidate);
-            // 其他请求可能新收录了旧区块位置；它不属于静态生成前缀，仍须加入本次真实核对。
-            Group group=groups.get(0);
-            for(Target target:group.targets()) {
-                SearchCandidate known=cached.hint(target.structure());
-                if(known==null || known.placement()!=group.placement() || ignoredChunks.contains(known.chunk().toLong()))continue;
-                boolean duplicate=false;
-                for(SearchCandidate candidate:hints)if(candidate.key().equals(target.key()) && candidate.chunk().equals(known.chunk())) {duplicate=true;break;}
-                if(!duplicate)hints.add(new SearchCandidate(known.position(),target.key(),target.structure(),group.placement(),
-                        known.chunk(),distance(origin,known.position())));
-            }
-            var budget=new SamplingBudget(maximumSamples);
-            if(!budget.take(prefix.cost))throw new IllegalStateException("Prefix sample cost changed");
-            budgets.add(budget);return List.of();
-        }
+        prefixGroup=prefixEligible?groups.get(0):null;
         if(prefixEligible && !prefixStored) {
             predictedPrefix=new java.util.concurrent.ConcurrentLinkedQueue<>();prefixCount=new java.util.concurrent.atomic.AtomicInteger();
         }
@@ -207,6 +207,23 @@ public final class StructureSearch extends SearchJob {
         }
         return lanes;
     }
+    private List<ScanCoordinator.Lane<SearchCandidate>> replayPrefix(WorldgenCache cached,BlockPos origin,Set<Long> ignoredChunks) {
+        prefixStored=true;
+        for(SearchCandidate candidate:prefix.candidates)if(!ignoredChunks.contains(candidate.chunk().toLong()))hints.add(candidate);
+        // 其他请求可能新收录了旧区块位置；仍须加入本次真实核对。
+        Group group=prefix.group;
+        for(Target target:group.targets()) {
+            SearchCandidate known=cached.hint(target.structure());
+            if(known==null || known.placement()!=group.placement() || ignoredChunks.contains(known.chunk().toLong()))continue;
+            boolean duplicate=false;
+            for(SearchCandidate candidate:hints)if(candidate.key().equals(target.key()) && candidate.chunk().equals(known.chunk())) {duplicate=true;break;}
+            if(!duplicate)hints.add(new SearchCandidate(known.position(),target.key(),target.structure(),group.placement(),
+                    known.chunk(),distance(origin,known.position())));
+        }
+        var budget=new SamplingBudget(maximumSamples);
+        if(!budget.take(prefix.cost))throw new IllegalStateException("Prefix sample cost changed");
+        budgets.add(budget);return List.of();
+    }
     private void capturePrefix(SearchCandidate candidate) {
         if(prefixEligible && !prefixStored && prefixCount.incrementAndGet()<=1024)predictedPrefix.add(candidate);
     }
@@ -217,7 +234,7 @@ public final class StructureSearch extends SearchJob {
             // 完整最近性证明已覆盖此距离以内所有生成规则候选，不保存区块是否存在的结论。
             long upper=scan.result().distanceSquared();var candidates=new ArrayList<SearchCandidate>();
             for(SearchCandidate candidate:predictedPrefix)if(candidateBound(candidate)<=upper)candidates.add(candidate);
-            context.rememberPrefix(keys,new WorldgenCache.Prefix(start.getX(),start.getZ(),upper,samples(),excluded,List.copyOf(candidates)));
+            context.rememberPrefix(keys,new WorldgenCache.Prefix(start.getX(),start.getZ(),upper,samples(),excluded,List.copyOf(candidates),prefixGroup));
             prefixStored=true;
         }finally{mainNanos+=System.nanoTime()-before;}
     }

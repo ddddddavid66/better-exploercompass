@@ -16,7 +16,11 @@ final class WorldgenCache {
     private static final Map<ServerLevel, WorldgenCache> WORLDS = new IdentityHashMap<>();
     final StructurePredictor predictor;
     private record PredictionKey(Structure structure, long chunk) {}
-    private record Prediction(net.minecraft.core.BlockPos point) {}
+    private static final class Prediction {
+        final net.minecraft.core.BlockPos point;
+        Prediction(net.minecraft.core.BlockPos point){this.point=point;}
+        net.minecraft.core.BlockPos point(){return point;}
+    }
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<PredictionKey, Prediction> predictions =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Long, Biome> biomePredictions =
@@ -39,14 +43,19 @@ final class WorldgenCache {
     }
     static final class Prefix {
         final int x,z;final long upper,cost;final java.util.Set<Long> excluded;final List<SearchCandidate> candidates;
+        final StructureSearch.Group group;
         Prefix(int x,int z,long upper,long cost,java.util.Set<Long> excluded,List<SearchCandidate> candidates) {
-            this.x=x;this.z=z;this.upper=upper;this.cost=cost;this.excluded=excluded;this.candidates=candidates;
+            this(x,z,upper,cost,excluded,candidates,null);
+        }
+        Prefix(int x,int z,long upper,long cost,java.util.Set<Long> excluded,List<SearchCandidate> candidates,StructureSearch.Group group) {
+            this.x=x;this.z=z;this.upper=upper;this.cost=cost;this.excluded=excluded;this.candidates=candidates;this.group=group;
         }
         boolean covers(net.minecraft.core.BlockPos origin,java.util.Set<Long> currentExcluded,long maximum,long quota) {
             return x==origin.getX() && z==origin.getZ() && upper<=maximum && cost<=quota && currentExcluded.containsAll(excluded);
         }
     }
-    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<List<net.minecraft.resources.ResourceLocation>,Prefix> prefixes=
+    // 结构键只含注册 ID；群系键含起点和采样参数，两个键空间不会相等。合计上限 256。
+    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<List<?>,Prefix> prefixes=
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private static final class PlanKey {
         final List<net.minecraft.resources.ResourceLocation> keys;final boolean compatible;
@@ -82,7 +91,8 @@ final class WorldgenCache {
         Prefix known=prefixes.peek(keys);
         return known!=null && known.covers(origin,excluded,maximum,quota)?known:null;
     }
-    void rememberPrefix(List<net.minecraft.resources.ResourceLocation> keys,Prefix prefix) {prefixes.remember(keys,prefix);}
+    Prefix prefix(List<?> keys) {return prefixes.peek(keys);}
+    void rememberPrefix(List<?> keys,Prefix prefix) {prefixes.remember(keys,prefix);}
     void rememberHint(SearchCandidate candidate) { hints.remember(candidate.structure(),candidate); }
     List<StructureSearch.Group> structurePlan(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible,
                                             Supplier<List<StructureSearch.Group>> prepare) {

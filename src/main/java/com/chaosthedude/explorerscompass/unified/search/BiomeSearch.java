@@ -15,6 +15,9 @@ public final class BiomeSearch extends SearchJob {
     private final int maxSamples, spacing, vertical, depthInterval;
     private final boolean async;
     private boolean cachedOrigin;
+    private WorldgenCache context;
+    private List<?> memoKey;
+    private WorldgenCache.Prefix memo;
     public BiomeSearch(ServerLevel level, BlockPos start, ResourceLocation target, List<BlockPos> excluded,
                        int radius, int maxSamples, int spacing, int vertical, int depthInterval, boolean async) {
         super(level, start, radius); this.target = target; this.excluded = List.copyOf(excluded);
@@ -27,11 +30,25 @@ public final class BiomeSearch extends SearchJob {
                         .thenComparingInt(candidate -> candidate.position().getZ())
                         .thenComparingInt(candidate -> candidate.position().getY())).withBatch(1024, 4_000_000L)
                 .withEagerCandidates(false).withUnconditionalConfirmation();
+        if(memo!=null)scan.withProvenSample(memo.candidates.get(0));
     }
     private List<ScanCoordinator.Lane<SearchCandidate>> createLanes() {
         if (radius <= 0 || maxSamples <= 0) return List.of();
         BlockPos origin = start;
         int maximumRadius = radius;
+        boolean safeSource = BiomeSourceSafety.prepare(level).allowed();
+        boolean background = async && safeSource;
+        var cache = safeSource ? WorldgenCache.get(level) : null;
+        SamplingBudget budget = new SamplingBudget(maxSamples); budgets.add(budget);
+        if(background) {
+            context=cache;
+            // 精确绑定起点 XYZ、采样设置和完整排除快照，不推断相邻起点的最近群系。
+            memoKey=List.of(target,start,spacing,vertical,depthInterval,excluded);
+            var known=cache.prefix(memoKey);
+            if(known!=null && known.upper<=(long)radius*radius && known.cost<=maxSamples && budget.take(known.cost)) {
+                memo=known;return List.of();
+            }
+        }
         var ignoredPositions = new com.chaosthedude.explorerscompass.unified.data.ExclusionIndex(excluded.stream()
                 .map(point -> new com.chaosthedude.explorerscompass.unified.data.ExclusionIndex.Point(point.getX(), point.getZ())).toList());
         ResourceLocation key = target;
@@ -44,10 +61,6 @@ public final class BiomeSearch extends SearchJob {
         if (vertical > 0) for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y += vertical)
             if (QuartPos.fromBlock(y) != QuartPos.fromBlock(initialY)) heights.add(y);
         heights.sort(Comparator.comparingInt(y -> Math.abs(y - initialY)));
-        SamplingBudget budget = new SamplingBudget(maxSamples); budgets.add(budget);
-        boolean safeSource = BiomeSourceSafety.prepare(level).allowed();
-        boolean background = async && safeSource;
-        var cache = safeSource ? WorldgenCache.get(level) : null;
         cachedOrigin=cache!=null && cache.peekBiome(QuartPos.fromBlock(origin.getX()),
                 QuartPos.fromBlock(initialY),QuartPos.fromBlock(origin.getZ()))==biome;
         int workers = background ? SearchConfig.threads() : 1;
@@ -80,7 +93,20 @@ public final class BiomeSearch extends SearchJob {
         }
         return lanes;
     }
-    @Override public void prime() {if(!cachedOrigin)super.prime();}
+    @Override public boolean step() throws Exception {
+        boolean complete=super.step();
+        if(complete && memoKey!=null && memo==null && scan.result()!=null) {
+            long before=System.nanoTime();
+            try {
+                memo=new WorldgenCache.Prefix(start.getX(),start.getZ(),scan.result().distanceSquared(),
+                        samples(),java.util.Set.of(),List.of(scan.result()));
+                context.rememberPrefix(memoKey,memo);
+            }finally{mainNanos+=System.nanoTime()-before;}
+        }
+        return complete;
+    }
+    @Override public void prime() {if(memo==null && !cachedOrigin)super.prime();}
+    @Override public String mode() {return memo!=null?"async":super.mode();}
     public SearchJob synchronousFallback() { return new BiomeSearch(level, start, target, excluded, radius, maxSamples, spacing, vertical, depthInterval, false); }
     public boolean biome() { return true; }
     public boolean asynchronous() { return async; }
