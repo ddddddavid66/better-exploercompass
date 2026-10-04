@@ -35,7 +35,12 @@ final class BiomeSourceSafety {
 
     static Result prepare(ServerLevel level) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("群系来源审查只能在服务端线程执行");
-        return WORLDS.computeIfAbsent(level, key -> new BiomeSourceSafety(key).inspect());
+        return WORLDS.computeIfAbsent(level, key -> {
+            Result result = new BiomeSourceSafety(key).inspect();
+            if (!result.allowed()) com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.warn(
+                    "维度 {} 使用主线程兼容查询：{}；来源链：{}", key.dimension().location(), result.reason(), result.chain());
+            return result;
+        });
     }
     static void clear() { WORLDS.clear(); }
 

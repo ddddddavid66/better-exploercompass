@@ -17,9 +17,15 @@ final class WorldgenCache {
     private record Prediction(net.minecraft.core.BlockPos point) {}
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<PredictionKey, Prediction> predictions =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
+    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Long, Biome> biomePredictions =
+            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
+    private final net.minecraft.world.level.biome.BiomeSource biomeSource;
+    private final net.minecraft.world.level.biome.Climate.Sampler noise;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, DungeonsPrediction> dungeons = new IdentityHashMap<>();
     private WorldgenCache(ServerLevel level) {
+        biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
+        noise = level.getChunkSource().randomState().sampler();
         var state = level.getChunkSource().getGeneratorState();
         state.ensureStructuresGenerated();
         state.possibleStructureSets().forEach(set -> {
@@ -43,6 +49,11 @@ final class WorldgenCache {
             var point = predictor.predict(structure, biomes, chunk);
             return new Prediction(point == null ? null : point.immutable());
         }).point();
+    }
+    Biome predictBiome(int x, int y, int z) {
+        // Quart 坐标和真实采样器严格隔离；只缓存审核过的不可变生成查询，仍逐点检查。
+        long key = net.minecraft.core.BlockPos.asLong(x, y, z);
+        return biomePredictions.get(key, ignored -> biomeSource.getNoiseBiome(x, y, z, noise).value());
     }
     static void clear() { WORLDS.clear(); BiomeSourceSafety.clear(); }
 }

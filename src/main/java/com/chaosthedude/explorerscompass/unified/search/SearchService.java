@@ -198,6 +198,7 @@ public final class SearchService {
         ExplorersCompass.explorersCompass.setSearchRadius(session.stack, 0, session.player);
         sessions.put(session.player.getUUID(), session);
         status(session);lifecycle(session,false,"searching","");
+        session.job.prime();
     }
 
     public static void tick() {

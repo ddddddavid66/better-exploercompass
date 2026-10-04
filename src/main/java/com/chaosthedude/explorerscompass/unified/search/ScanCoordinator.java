@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -20,6 +19,7 @@ public final class ScanCoordinator<T> {
     public interface Lane<T> {
         boolean available(long limit);
         List<T> sample();
+        default List<T> sample(long verifiedUpper) { return sample(); }
         default boolean backgroundAllowed() { return true; }
         default long pendingLowerBound() { return 0; }
         default boolean budgetLimited(long maximum) { return false; }
@@ -27,10 +27,11 @@ public final class ScanCoordinator<T> {
     private record Packet<T>(List<T> values, long remainingBound) {}
     private final class Work {
         final Lane<T> lane;
-        final ArrayBlockingQueue<Packet<T>> output = new ArrayBlockingQueue<>(4);
+        final BatchMailbox<Packet<T>> output = new BatchMailbox<>();
         final AtomicBoolean running = new AtomicBoolean();
         volatile long remaining;
         volatile Throwable failure;
+        int scheduledStep;
         Work(Lane<T> lane) { this.lane = lane; remaining = lane.pendingLowerBound(); }
     }
     private final List<Work> work = new ArrayList<>();
@@ -44,16 +45,19 @@ public final class ScanCoordinator<T> {
     private final long maximum;
     private final AtomicBoolean cancelled = new AtomicBoolean();
     private final AtomicLong priority = new AtomicLong();
+    private final AtomicLong verifiedUpper = new AtomicLong();
     private final AtomicLong workerNanos = new AtomicLong(), submitted = new AtomicLong(), count = new AtomicLong();
     private volatile boolean done;
     private boolean confirming;
     private T accepted, result;
     private int batchSize = 64;
     private long batchNanos = 4_000_000;
+    private boolean eagerCandidates = true;
+    private int schedulingStep;
     public ScanCoordinator(List<Lane<T>> lanes, ToLongFunction<T> distance, Predicate<T> confirm, long maximum, boolean async) {
         this.distance = distance; candidateBound = distance; this.maximum = maximum; this.async = async;
         confirmation = candidate -> confirm.test(candidate) ? Confirmation.ACCEPT : Confirmation.REJECT;
-        order = Comparator.comparingLong(distance); rebuild(); priority.set(maximum);
+        order = Comparator.comparingLong(distance); rebuild(); priority.set(maximum); verifiedUpper.set(maximum);
         lanes.forEach(lane -> work.add(new Work(lane)));
     }
     public boolean step(ExecutorService executor) throws Exception {
@@ -78,7 +82,7 @@ public final class ScanCoordinator<T> {
                 if (outcome == Confirmation.ACCEPT) {
                     T actual = resolved.apply(next);
                     if (distance.applyAsLong(actual) <= maximum && (accepted == null || order.compare(actual, accepted) < 0))
-                        accepted = actual;
+                        { accepted = actual; verifiedUpper.set(distance.applyAsLong(actual)); }
                 }
             }
         }
@@ -90,10 +94,13 @@ public final class ScanCoordinator<T> {
                 distance.applyAsLong(pending.peek())));
         priority.set(preferred);
         // 按各分区的下界调度；线程池拒绝后仍等待下一轮，不在调用线程执行后台任务。
-        List<Work> ready = work.stream().filter(item -> !item.running.get() && item.output.isEmpty())
-                .sorted(Comparator.comparingLong(item -> item.remaining)).toList();
-        for (Work item : ready) {
-            if (!item.lane.available(preferred)) continue;
+        int turn = ++schedulingStep;
+        for (int pass = 0; pass < work.size(); pass++) {
+            Work item = null;
+            for (Work possible : work) if (possible.scheduledStep != turn && !possible.running.get() && possible.output.isEmpty()
+                    && possible.lane.available(preferred) && (item == null || possible.remaining < item.remaining)) item = possible;
+            if (item == null) break;
+            item.scheduledStep = turn;
             if (async && item.lane.backgroundAllowed()) progress |= submit(item, executor);
             else {
                 Packet<T> packet = sample(item, 1, false);
@@ -104,8 +111,15 @@ public final class ScanCoordinator<T> {
         if (work.stream().anyMatch(item -> item.running.get() || !item.output.isEmpty())) return progress;
         if (!pending.isEmpty() && candidateBound.applyAsLong(pending.peek()) <= upper) return progress;
         for (Work item : work) if (item.lane.available(upper)) { priority.set(upper); return progress; }
+        // 空批次可能在上面的证明检查后完成；终止前再读取一次完整前沿。
+        if (accepted != null && unresolvedBound() > upper) result = accepted;
         // 额度耗尽时仍有未处理下界，不能提交暂存结果；完整覆盖才算找到最近目标。
         done = true; return true;
+    }
+    /** 接受请求时只提交已准备好的后台工作；核对与兼容查询仍由 tick 的共享预算执行。 */
+    public void prime(ExecutorService executor) {
+        if (!async || done || cancelled.get()) return;
+        for (Work item : work) if (item.lane.backgroundAllowed() && item.lane.available(maximum)) submit(item, executor);
     }
     private long unresolvedBound() {
         long bound = pending.isEmpty() ? Long.MAX_VALUE : candidateBound.applyAsLong(pending.peek());
@@ -127,8 +141,8 @@ public final class ScanCoordinator<T> {
                         // 无候选批次不等待一个 tick；只有已发布候选需要保持消费屏障。
                         item.remaining = packet.remainingBound;
                     }
-                    // 候选立即交给主线程核对；纯空批次可以继续推进，仍保留未消费下界。
-                    if (packet.values.isEmpty() && item.output.remainingCapacity() > 0 && item.lane.available(priority.get())) {
+                    // 有限队列保留消费屏障，后台可继续覆盖较近范围，避免核对后再多等一 tick。
+                    if (item.output.remainingCapacity() > 0 && item.lane.available(priority.get())) {
                         try { executor.execute(this); submitted.incrementAndGet(); chained = true; return; }
                         catch (RejectedExecutionException full) { /* 有限队列拥堵，下个 tick 再提交。 */ }
                     }
@@ -144,10 +158,13 @@ public final class ScanCoordinator<T> {
         try {
             for (int i = 0; i < size && !done && !cancelled.get() && !Thread.currentThread().isInterrupted()
                     && item.lane.available(priority.get()); i++) {
-                for (T candidate : item.lane.sample()) if (candidateBound.applyAsLong(candidate) <= maximum) {
+                for (T candidate : item.lane.sample(verifiedUpper.get())) if (candidateBound.applyAsLong(candidate) <= maximum) {
                     values.add(candidate); count.incrementAndGet();
+                    // 暂停更远工作以便先核对；此优先级不用于永久剪枝，拒绝后恢复。
+                    priority.accumulateAndGet(Math.max(candidateBound.applyAsLong(candidate), distance.applyAsLong(candidate)), Math::min);
                 }
-                if (!values.isEmpty() || System.nanoTime() - begin >= batchNanos) break;
+                if (!values.isEmpty() && (eagerCandidates || distance.applyAsLong(values.get(values.size()-1)) == 0)
+                        || System.nanoTime() - begin >= batchNanos) break;
             }
             return new Packet<>(values, item.lane.pendingLowerBound());
         } finally { if (worker) workerNanos.addAndGet(System.nanoTime() - begin); }
@@ -163,6 +180,7 @@ public final class ScanCoordinator<T> {
     public ScanCoordinator<T> withBatch(int size, long nanos) {
         if (size < 1 || nanos < 1) throw new IllegalArgumentException(); batchSize = size; batchNanos = nanos; return this;
     }
+    public ScanCoordinator<T> withEagerCandidates(boolean eager) { eagerCandidates = eager; return this; }
     public void cancel() { cancelled.set(true); }
     public boolean done() { return done; }
     public boolean cancelled() { return cancelled.get(); }

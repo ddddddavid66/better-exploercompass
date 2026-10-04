@@ -24,6 +24,7 @@ public abstract class SearchJob {
         finally { mainNanos += System.nanoTime() - before; }
     }
     public void cancel() { scan.cancel(); }
+    public void prime() { scan.prime(SearchPool.executor()); }
     public boolean done() { return scan.done(); }
     public SearchCandidate result() { return scan.result(); }
     public long samples() { return budgets.stream().mapToLong(SamplingBudget::used).sum(); }

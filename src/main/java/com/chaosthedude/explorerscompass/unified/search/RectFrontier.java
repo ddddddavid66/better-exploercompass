@@ -45,6 +45,16 @@ public final class RectFrontier {
         }
         private int indexFloor(long value) { return Math.toIntExact(Math.floorDiv(value, step)); }
         private int indexCeil(long value) { return Math.toIntExact(-Math.floorDiv(-value, step)); }
+        long xGap(int index) { return gap(originX, (long)index * step + minOffsetX, (long)index * step + maxOffsetX); }
+        long zGap(int index) { return gap(originZ, (long)index * step + minOffsetZ, (long)index * step + maxOffsetZ); }
+        int nearestX(int min, int max) { return nearest(originX, minOffsetX, maxOffsetX, min, max, true); }
+        int nearestZ(int min, int max) { return nearest(originZ, minOffsetZ, maxOffsetZ, min, max, false); }
+        private int nearest(long origin, long low, long high, int min, int max, boolean x) {
+            long center = low + (high - low) / 2;
+            long index = Math.floorDiv(origin - center, step);
+            int first = (int)Math.max(min, Math.min(max, index)), second = (int)Math.max(min, Math.min(max, index + 1));
+            return (x ? xGap(first) <= xGap(second) : zGap(first) <= zGap(second)) ? first : second;
+        }
     }
     private final Geometry geometry;
     private final int leafSize;
@@ -52,7 +62,7 @@ public final class RectFrontier {
     // 原始类型二叉堆：不为每个分块分配 Node/Rect，也不为每个采样点建树。
     private int[] minXs = new int[64], minZs = new int[64], maxXs = new int[64], maxZs = new int[64];
     private long[] bounds = new long[64];
-    private int size, x, z, leafMinX, leafMaxX, leafMaxZ;
+    private int size, x, z, leafMinX, leafMaxX, leafMinZ, leafMaxZ, rowStartX, leftX, rightX, leftZ, rightZ;
     private boolean leaf;
     private long leafBound;
 
@@ -119,19 +129,28 @@ public final class RectFrontier {
                     }
                     continue;
                 }
-                leaf = true; leafBound = bound; leafMinX = minX; leafMaxX = maxX; leafMaxZ = maxZ;
-                x = minX; z = minZ; break;
+                leaf = true; leafBound = bound; leafMinX = minX; leafMaxX = maxX; leafMinZ = minZ; leafMaxZ = maxZ;
+                rowStartX = geometry.nearestX(minX, maxX); x = rowStartX; leftX = x - 1; rightX = x + 1;
+                z = geometry.nearestZ(minZ, maxZ); leftZ = z - 1; rightZ = z + 1; break;
             }
         }
         if (!leaf) throw new IllegalStateException("Exhausted rectangle domain");
         long point = ((long)x << 32) | (z & 0xffffffffL);
-        if (x == leafMaxX) {
-            x = leafMinX;
-            if (z == leafMaxZ) leaf = false; else z++;
-        } else x++;
+        // 叶内从最接近查询的行开始，每行也从近到远。没有圆环、条带或平方根游标。
+        if (leftX >= leafMinX || rightX <= leafMaxX) {
+            x = rightX > leafMaxX || leftX >= leafMinX && geometry.xGap(leftX) <= geometry.xGap(rightX) ? leftX-- : rightX++;
+        } else if (leftZ >= leafMinZ || rightZ <= leafMaxZ) {
+            z = rightZ > leafMaxZ || leftZ >= leafMinZ && geometry.zGap(leftZ) <= geometry.zGap(rightZ) ? leftZ-- : rightZ++;
+            x = rowStartX; leftX = x - 1; rightX = x + 1;
+            long dx = gap(geometry.originX, (long)leafMinX * geometry.step + geometry.minOffsetX,
+                    (long)leafMaxX * geometry.step + geometry.maxOffsetX);
+            long dz = geometry.zGap(z);
+            leafBound = Math.addExact(Math.multiplyExact(dx, dx), Math.multiplyExact(dz, dz));
+        } else leaf = false;
         return point;
     }
     public boolean inRange(int x, int z) { return geometry.lowerBound(x, z, x, z) <= maximum; }
+    public boolean inRange(int x, int z, long verifiedUpper) { return geometry.lowerBound(x,z,x,z) <= Math.min(maximum, verifiedUpper); }
     public static long gap(long value, long min, long max) {
         return value < min ? min - value : value > max ? value - max : 0;
     }

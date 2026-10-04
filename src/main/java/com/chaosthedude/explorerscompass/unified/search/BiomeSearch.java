@@ -24,7 +24,7 @@ public final class BiomeSearch extends SearchJob {
                 .withTieBreaker(Comparator.<SearchCandidate>comparingInt(candidate -> Math.abs(candidate.position().getY() - start.getY()))
                         .thenComparingInt(candidate -> candidate.position().getX())
                         .thenComparingInt(candidate -> candidate.position().getZ())
-                        .thenComparingInt(candidate -> candidate.position().getY())).withBatch(1024, 4_000_000L);
+                        .thenComparingInt(candidate -> candidate.position().getY())).withBatch(1024, 4_000_000L).withEagerCandidates(false);
     }
     private List<ScanCoordinator.Lane<SearchCandidate>> createLanes() {
         if (radius <= 0 || maxSamples <= 0) return List.of();
@@ -43,7 +43,9 @@ public final class BiomeSearch extends SearchJob {
             if (QuartPos.fromBlock(y) != QuartPos.fromBlock(initialY)) heights.add(y);
         heights.sort(Comparator.comparingInt(y -> Math.abs(y - initialY)));
         SamplingBudget budget = new SamplingBudget(maxSamples); budgets.add(budget);
-        boolean background = async && BiomeSourceSafety.prepare(level).allowed();
+        boolean safeSource = BiomeSourceSafety.prepare(level).allowed();
+        boolean background = async && safeSource;
+        var cache = safeSource ? WorldgenCache.get(level) : null;
         int workers = background ? SearchConfig.threads() : 1;
         List<ScanCoordinator.Lane<SearchCandidate>> lanes = new ArrayList<>();
         var geometry = new RectFrontier.Geometry(origin.getX(), origin.getZ(), spacing,
@@ -53,7 +55,8 @@ public final class BiomeSearch extends SearchJob {
                     List.copyOf(heights), depthInterval, background, (dx, dz, y) -> {
                 int x = origin.getX() + dx * spacing, z = origin.getZ() + dz * spacing;
                 if (ignoredPositions.excludes(x, z)) return List.of();
-                if (source.getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z), noise).value() != biome)
+                int qx = QuartPos.fromBlock(x), qy = QuartPos.fromBlock(y), qz = QuartPos.fromBlock(z);
+                if ((cache == null ? source.getNoiseBiome(qx,qy,qz,noise).value() : cache.predictBiome(qx,qy,qz)) != biome)
                     return List.of();
                 BlockPos position = new BlockPos(x, y, z);
                 return List.of(new SearchCandidate(position, key, null, null, null, distance(origin, position)));

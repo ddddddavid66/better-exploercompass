@@ -26,9 +26,13 @@ final class BiomeColumnLane implements ScanCoordinator.Lane<SearchCandidate> {
     public boolean budgetLimited(long maximum) { return !budget.available() && pendingLowerBound() <= maximum; }
     public boolean backgroundAllowed() { return background; }
     public List<SearchCandidate> sample() {
+        return sample(Long.MAX_VALUE);
+    }
+    public List<SearchCandidate> sample(long verifiedUpper) {
+        if (column && geometry.lowerBound(x,z,x,z) > verifiedUpper) { column = false; return List.of(); }
         if (!column) {
             long point = frontier.next(); x = (int)(point >> 32); z = (int)point;
-            if (!frontier.inRange(x, z)) return List.of();
+            if (!frontier.inRange(x, z, verifiedUpper)) return List.of();
             column = true; height = 0;
         }
         if (!budget.take()) return List.of();

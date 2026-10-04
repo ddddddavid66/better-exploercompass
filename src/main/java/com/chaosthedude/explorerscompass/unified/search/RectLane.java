@@ -17,8 +17,11 @@ public final class RectLane<T> implements ScanCoordinator.Lane<T> {
     }
     public boolean available(long limit) { return budget.available() && frontier.available(limit); }
     public List<T> sample() {
+        return sample(Long.MAX_VALUE);
+    }
+    public List<T> sample(long verifiedUpper) {
         long point = frontier.next(); int x = (int)(point >> 32), z = (int)point;
-        if (!frontier.inRange(x, z) || !budget.take()) return List.of();
+        if (!frontier.inRange(x, z, verifiedUpper) || !budget.take()) return List.of();
         return sampler.apply(x, z);
     }
     public long pendingLowerBound() { return frontier.lowerBound(); }

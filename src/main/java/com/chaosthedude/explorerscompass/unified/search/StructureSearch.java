@@ -200,6 +200,9 @@ public final class StructureSearch extends SearchJob {
         return candidate == null ? null : verified.getOrDefault(candidate, candidate);
     }
     @Override public void cancel() { verification.cancel(); super.cancel(); }
+    @Override public void prime() {
+        if (preparations.stream().noneMatch(DungeonsPrediction::preparing)) super.prime();
+    }
     @Override public long preparationNanos() { return preparationNanos; }
     @Override public long confirmationNanos() { return verification.mainNanos(); }
     @Override public long waitingNanos() { return verification.waitingNanos(); }
