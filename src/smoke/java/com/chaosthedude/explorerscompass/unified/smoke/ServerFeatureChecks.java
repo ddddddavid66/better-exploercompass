@@ -21,6 +21,32 @@ import static com.chaosthedude.explorerscompass.unified.smoke.SmokeChecks.check;
 /** 正式服务端里的真实目录、方块碰撞和权限验证，不进入安装 jar。 */
 public final class ServerFeatureChecks {
     private ServerFeatureChecks() {}
+    /** 模拟快照准备耗尽本 tick 的预算，下一轮仍须正常推进，不丢任务。 */
+    private static void tickBudget(ServerPlayer player,ItemStack stack) throws Exception {
+        boolean asynchronous=SearchConfig.ASYNC_STRUCTURES.get();
+        var pending=SearchService.class.getDeclaredField("pendingPreparationNanos");pending.setAccessible(true);
+        long previous=pending.getLong(null);
+        try {
+            SearchConfig.ASYNC_STRUCTURES.set(false);
+            var village=new ResourceLocation("minecraft:village_plains");
+            check(SearchService.startStructures(player,stack,village,java.util.List.of(village)),"budget request accepted");
+            var field=SearchService.class.getDeclaredField("sessions");field.setAccessible(true);
+            var sessions=(java.util.Map<?,?>)field.get(null);
+            var session=sessions.get(player.getUUID());
+            var jobField=session.getClass().getDeclaredField("job");jobField.setAccessible(true);
+            var job=(SearchJob)jobField.get(session);
+            long prepared=job.mainNanos;
+            pending.setLong(null,SearchConfig.TICK_MILLIS.get()*1_000_000L+1);
+            SearchService.tick();
+            check(job.mainNanos==prepared && SearchService.owns(player,stack),"exhausted preparation budget defers without losing request");
+            check(pending.getLong(null)==0,"preparation debit consumed once");
+            SearchService.tick();
+            check(job.mainNanos>prepared,"next tick resumes deferred search");
+        } finally {
+            SearchService.cancel(player,true);SearchConfig.ASYNC_STRUCTURES.set(asynchronous);
+            pending.setLong(null,previous);
+        }
+    }
     public static void verify(MinecraftServer server) throws Exception {
         var world = server.overworld();
         var catalog = CatalogService.snapshot(world, UUID.randomUUID());
@@ -41,6 +67,7 @@ public final class ServerFeatureChecks {
         var player = new ServerPlayer(server,world,profile);
         ItemStack stack = new ItemStack(ExplorersCompass.explorersCompass);
         player.setItemInHand(InteractionHand.MAIN_HAND,stack);
+        tickBudget(player,stack);
         BlockPos point = world.getSharedSpawnPos().above(20); preload(world, point);
         var oldFloor = world.getBlockState(point.below()); var oldFeet = world.getBlockState(point); var oldHead = world.getBlockState(point.above());
         var key = world.getBiome(point).unwrapKey().orElseThrow().location();
