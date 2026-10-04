@@ -15,7 +15,7 @@ def percentile(values, fraction):
     return values[max(0, math.ceil(len(values) * fraction) - 1)] if values else None
 
 def summary(rows, field):
-    values = [float(row[field]) for row in rows if row[field] != 'N/A']
+    values = [float(row[field]) for row in rows if row.get(field, 'N/A') != 'N/A']
     return {'median': statistics.median(values), 'p95': percentile(values, .95), 'max': max(values)} if values else None
 
 def analyze(directory):
@@ -35,7 +35,9 @@ def analyze(directory):
                 group = [row for row in rows if row['engine'] == engine and row['target'] == target and row['cache'] == cache
                          and row['result'] == 'found' and row['verified'] == 'true']
                 results[f'{engine}:{target}:{cache}'] = {'count': len(group), **{field: summary(group, field)
-                    for field in ('wall_ms', 'main_ms', 'search_tick_p95_ms', 'search_tick_max_ms', 'worker_ms', 'samples', 'checks', 'chunk_requests')}}
+                    for field in ('wall_ms', 'main_ms', 'search_tick_p95_ms', 'search_tick_max_ms', 'request_main_ms',
+                                  'worker_ms', 'preparation_ms', 'confirmation_ms', 'waiting_ms', 'samples',
+                                  'candidates', 'checks', 'chunk_requests')}}
     mismatches = []
     for seed in SEEDS:
         for target in TARGETS:
