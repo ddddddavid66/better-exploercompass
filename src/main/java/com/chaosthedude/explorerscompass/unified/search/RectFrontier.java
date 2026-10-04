@@ -60,8 +60,10 @@ public final class RectFrontier {
     private final int leafSize;
     private final long maximum;
     // 原始类型二叉堆：不为每个分块分配 Node/Rect，也不为每个采样点建树。
-    private int[] minXs = new int[16], minZs = new int[16], maxXs = new int[16], maxZs = new int[16];
-    private long[] bounds = new long[16];
+    private int[] minXs, minZs, maxXs, maxZs;
+    private long[] bounds;
+    private Rect seed;
+    private long seedBound;
     private int size, x, z, leafMinX, leafMaxX, leafMinZ, leafMaxZ, rowStartX, leftX, rightX, leftZ, rightZ;
     private boolean leaf;
     private long leafBound;
@@ -69,11 +71,16 @@ public final class RectFrontier {
     public RectFrontier(Geometry geometry, Rect domain, int leafSize, long maximumSquared) {
         if (leafSize < 1 || maximumSquared < 0) throw new IllegalArgumentException();
         this.geometry = geometry; this.leafSize = leafSize; maximum = maximumSquared;
-        add(domain.minX, domain.minZ, domain.maxX, domain.maxZ);
+        seedBound=geometry.lowerBound(domain);
+        if(seedBound<=maximum)seed=domain;
     }
     private void add(int minX, int minZ, int maxX, int maxZ) {
         long bound = geometry.lowerBound(minX, minZ, maxX, maxZ);
         if (bound > maximum) return;
+        // 请求阶段只保留不可变根范围；堆数组在实际采样线程首次使用时建立。
+        if(bounds==null) {
+            minXs=new int[16];minZs=new int[16];maxXs=new int[16];maxZs=new int[16];bounds=new long[16];
+        }
         if (size == bounds.length) {
             int capacity = size * 2;
             minXs = java.util.Arrays.copyOf(minXs, capacity); minZs = java.util.Arrays.copyOf(minZs, capacity);
@@ -110,10 +117,12 @@ public final class RectFrontier {
     }
     /** 下界不依赖采样额度。额度为零时未覆盖范围仍然存在。 */
     public long lowerBound() {
+        if(seed!=null)return seedBound;
         return Math.min(leaf ? leafBound : Long.MAX_VALUE, size == 0 ? Long.MAX_VALUE : bounds[0]);
     }
-    public boolean available(long limit) { return lowerBound() <= limit; }
+    public boolean available(long limit) { long bound=lowerBound();return bound!=Long.MAX_VALUE&&bound<=limit; }
     public long next() {
+        if(seed!=null) {Rect first=seed;seed=null;add(first.minX,first.minZ,first.maxX,first.maxZ);}
         if (!leaf) {
             while (size > 0) {
                 int minX = minXs[0], minZ = minZs[0], maxX = maxXs[0], maxZ = maxZs[0]; long bound = bounds[0];

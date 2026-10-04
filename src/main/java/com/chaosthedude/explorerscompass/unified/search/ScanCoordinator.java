@@ -106,12 +106,13 @@ public final class ScanCoordinator<T> {
             item.scheduledStep = turn;
             if (async && item.lane.backgroundAllowed()) progress |= submit(item, executor);
             else {
-                Packet<T> packet = sample(item, 1, false);
-                pending.addAll(packet.values); item.remaining = packet.remainingBound;
-                return true;
+                if (!item.lane.available(priority.get())) return progress;
+                // 兼容路径每次只有一个采样；无需创建工作线程的批次包装或内部计时器。
+                for (T candidate : item.lane.sample(verifiedUpper.get())) if (admit(candidate)) pending.add(candidate);
+                item.remaining=item.lane.pendingLowerBound();return true;
             }
         }
-        if (work.stream().anyMatch(item -> item.running.get() || !item.output.isEmpty())) return progress;
+        for (Work item : work) if (item.running.get() || !item.output.isEmpty()) return progress;
         if (!pending.isEmpty() && candidateBound.applyAsLong(pending.peek()) <= upper) return progress;
         for (Work item : work) if (item.lane.available(upper)) { priority.set(upper); return progress; }
         // 空批次可能在上面的证明检查后完成；终止前再读取一次完整前沿。
@@ -172,26 +173,30 @@ public final class ScanCoordinator<T> {
         catch (RejectedExecutionException full) { item.running.set(false); return false; }
     }
     private Packet<T> sample(Work item, int size, boolean worker) {
-        long begin = System.nanoTime(); List<T> values = new ArrayList<>();
+        long begin = System.nanoTime(); List<T> values = null;
         try {
             for (int i = 0; i < size && !done && !cancelled.get() && !Thread.currentThread().isInterrupted()
                     && item.lane.available(priority.get()); i++) {
-                for (T candidate : item.lane.sample(verifiedUpper.get())) if (candidateBound.applyAsLong(candidate) <= maximum) {
+                for (T candidate : item.lane.sample(verifiedUpper.get())) if (admit(candidate)) {
                     if (unconditionalConfirmation) {
                         // 群系的完整官方查询已经给出真实有效点；只保留批内最优点，不丢失可能被拒绝的结构。
-                        verifiedUpper.accumulateAndGet(distance.applyAsLong(candidate), Math::min);
-                        if (values.isEmpty()) values.add(candidate);
+                        if (values==null) {values=new ArrayList<>();values.add(candidate);}
                         else if (order.compare(candidate, values.get(0)) < 0) values.set(0,candidate);
-                    } else values.add(candidate);
-                    count.incrementAndGet();
-                    // 暂停更远工作以便先核对；此优先级不用于永久剪枝，拒绝后恢复。
-                    priority.accumulateAndGet(Math.max(candidateBound.applyAsLong(candidate), distance.applyAsLong(candidate)), Math::min);
+                    } else {if(values==null)values=new ArrayList<>();values.add(candidate);}
                 }
-                if (!values.isEmpty() && (eagerCandidates || distance.applyAsLong(values.get(values.size()-1)) == 0)
+                if (values!=null && (eagerCandidates || distance.applyAsLong(values.get(values.size()-1)) == 0)
                         || System.nanoTime() - begin >= batchNanos) break;
             }
-            return new Packet<>(values, item.lane.pendingLowerBound());
+            return new Packet<>(values==null?List.of():values, item.lane.pendingLowerBound());
         } finally { if (worker) workerNanos.addAndGet(System.nanoTime() - begin); }
+    }
+    private boolean admit(T candidate) {
+        long bound=candidateBound.applyAsLong(candidate),actual=distance.applyAsLong(candidate);
+        if(bound>maximum)return false;
+        if(unconditionalConfirmation)verifiedUpper.accumulateAndGet(actual,Math::min);
+        count.incrementAndGet();
+        // 预测只影响暂时优先级；真实查询／核对才可永久剪枝。
+        priority.accumulateAndGet(Math.max(bound,actual),Math::min);return true;
     }
     private void rebuild() {
         var queue = new PriorityQueue<T>(Comparator.comparingLong(candidateBound).thenComparing(order));
@@ -220,9 +225,9 @@ public final class ScanCoordinator<T> {
     public boolean cancelled() { return cancelled.get(); }
     public T result() { return result; }
     public boolean confirming() { return confirming; }
-    public boolean budgetLimited() { return work.stream().anyMatch(item -> item.lane.budgetLimited(maximum)); }
-    public boolean hasBackground() { return async && work.stream().anyMatch(item -> item.lane.backgroundAllowed()); }
-    public boolean hasCompatibility() { return !async || work.stream().anyMatch(item -> !item.lane.backgroundAllowed()); }
+    public boolean budgetLimited() { for(Work item:work)if(item.lane.budgetLimited(maximum))return true;return false; }
+    public boolean hasBackground() { if(async)for(Work item:work)if(item.lane.backgroundAllowed())return true;return false; }
+    public boolean hasCompatibility() { if(!async)return true;for(Work item:work)if(!item.lane.backgroundAllowed())return true;return false; }
     public long workerNanos() { return workerNanos.get(); }
     public long submittedBatches() { return submitted.get(); }
     public long candidateCount() { return count.get(); }

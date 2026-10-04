@@ -22,6 +22,7 @@ import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStruct
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 
 public final class StructureSearch extends SearchJob {
+    private static final ResourceLocation TREASURE=new ResourceLocation("minecraft:buried_treasure");
     private record Target(ResourceLocation key, Structure structure, Predicate<Holder<Biome>> biomes, DungeonsPrediction dungeons) {}
     private final List<ResourceLocation> keys;
     private final Set<Long> excluded;
@@ -33,6 +34,7 @@ public final class StructureSearch extends SearchJob {
     private long preparationNanos;
     private final List<DungeonsPrediction> preparations = new ArrayList<>();
     private boolean deferredPlacement;
+    private boolean warmContext;
     public StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
                            Set<Long> excluded, int radius, int maximumSamples, boolean async) {
         this(level, start, keys, excluded, radius, maximumSamples, async, false);
@@ -45,7 +47,8 @@ public final class StructureSearch extends SearchJob {
         verification = new StructureVerification(level, start);
         quotaDisabled = radius > 0 && maximumSamples <= 0;
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
-                (long)radius * radius, async).withTieBreaker(Comparator.comparing((SearchCandidate candidate) -> candidate.key().toString())
+                (long)radius * radius, async).withTieBreaker(Comparator.comparing(SearchCandidate::key,
+                        (first,second)->first.equals(second)?0:first.toString().compareTo(second.toString()))
                         .thenComparingInt(candidate -> candidate.position().getX()).thenComparingInt(candidate -> candidate.position().getZ()))
                 .withBatch(256, 4_000_000L).withEagerCandidates(false).withConfirmation(this::confirm)
                 .withCandidateLowerBound(this::candidateBound)
@@ -59,6 +62,7 @@ public final class StructureSearch extends SearchJob {
         var registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
         ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
         WorldgenCache cached = WorldgenCache.get(level);
+        warmContext=cached.hasPredictions();
         Map<StructurePlacement, List<Target>> groups = new LinkedHashMap<>();
         for (ResourceLocation key : keys) registry.getHolder(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE, key))
                 .ifPresent(holder -> state.getPlacementsForStructure(holder).forEach(placement ->
@@ -150,7 +154,7 @@ public final class StructureSearch extends SearchJob {
         return lanes;
     }
     private RectFrontier.Geometry geometry(int step, BlockPos offset, int minJitter, int maxJitter, List<Target> targets) {
-        boolean treasure = targets.stream().anyMatch(target -> target.key().toString().equals("minecraft:buried_treasure"));
+        boolean treasure = targets.stream().anyMatch(target -> TREASURE.equals(target.key()));
         long minX = minJitter + (treasure ? Math.min(0, offset.getX()) : offset.getX());
         long minZ = minJitter + (treasure ? Math.min(0, offset.getZ()) : offset.getZ());
         long maxX = maxJitter + (treasure ? Math.max(15, offset.getX()) : offset.getX());
@@ -158,14 +162,14 @@ public final class StructureSearch extends SearchJob {
         return new RectFrontier.Geometry(start.getX(), start.getZ(), step, minX, minZ, maxX, maxZ);
     }
     private long candidateBound(SearchCandidate candidate) {
-        if (!candidate.key().toString().equals("minecraft:buried_treasure")) return candidate.distanceSquared();
+        if (!TREASURE.equals(candidate.key())) return candidate.distanceSquared();
         long dx = RectFrontier.gap(start.getX(), candidate.chunk().getMinBlockX(), candidate.chunk().getMaxBlockX());
         long dz = RectFrontier.gap(start.getZ(), candidate.chunk().getMinBlockZ(), candidate.chunk().getMaxBlockZ());
         return dx * dx + dz * dz;
     }
     private long chunkBound(ChunkPos chunk, StructurePlacement placement) {
         long exact = distance(start, placement.getLocatePos(chunk));
-        if (!keys.contains(new ResourceLocation("minecraft:buried_treasure"))) return exact;
+        if (!keys.contains(TREASURE)) return exact;
         long dx = RectFrontier.gap(start.getX(), chunk.getMinBlockX(), chunk.getMaxBlockX());
         long dz = RectFrontier.gap(start.getZ(), chunk.getMinBlockZ(), chunk.getMaxBlockZ());
         return Math.min(exact, dx * dx + dz * dz);
@@ -201,7 +205,9 @@ public final class StructureSearch extends SearchJob {
     }
     @Override public void cancel() { verification.cancel(); super.cancel(); }
     @Override public void prime() {
-        if (preparations.stream().noneMatch(DungeonsPrediction::preparing)) super.prime();
+        // 暖上下文的短工作留给本 tick 正常调度，避免请求建立阶段争抢队列。
+        // 这只影响启动时机，不代表当前位置命中缓存，也不跳过任何生成查询。
+        if (!warmContext && preparations.stream().noneMatch(DungeonsPrediction::preparing)) super.prime();
     }
     @Override public long preparationNanos() { return preparationNanos; }
     @Override public long confirmationNanos() { return verification.mainNanos(); }

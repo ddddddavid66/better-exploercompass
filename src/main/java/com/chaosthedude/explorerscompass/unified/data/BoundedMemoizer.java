@@ -24,6 +24,8 @@ public final class BoundedMemoizer<K,V> {
         }
     }
     public int size() { values.cleanUp(); return Math.toIntExact(values.size()); }
+    /** 调度提示只读取计数，不在请求线程触发维护或清理。 */
+    public boolean hasEntries() { return values.size()!=0; }
     /** 查询拦截器只能读取已完成值，不能在缓存未命中时递归调用被拦截的方法。 */
     public V peek(K key) { return values.getIfPresent(key); }
     public void remember(K key, V value) { values.put(key, Objects.requireNonNull(value)); }

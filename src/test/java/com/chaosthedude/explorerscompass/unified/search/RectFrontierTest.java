@@ -6,6 +6,14 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class RectFrontierTest {
+    @Test void unlimitedQueryStillStopsAtFiniteDomainEnd() {
+        var geometry=new RectFrontier.Geometry(0,0,1,0,0,0,0);
+        var frontier=new RectFrontier(geometry,new RectFrontier.Rect(0,0,1,1),8,Long.MAX_VALUE);
+        var points=new HashSet<Long>();
+        while(frontier.available(Long.MAX_VALUE))assertTrue(points.add(frontier.next()));
+        assertEquals(4,points.size());assertEquals(Long.MAX_VALUE,frontier.lowerBound());
+        assertThrows(IllegalStateException.class,frontier::next);
+    }
     @Test void radiusInsidePlacementGapProducesEmptyDomain() {
         var geometry = new RectFrontier.Geometry(510, 510, 512, 0, 0, 496, 496);
         assertTrue(RectFrontier.partition(geometry.domain(1), 4).isEmpty());
