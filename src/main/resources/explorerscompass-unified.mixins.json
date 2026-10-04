@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.chaosthedude.explorerscompass.unified.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "explorerscompass-unified.refmap.json",
+  "mixins": [
+    "BackgroundChunkGuardMixin",
+    "BackgroundTemplateGuardMixin",
+    "PredictionHeightMixin",
+    "ChunkMapAccessor",
+    "StructureManagerAccessor",
+    "StructureCheckAccessor",
+    "LeviathanPrecheckMixin",
+    "FeatureOrderAccessor",
+    "EndDungeonObserverMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

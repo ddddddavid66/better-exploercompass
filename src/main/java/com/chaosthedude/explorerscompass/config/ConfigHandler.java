@@ -15,6 +15,7 @@ public class ConfigHandler {
 	public static final General GENERAL = new General(GENERAL_BUILDER);
 	public static final Client CLIENT = new Client(CLIENT_BUILDER);
 
+	static { com.chaosthedude.explorerscompass.unified.search.SearchConfig.define(GENERAL_BUILDER); }
 	public static final ForgeConfigSpec GENERAL_SPEC = GENERAL_BUILDER.build();
 	public static final ForgeConfigSpec CLIENT_SPEC = CLIENT_BUILDER.build();
 
@@ -22,11 +23,9 @@ public class ConfigHandler {
 		public final ForgeConfigSpec.BooleanValue allowTeleport;
 		public final ForgeConfigSpec.IntValue maxNextSearches;
 		public final ForgeConfigSpec.BooleanValue displayCoordinates;
-		public final ForgeConfigSpec.IntValue maxRadius;
 		public final ForgeConfigSpec.ConfigValue<List<String>> structureBlacklist;
 		public final ForgeConfigSpec.IntValue defaultXpLevels;
 		public final ForgeConfigSpec.ConfigValue<List<String>> perStructureXpLevels;
-		public final ForgeConfigSpec.IntValue maxSamples;
 		public final ForgeConfigSpec.IntValue compassDurability;
 
 		General(ForgeConfigSpec.Builder builder) {
@@ -42,9 +41,6 @@ public class ConfigHandler {
 			desc = "Allows players to view the precise coordinates and distance of a located structure on the HUD, rather than relying on the direction the compass is pointing.";
 			displayCoordinates = builder.comment(desc).define("displayCoordinates", true);
 
-			desc = "The maximum radius that will be searched for a structure. Raising this value will increase search accuracy but will potentially make the process more resource intensive.";
-			maxRadius = builder.comment(desc).defineInRange("maxRadius", 10000, 0, 1000000);
-
 			desc = "A list of structures that the compass will not display in the GUI and will not be able to search for. Wildcard character * can be used to match any number of characters, and ? can be used to match one character. Ex: [\"minecraft:stronghold\", \"minecraft:endcity\", \"minecraft:*village*\"]";
 			structureBlacklist = builder.comment(desc).define("structureBlacklist", new ArrayList<String>());
 
@@ -54,9 +50,6 @@ public class ConfigHandler {
 			desc = "A list of per-structure XP level costs that override defaultXpLevels, specified as comma-separated \"structure_id,num_levels\" pairs. Structures not listed here use defaultXpLevels. Max of 3 levels. The wildcard character * can be used to match any number of characters, and ? can be used to match one character. Ex: [\"minecraft:buried_treasure,3\", \"minecraft:end*,2\", \"minecraft:*village*,1\"]";
 			perStructureXpLevels = builder.comment(desc).define("perStructureXpLevels", new ArrayList<String>());
 
-			desc = "The maximum number of samples to be taken when searching for a structure.";
-			maxSamples = builder.comment(desc).defineInRange("maxSamples", 100000, 0, 100000000);
-
 			desc = "The number of successful structure searches before the compass breaks and must be repaired. Set to 0 to disable durability.";
 			compassDurability = builder.comment(desc).defineInRange("compassDurability", 0, 0, 10000);
 
@@ -65,6 +58,8 @@ public class ConfigHandler {
 	}
 
 	public static class Client {
+        public final ForgeConfigSpec.EnumValue<com.chaosthedude.explorerscompass.unified.data.LandingMode> landingMode;
+        public final ForgeConfigSpec.BooleanValue searchLogEnabled;
 		public final ForgeConfigSpec.BooleanValue displayWithChatOpen;
 		public final ForgeConfigSpec.BooleanValue translateStructureNames;
 		public final ForgeConfigSpec.EnumValue<OverlaySide> overlaySide;
@@ -73,6 +68,8 @@ public class ConfigHandler {
 		Client(ForgeConfigSpec.Builder builder) {
 			String desc;
 			builder.push("Client");
+            landingMode = builder.comment("Default two-stage, strict-only, or immediate relaxed landing.").defineEnum("landingMode", com.chaosthedude.explorerscompass.unified.data.LandingMode.DEFAULT);
+            searchLogEnabled = builder.comment("Local search history; controlled by /david log open|close.").define("searchLogEnabled", false);
 
 			desc = "Displays Explorer's Compass information on the HUD even while chat is open.";
 			displayWithChatOpen = builder.comment(desc).define("displayWithChatOpen", true);

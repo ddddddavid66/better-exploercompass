@@ -1,26 +1,28 @@
 modLoader="javafml"
 loaderVersion="[47,)"
 license="CC BY-NC-SA 4.0"
-issueTrackerURL="https://github.com/MattCzyr/ExplorersCompass/issues"
 [[mods]]
-    modId="explorerscompass"
-    version="1.20.1-1.4.0-forge"
-    displayName="Explorer's Compass"
-    displayURL="https://github.com/MattCzyr/ExplorersCompass"
-    authors="ChaosTheDude"
-    description='''
-    Search for and locate structures anywhere in the world.
-    '''
-
+modId="explorerscompass"
+version="1.1.0"
+displayName="探险者指南针 统一 / Explorer's Compass Unified"
+authors="ChaosTheDude, David"
+description="由 David 维护的非官方衍生版本，基于 Explorer's Compass 1.4.0。结构与群系异步搜索、维度/群系筛选、中文与拼音、暮色适配和两级落点传送。搜索次数累计成功传送次数。原项目：https://github.com/MattCzyr/ExplorersCompass"
 [[dependencies.explorerscompass]]
-    modId="forge"
-    mandatory=true
-    versionRange="[47,)"
-    ordering="NONE"
-    side="BOTH"
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
 [[dependencies.explorerscompass]]
-    modId="minecraft"
-    mandatory=true
-    versionRange="[1.20.1,)"
-    ordering="NONE"
-    side="BOTH"
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
+# 旧扩展与统一版同时安装时显示明确依赖冲突。
+[[dependencies.explorerscompass]]
+modId="explorerscompassfilters"
+mandatory=false
+versionRange="[0]"
+ordering="NONE"
+side="BOTH"
