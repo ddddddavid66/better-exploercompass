@@ -133,7 +133,7 @@ public final class ScanCoordinator<T> {
                 try {
                     if (done || cancelled.get()) return;
                     for (Work item : work) if (!item.running.get() && item.output.isEmpty()
-                            && item.lane.backgroundAllowed() && item.lane.available(maximum)) submit(item,executor);
+                            && item.lane.backgroundAllowed() && item.lane.available(priority.get())) submit(item,executor);
                 } catch (Throwable failure) { work.get(0).failure=failure; }
                 finally { priming.set(false); }
             });
@@ -215,6 +215,14 @@ public final class ScanCoordinator<T> {
         if (size < 1 || nanos < 1) throw new IllegalArgumentException(); batchSize = size; batchNanos = nanos; return this;
     }
     public ScanCoordinator<T> withEagerCandidates(boolean eager) { eagerCandidates = eager; return this; }
+    /** 历史位置只是候选：重新核对前只能暂停远处工作，绝不能构成剪枝或完成证明。 */
+    public ScanCoordinator<T> withCandidateHint(T candidate) {
+        customVerification();
+        if (submitted.get()!=0 || schedulingStep!=0 || done || cancelled.get())
+            throw new IllegalStateException("Hints must be supplied before scheduling");
+        if (admit(candidate)) pending.add(candidate);
+        return this;
+    }
     /** 仅供不需要区块核对、不会拒绝且不会修正锚点的真实采样结果使用。 */
     public ScanCoordinator<T> withUnconditionalConfirmation() {
         if (customVerification) throw new IllegalStateException("Custom verification requires main-thread confirmation");

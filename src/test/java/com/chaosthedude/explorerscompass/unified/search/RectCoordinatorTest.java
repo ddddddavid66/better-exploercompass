@@ -45,6 +45,46 @@ class RectCoordinatorTest {
             assertEquals(new Point(-5, 0), run(search, pool));
         } finally { pool.shutdownNow(); }
     }
+    @Test void acceptedHintStillSearchesCloserPointsAndEqualDistanceTies() throws Exception {
+        var pool=Executors.newFixedThreadPool(4);
+        try {
+            for(boolean async:new boolean[]{false,true}) {
+                var search=search(2000,async,p->p.distance()>=9,p->true)
+                        .withCandidateHint(new Point(3,0));
+                search.prime(pool);assertEquals(new Point(-3,0),run(search,pool));
+            }
+        }finally{pool.shutdownNow();}
+    }
+    @Test void rejectedHintResumesPausedDistantRange() throws Exception {
+        var pool=Executors.newFixedThreadPool(4);var hintChecks=new AtomicInteger();
+        try {
+            var search=search(2000,true,p->p.distance()>=25,p->{
+                if(p.distance()==1){hintChecks.incrementAndGet();return false;}return true;
+            }).withCandidateHint(new Point(1,0));
+            search.prime(pool);assertEquals(new Point(-5,0),run(search,pool));assertEquals(1,hintChecks.get());
+        }finally{pool.shutdownNow();}
+    }
+    @Test void hintCannotBypassQuotaOrAnchorCorrection() throws Exception {
+        var pool=Executors.newFixedThreadPool(4);
+        try {
+            var limited=search(1,false,p->false,p->true).withCandidateHint(new Point(10,0));
+            assertNull(run(limited,pool));assertTrue(limited.budgetLimited());
+            var corrected=search(2000,true,p->p.distance()==4,p->true)
+                    .withResolvedCandidate(p->p.distance()==1?new Point(10,0):p)
+                    .withCandidateHint(new Point(1,0));
+            assertEquals(new Point(-2,0),run(corrected,pool));
+        }finally{pool.shutdownNow();}
+    }
+    @Test void hintMustBeRecheckedAndCannotBeAddedAfterLaunch() throws Exception {
+        var pool=Executors.newFixedThreadPool(4);var checked=new AtomicInteger();
+        try {
+            var search=search(2000,true,p->false,p->{checked.incrementAndGet();return true;})
+                    .withCandidateHint(new Point(2,0));
+            search.prime(pool);assertEquals(0,checked.get());
+            assertThrows(IllegalStateException.class,()->search.withCandidateHint(new Point(1,0)));
+            assertEquals(new Point(2,0),run(search,pool));assertEquals(1,checked.get());
+        }finally{pool.shutdownNow();}
+    }
     @Test void quotaCannotBeMistakenForProofOfNearest() throws Exception {
         var pool = Executors.newSingleThreadExecutor();
         try {

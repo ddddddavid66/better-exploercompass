@@ -23,6 +23,9 @@ final class WorldgenCache {
     private final net.minecraft.world.level.biome.Climate.Sampler noise;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, DungeonsPrediction> dungeons = new IdentityHashMap<>();
+    // 少量近期位置只作为下次请求的提示；每次使用仍检查真实结构记录。
+    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
+            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private WorldgenCache(ServerLevel level) {
         biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
         noise = level.getChunkSource().randomState().sampler();
@@ -38,6 +41,8 @@ final class WorldgenCache {
         return WORLDS.computeIfAbsent(level, WorldgenCache::new);
     }
     boolean hasPredictions() { return predictions.hasEntries(); }
+    SearchCandidate hint(Structure structure) { return hints.peek(structure); }
+    void rememberHint(SearchCandidate candidate) { hints.remember(candidate.structure(),candidate); }
     Predicate<Holder<Biome>> biomeRule(Structure structure) {
         return biomeRules.computeIfAbsent(structure, StructurePredictor::biomeRule);
     }

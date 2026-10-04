@@ -35,6 +35,8 @@ public final class StructureSearch extends SearchJob {
     private final List<DungeonsPrediction> preparations = new ArrayList<>();
     private boolean deferredPlacement;
     private boolean warmContext;
+    private WorldgenCache context;
+    private final List<SearchCandidate> hints = new ArrayList<>();
     public StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
                            Set<Long> excluded, int radius, int maximumSamples, boolean async) {
         this(level, start, keys, excluded, radius, maximumSamples, async, false);
@@ -53,6 +55,7 @@ public final class StructureSearch extends SearchJob {
                 .withBatch(256, 4_000_000L).withEagerCandidates(false).withConfirmation(this::confirm)
                 .withCandidateLowerBound(this::candidateBound)
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
+        hints.forEach(scan::withCandidateHint);
     }
     private List<ScanCoordinator.Lane<SearchCandidate>> createLanes() {
         if (radius <= 0 || maximumSamples <= 0) return List.of();
@@ -62,6 +65,7 @@ public final class StructureSearch extends SearchJob {
         var registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
         ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
         WorldgenCache cached = WorldgenCache.get(level);
+        context=cached;
         warmContext=cached.hasPredictions();
         Map<StructurePlacement, List<Target>> groups = new LinkedHashMap<>();
         for (ResourceLocation key : keys) registry.getHolder(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE, key))
@@ -75,6 +79,12 @@ public final class StructureSearch extends SearchJob {
         List<ScanCoordinator.Lane<SearchCandidate>> lanes = new ArrayList<>();
         for (var group : groups.entrySet()) {
             StructurePlacement placement = group.getKey(); List<Target> targets = List.copyOf(group.getValue());
+            for (Target target : targets) {
+                SearchCandidate hint=cached.hint(target.structure());
+                if (hint!=null && hint.placement()==placement && !ignoredChunks.contains(hint.chunk().toLong()))
+                    hints.add(new SearchCandidate(hint.position(),hint.key(),hint.structure(),placement,
+                            hint.chunk(),distance(origin,hint.position())));
+            }
             TwilightPlacement twilight = TwilightPlacement.of(placement);
             GelGridPlacement gel = GelGridPlacement.of(placement, level.registryAccess());
             for (Target target : targets) if (target.dungeons() != null && !preparations.contains(target.dungeons()))
@@ -196,7 +206,10 @@ public final class StructureSearch extends SearchJob {
     }
     private ScanCoordinator.Confirmation confirm(SearchCandidate candidate) {
         var state = verification.verify(candidate);
-        if (state == ScanCoordinator.Confirmation.ACCEPT) verified.put(candidate, verification.confirmed());
+        if (state == ScanCoordinator.Confirmation.ACCEPT) {
+            SearchCandidate actual=verification.confirmed();
+            verified.put(candidate,actual);context.rememberHint(actual);
+        }
         return state;
     }
     @Override public SearchCandidate result() {
