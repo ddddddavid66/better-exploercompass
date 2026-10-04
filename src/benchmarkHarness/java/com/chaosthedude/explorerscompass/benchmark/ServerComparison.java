@@ -61,9 +61,14 @@ public final class ServerComparison {
     private static String failure = "";
     private static boolean requestPending;
     private static int settling=60;
-    private static int target() { return index / 10; }
-    private static int repeat() { return index / 2 % 5; }
-    private static boolean warm() { return index % 2 == 1; }
+    private static final boolean WARM_ONLY=Boolean.getBoolean("compassbench.warmOnly");
+    private static final int REPEATS=Math.max(1,Integer.getInteger("compassbench.repeats",5));
+    private static final int PREWARM=WARM_ONLY?Math.max(1,Integer.getInteger("compassbench.prewarm",10)):0;
+    private static int perTarget() { return WARM_ONLY?REPEATS+PREWARM:REPEATS*2; }
+    private static int target() { return index / perTarget(); }
+    private static int repeat() { return WARM_ONLY?index%perTarget()-PREWARM:index/2%REPEATS; }
+    private static boolean warm() { return WARM_ONLY || index % 2 == 1; }
+    private static String cacheLabel() { return WARM_ONLY&&repeat()<0?"warmup":warm()?"warm":"cold"; }
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         if (!Boolean.getBoolean("compassbench.enabled")) return;
         server = event.getServer();
@@ -115,8 +120,8 @@ public final class ServerComparison {
         level.noSave = true; levels.put(key, level); server.markWorldsDirty();
     }
     private static void next() throws Exception {
-        if (index == 50) { finish(); return; }
-        if (!warm()) freshWorld();
+        if (index == TARGETS.size()*perTarget()) { finish(); return; }
+        if (!warm() || WARM_ONLY&&index%perTarget()==0) freshWorld();
         player = FakePlayerFactory.get(level, new GameProfile(UUID.randomUUID(), "CompassBench"));
         player.setGameMode(GameType.SURVIVAL); player.setPos(0, 64, 0);
         stack = new ItemStack(ForgeRegistries.ITEMS.getValue(new ResourceLocation("explorerscompass:explorerscompass")));
@@ -152,7 +157,7 @@ public final class ServerComparison {
             int x = tag.getInt("FoundX"), z = tag.getInt("FoundZ");
             int y = tag.contains("ECFiltersFoundY") ? tag.getInt("ECFiltersFoundY") : tag.contains("FoundY") ? tag.getInt("FoundY") : 64;
             boolean verified = state == 2 && !timeout && validate(x, y, z);
-            String row = csv(ENGINE, server.overworld().getSeed(), TARGETS.get(target()), warm() ? "warm" : "cold", repeat(), 40000,
+            String row = csv(ENGINE, server.overworld().getSeed(), TARGETS.get(target()), cacheLabel(), repeat(), 40000,
                     (ended - started) / 1e6, main / 1e6, percentile(ticks, .95), percentile(ticks, 1),
                     access.metric("workerNanos", "priorWorker", false) / 1e6,
                     access.metric("preparationNanos", "priorPreparation", false) / 1e6,
@@ -164,7 +169,7 @@ public final class ServerComparison {
             Files.writeString(CSV, row, java.nio.file.StandardOpenOption.APPEND);
             System.out.println("COMPASSBENCH result " + row.trim());
             access.cancel(player);
-            if (warm()) { levels.remove(key); server.markWorldsDirty(); level.close(); storage.close(); level = null; storage = null; }
+            if (warm() && (!WARM_ONLY || (index+1)%perTarget()==0)) { levels.remove(key); server.markWorldsDirty(); level.close(); storage.close(); level = null; storage = null; }
             index++; next();
         } catch (Throwable error) { fail(error); }
     }
@@ -202,7 +207,7 @@ public final class ServerComparison {
         try {
             if (level != null) { levels.remove(key); server.markWorldsDirty(); level.close(); }
             if (storage != null) storage.close();
-            Files.writeString(Path.of("comparison-status.txt"), failure.isEmpty() ? "COMPLETE: 50 requests\n" : "FAILED: " + failure + "\n");
+            Files.writeString(Path.of("comparison-status.txt"), failure.isEmpty() ? "COMPLETE: "+index+" requests\n" : "FAILED: " + failure + "\n");
         } catch (Exception error) { error.printStackTrace(); }
         server.halt(false); server = null;
     }

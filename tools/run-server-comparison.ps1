@@ -5,19 +5,24 @@ param(
     [Parameter(Mandatory=$true)][string]$EnhanceJar,
     [Parameter(Mandatory=$true)][string]$HarnessJar,
     [string]$Java='java',
-    [long[]]$Seeds=@(789123,1,42,20241002,987654321)
+    [long[]]$Seeds=@(789123,1,42,20241002,987654321),
+    [ValidateSet('unified105','unified110','enhance160')][string[]]$EngineNames=@('unified105','unified110','enhance160'),
+    [ValidateRange(1,1000)][int]$Repeats=5,
+    [switch]$WarmOnly,
+    [ValidateRange(1,1000)][int]$Prewarm=10,
+    [ValidatePattern('^[a-zA-Z0-9-]+$')][string]$RunName='results'
 )
 $ErrorActionPreference='Stop'
 $taskBase=[IO.Path]::GetFullPath($Instances)
 $inputs=@{unified105=$BaselineJar;unified110=$UnifiedJar;enhance160=$EnhanceJar}
-$output=Join-Path $taskBase 'results'
+$output=Join-Path $taskBase $RunName
 [IO.Directory]::CreateDirectory($output)|Out-Null
 $harness=[IO.Path]::GetFullPath($HarnessJar)
-$engines=@('unified105','unified110','enhance160')
+$engines=$EngineNames
 for($seedIndex=0;$seedIndex -lt $Seeds.Length;$seedIndex++) {
     $seed=$Seeds[$seedIndex]
-    for($pass=0;$pass -lt 3;$pass++) {
-        $engine=$engines[($pass+$seedIndex)%3]
+    for($pass=0;$pass -lt $engines.Length;$pass++) {
+        $engine=$engines[($pass+$seedIndex)%$engines.Length]
         $instance=[IO.Path]::GetFullPath((Join-Path $taskBase $engine))
         if(-not $instance.StartsWith($taskBase+[IO.Path]::DirectorySeparatorChar)){throw 'Invalid instance path'}
         if(-not(Test-Path -LiteralPath (Join-Path $instance 'libraries'))){throw "Forge instance missing: $instance"}
@@ -46,17 +51,19 @@ for($seedIndex=0;$seedIndex -lt $Seeds.Length;$seedIndex++) {
         $metadata=@{seed=$seed;engine=$engine;java=$Java;radius=40000;structureSamples=25000000;biomeSamples=8000000;mainBudgetMs=2;
             searchThreads=4;startupSettlingTicks=60;maxHeap='3G';forge='47.4.18';origin=@(0,64,0);
             processor=[Environment]::GetEnvironmentVariable('PROCESSOR_IDENTIFIER');logicalProcessors=[Environment]::ProcessorCount;
+            repeats=$Repeats;warmOnly=$WarmOnly.IsPresent;prewarm=if($WarmOnly){$Prewarm}else{0};
             compassSha256=(Get-FileHash -LiteralPath (Join-Path $mods 'compass.jar')).Hash;
             harnessSha256=(Get-FileHash -LiteralPath (Join-Path $mods 'compassbench.jar')).Hash}
         $metadata|ConvertTo-Json|Set-Content -Encoding utf8 (Join-Path $output "$engine-$seed.config.json")
         Push-Location -LiteralPath $instance
         try {
             Write-Output "Running $engine seed $seed"
-            & $Java '-Xmx3G' '-Dcompassbench.enabled=true' "-Dcompassbench.engine=$engine" '@libraries/net/minecraftforge/forge/1.20.1-47.4.18/win_args.txt' nogui *> (Join-Path $output "$engine-$seed.launch.log")
+            & $Java '-Xmx3G' '-Dcompassbench.enabled=true' "-Dcompassbench.engine=$engine" "-Dcompassbench.repeats=$Repeats" "-Dcompassbench.warmOnly=$($WarmOnly.IsPresent.ToString().ToLowerInvariant())" "-Dcompassbench.prewarm=$Prewarm" '@libraries/net/minecraftforge/forge/1.20.1-47.4.18/win_args.txt' nogui *> (Join-Path $output "$engine-$seed.launch.log")
             Copy-Item -LiteralPath 'comparison.csv' -Destination (Join-Path $output "$engine-$seed.csv")
             Copy-Item -LiteralPath 'comparison-status.txt' -Destination (Join-Path $output "$engine-$seed.status.txt")
             if($LASTEXITCODE -ne 0 -or ([IO.File]::ReadAllText((Join-Path $instance 'comparison-status.txt'))) -notlike 'COMPLETE:*'){throw "Comparison failed: $engine $seed"}
         } finally {Pop-Location}
     }
 }
-Write-Output "Completed $($Seeds.Length*3*50) requests. Raw evidence: $output"
+$perTarget=if($WarmOnly){$Repeats+$Prewarm}else{$Repeats*2}
+Write-Output "Completed $($Seeds.Length*$engines.Length*5*$perTarget) requests. Raw evidence: $output"
