@@ -3,3 +3,18 @@
 # are changed when only line endings change.
 src/generated/**/.cache/cache text eol=lf
 src/generated/**/*.json text eol=lf
+
+# Pin archive inputs across Windows/Linux checkouts. Preserve the already
+# measured archive's owned-resource line endings and upstream resources.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.png binary
+*.nbt binary
+*.bin binary
+NOTICE.txt text eol=crlf
+src/main/resources/META-INF/mods.toml text eol=crlf
+src/main/resources/assets/explorerscompass/lang/en_us.json text eol=crlf
+src/main/resources/assets/explorerscompass/lang/zh_cn.json text eol=crlf
+src/main/resources/explorerscompass-unified.mixins.json text eol=crlf
+src/main/resources/pack.mcmeta text eol=crlf
