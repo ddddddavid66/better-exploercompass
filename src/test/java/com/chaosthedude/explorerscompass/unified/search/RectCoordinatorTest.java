@@ -92,6 +92,21 @@ class RectCoordinatorTest {
             assertNull(run(search, pool)); assertTrue(search.budgetLimited());
         } finally { pool.shutdownNow(); }
     }
+    @Test void losingFinalSharedQuotaCannotEraseAnUnqueriedPoint() throws Exception {
+        var pool=Executors.newSingleThreadExecutor();var sampled=new AtomicInteger();
+        try {
+            var budget=new SamplingBudget(1);
+            var geometry=new RectFrontier.Geometry(0,0,1,0,0,0,0);
+            var lane=new RectLane<Point>(geometry,new RectFrontier.Rect(0,0,0,0),8,400,budget,
+                    (x,z)->{sampled.incrementAndGet();return List.of(new Point(x,z));},true);
+            assertTrue(lane.available(9));assertTrue(budget.take()); // 另一分片在 available 与 take 之间胜出。
+            assertTrue(lane.sample(9).isEmpty());assertEquals(0,sampled.get());
+            assertEquals(0,lane.pendingLowerBound());assertTrue(lane.budgetLimited(400));
+            var search=new ScanCoordinator<>(List.of(lane),Point::distance,p->true,400,true)
+                    .withCandidateHint(new Point(3,0));
+            assertNull(run(search,pool));assertTrue(search.budgetLimited());
+        }finally{pool.shutdownNow();}
+    }
     @Test void rangeExhaustionIsDifferentFromQuota() throws Exception {
         var pool = Executors.newSingleThreadExecutor();
         try {
