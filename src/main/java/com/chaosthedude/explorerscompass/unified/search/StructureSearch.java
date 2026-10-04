@@ -23,7 +23,8 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 
 public final class StructureSearch extends SearchJob {
     private static final ResourceLocation TREASURE=new ResourceLocation("minecraft:buried_treasure");
-    private record Target(ResourceLocation key, Structure structure, Predicate<Holder<Biome>> biomes, DungeonsPrediction dungeons) {}
+    private record Target(ResourceLocation key, Structure structure, Predicate<Holder<Biome>> biomes,
+                          DungeonsPrediction dungeons, SearchCandidate hint) {}
     private final List<ResourceLocation> keys;
     private final Set<Long> excluded;
     private final int maximumSamples;
@@ -34,7 +35,6 @@ public final class StructureSearch extends SearchJob {
     private long preparationNanos;
     private final List<DungeonsPrediction> preparations = new ArrayList<>();
     private boolean deferredPlacement;
-    private boolean warmContext;
     private WorldgenCache context;
     private final List<SearchCandidate> hints = new ArrayList<>();
     public StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
@@ -66,22 +66,24 @@ public final class StructureSearch extends SearchJob {
         ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
         WorldgenCache cached = WorldgenCache.get(level);
         context=cached;
-        warmContext=cached.hasPredictions();
         Map<StructurePlacement, List<Target>> groups = new LinkedHashMap<>();
         for (ResourceLocation key : keys) registry.getHolder(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE, key))
-                .ifPresent(holder -> state.getPlacementsForStructure(holder).forEach(placement ->
+                .ifPresent(holder -> state.getPlacementsForStructure(holder).forEach(placement -> {
+                    SearchCandidate hint=cached.hint(holder.value());
+                    if(hint!=null && (hint.placement()!=placement || ignoredChunks.contains(hint.chunk().toLong()))) hint=null;
                     groups.computeIfAbsent(placement, ignored -> new ArrayList<>()).add(
                         new Target(key, holder.value(), cached.biomeRule(holder.value()),
                                 !compatiblePrediction && placement.getClass().getName().equals(GelGridPlacement.TYPE)
-                                        ? cached.dungeons(level, key, holder.value()) : null))));
+                                        ? cached.dungeons(level, key, holder.value()) : null,hint));
+                }));
         long seed = level.getSeed();
         boolean sourceSafe = BiomeSourceSafety.prepare(level).allowed();
         List<ScanCoordinator.Lane<SearchCandidate>> lanes = new ArrayList<>();
         for (var group : groups.entrySet()) {
             StructurePlacement placement = group.getKey(); List<Target> targets = List.copyOf(group.getValue());
             for (Target target : targets) {
-                SearchCandidate hint=cached.hint(target.structure());
-                if (hint!=null && hint.placement()==placement && !ignoredChunks.contains(hint.chunk().toLong()))
+                SearchCandidate hint=target.hint();
+                if (hint!=null)
                     hints.add(new SearchCandidate(hint.position(),hint.key(),hint.structure(),placement,
                             hint.chunk(),distance(origin,hint.position())));
             }
@@ -108,6 +110,9 @@ public final class StructureSearch extends SearchJob {
                 // 最终锚点可能与 locate 不同，由候选下界和真实核对统一判断半径。
                 List<SearchCandidate> found = new ArrayList<>();
                 for (Target target : targets) {
+                    // 此结构／区块已作为提示进入待核对队列；仍采样区域，但不重复预测和核对。
+                    // 快照在主线程建立，后台不能重新读取可能被其他玩家更新的提示缓存。
+                    if(target.hint()!=null && target.hint().chunk().equals(chunk)) continue;
                     DungeonsPrediction policy = target.dungeons();
                     BlockPos point = predict ? cached.predict(target.structure(), target.biomes(), chunk)
                             : gel != null && gel.backgroundAllowed && policy != null && policy.allowed()
@@ -218,9 +223,8 @@ public final class StructureSearch extends SearchJob {
     }
     @Override public void cancel() { verification.cancel(); super.cancel(); }
     @Override public void prime() {
-        // 暖上下文的短工作留给本 tick 正常调度，避免请求建立阶段争抢队列。
-        // 这只影响启动时机，不代表当前位置命中缓存，也不跳过任何生成查询。
-        if (!warmContext && preparations.stream().noneMatch(DungeonsPrediction::preparing)) super.prime();
+        // 有提示时先在正常 tick 中核对，再按真实上界启动，避免首批计算无关远处位置。
+        if (hints.isEmpty() && preparations.stream().noneMatch(DungeonsPrediction::preparing)) super.prime();
     }
     @Override public long preparationNanos() { return preparationNanos; }
     @Override public long confirmationNanos() { return verification.mainNanos(); }

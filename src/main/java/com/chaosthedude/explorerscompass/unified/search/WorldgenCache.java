@@ -40,7 +40,6 @@ final class WorldgenCache {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("生成缓存只能由服务端线程创建");
         return WORLDS.computeIfAbsent(level, WorldgenCache::new);
     }
-    boolean hasPredictions() { return predictions.hasEntries(); }
     SearchCandidate hint(Structure structure) { return hints.peek(structure); }
     void rememberHint(SearchCandidate candidate) { hints.remember(candidate.structure(),candidate); }
     Predicate<Holder<Biome>> biomeRule(Structure structure) {

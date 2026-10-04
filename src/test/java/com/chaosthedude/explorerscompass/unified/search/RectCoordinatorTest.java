@@ -49,7 +49,7 @@ class RectCoordinatorTest {
         var pool=Executors.newFixedThreadPool(4);
         try {
             for(boolean async:new boolean[]{false,true}) {
-                var search=search(2000,async,p->p.distance()>=9,p->true)
+                var search=search(2000,async,p->p.distance()>=9 && !p.equals(new Point(3,0)),p->true)
                         .withCandidateHint(new Point(3,0));
                 search.prime(pool);assertEquals(new Point(-3,0),run(search,pool));
             }
