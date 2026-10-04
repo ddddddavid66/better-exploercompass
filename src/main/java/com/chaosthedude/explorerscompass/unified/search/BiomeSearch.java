@@ -10,6 +10,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 
 public final class BiomeSearch extends SearchJob {
+    private static final Comparator<SearchCandidate> COORDINATES=Comparator
+            .<SearchCandidate>comparingInt(candidate->candidate.position().getX())
+            .thenComparingInt(candidate->candidate.position().getZ()).thenComparingInt(candidate->candidate.position().getY());
     private final ResourceLocation target;
     private final List<BlockPos> excluded;
     private final int maxSamples, spacing, vertical, depthInterval;
@@ -26,9 +29,7 @@ public final class BiomeSearch extends SearchJob {
         quotaDisabled = radius > 0 && maxSamples <= 0;
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> true, (long)radius * radius, async)
                 .withTieBreaker(Comparator.<SearchCandidate>comparingInt(candidate -> Math.abs(candidate.position().getY() - start.getY()))
-                        .thenComparingInt(candidate -> candidate.position().getX())
-                        .thenComparingInt(candidate -> candidate.position().getZ())
-                        .thenComparingInt(candidate -> candidate.position().getY())).withBatch(1024, 4_000_000L)
+                        .thenComparing(COORDINATES)).withBatch(1024, 4_000_000L)
                 .withEagerCandidates(false).withUnconditionalConfirmation();
         if(memo!=null)scan.withProvenSample(memo.candidates.get(0));
     }

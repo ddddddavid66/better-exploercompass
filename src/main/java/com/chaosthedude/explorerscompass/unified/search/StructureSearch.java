@@ -23,6 +23,9 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 
 public final class StructureSearch extends SearchJob {
     private static final ResourceLocation TREASURE=new ResourceLocation("minecraft:buried_treasure");
+    private static final Comparator<SearchCandidate> TIE=Comparator.comparing(SearchCandidate::key,
+            (first,second)->first.equals(second)?0:first.toString().compareTo(second.toString()))
+            .thenComparingInt(candidate->candidate.position().getX()).thenComparingInt(candidate->candidate.position().getZ());
     // 快照按对象身份使用，无需 record 的动态比较器与字符串生成代码。
     static final class Target {
         private final ResourceLocation key;private final Structure structure;
@@ -68,12 +71,11 @@ public final class StructureSearch extends SearchJob {
         verification = new StructureVerification(level, start);
         quotaDisabled = radius > 0 && maximumSamples <= 0;
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
-                (long)radius * radius, async).withTieBreaker(Comparator.comparing(SearchCandidate::key,
-                        (first,second)->first.equals(second)?0:first.toString().compareTo(second.toString()))
-                        .thenComparingInt(candidate -> candidate.position().getX()).thenComparingInt(candidate -> candidate.position().getZ()))
+                (long)radius * radius, async).withTieBreaker(TIE)
                 .withBatch(256, 4_000_000L).withEagerCandidates(false).withConfirmation(this::confirm)
-                .withCandidateLowerBound(this::candidateBound)
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
+        // 只有宝藏会修正 X/Z；普通候选的下界已等于其距离，不重复叠加相同比较器。
+        if(keys.contains(TREASURE))scan.withCandidateLowerBound(this::candidateBound);
         if(prefix!=null)scan.withCoveredPrefix(prefix.upper).withDeferredLanes(()-> {
             outerReady=true;return createLanes();
         });

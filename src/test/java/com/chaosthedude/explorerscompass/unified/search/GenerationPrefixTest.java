@@ -116,4 +116,13 @@ class GenerationPrefixTest {
         assertNotEquals(key,List.of(id,origin,32,64,4,List.of(origin)));
         assertNotEquals(key,List.of(id)); // 不与结构注册 ID 列表共用键空间。
     }
+    @Test void changingQueueOrderBeforeDispatchPreservesEveryPendingCandidate() throws Exception {
+        var scan=new ScanCoordinator<Point>(List.of(),Point::distance,p->true,4,true)
+                .withCandidateHint(new Point(-1,0)).withCandidateHint(new Point(1,0))
+                .withTieBreaker(Comparator.<Point>comparingInt(Point::x).reversed())
+                .withCandidateLowerBound(Point::distance);
+        var pool=Executors.newSingleThreadExecutor();pool.shutdownNow();
+        assertEquals(new Point(1,0),run(scan,pool));assertEquals(2,scan.candidateCount());
+        assertEquals(0,scan.submittedBatches());
+    }
 }

@@ -27,8 +27,9 @@ public abstract class SearchJob {
     public void prime() { scan.prime(SearchPool.executor()); }
     public boolean done() { return scan.done(); }
     public SearchCandidate result() { return scan.result(); }
-    public long samples() { return budgets.stream().mapToLong(SamplingBudget::used).sum(); }
-    public long sampleLimit() { return budgets.stream().mapToLong(SamplingBudget::maximum).sum(); }
+    // 状态和 HUD 会反复读取计数；小列表直接求和，避免每次建立 Stream 管线。
+    public long samples() {long total=0;for(int i=0;i<budgets.size();i++)total+=budgets.get(i).used();return total;}
+    public long sampleLimit() {long total=0;for(int i=0;i<budgets.size();i++)total+=budgets.get(i).maximum();return total;}
     public int legacySamples() { return (int)Math.min(Integer.MAX_VALUE, samples()); }
     public boolean budgetLimited() { return quotaDisabled || scan.budgetLimited(); }
     public String mode() {

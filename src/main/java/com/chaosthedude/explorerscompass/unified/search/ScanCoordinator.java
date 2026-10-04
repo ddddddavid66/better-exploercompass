@@ -38,6 +38,7 @@ public final class ScanCoordinator<T> {
     }
     private final List<Work> work = new ArrayList<>();
     private final ToLongFunction<T> distance;
+    private final Comparator<T> distanceOrder;
     private ToLongFunction<T> candidateBound;
     private Function<T, Confirmation> confirmation;
     private Function<T, T> resolved = Function.identity();
@@ -64,11 +65,13 @@ public final class ScanCoordinator<T> {
     public ScanCoordinator(List<Lane<T>> lanes, ToLongFunction<T> distance, Predicate<T> confirm, long maximum, boolean async) {
         this.distance = distance; candidateBound = distance; this.maximum = maximum; this.async = async;
         confirmation = candidate -> confirm.test(candidate) ? Confirmation.ACCEPT : Confirmation.REJECT;
-        order = Comparator.comparingLong(distance); rebuild(); priority.set(maximum); verifiedUpper.set(maximum);
-        lanes.forEach(lane -> work.add(new Work(lane)));
+        distanceOrder=Comparator.comparingLong(distance);order=distanceOrder;
+        priority.set(maximum); verifiedUpper.set(maximum);
+        for(Lane<T> lane:lanes)work.add(new Work(lane));
     }
     public boolean step(ExecutorService executor) throws Exception {
         if (done || cancelled.get()) return false;
+        prepareQueue();
         for (Work item : work) if (item.failure != null) throw new ExecutionException(item.failure);
         boolean progress = false;
         // 队列里的 packet 在主线程消费之前，旧下界一直保留，覆盖全部在途结果。
@@ -176,7 +179,7 @@ public final class ScanCoordinator<T> {
         }
     }
     private long unresolvedBound() {
-        long bound = pending.isEmpty() ? deferredBound : Math.min(deferredBound,candidateBound.applyAsLong(pending.peek()));
+        long bound = pending==null || pending.isEmpty() ? deferredBound : Math.min(deferredBound,candidateBound.applyAsLong(pending.peek()));
         for (Work item : work) bound = Math.min(bound, Math.max(coveredFloor,item.remaining));
         return bound;
     }
@@ -239,10 +242,15 @@ public final class ScanCoordinator<T> {
         priority.accumulateAndGet(Math.max(bound,actual),Math::min);return true;
     }
     private void rebuild() {
-        var queue = new PriorityQueue<T>(Comparator.comparingLong(candidateBound).thenComparing(order));
-        if (pending != null) queue.addAll(pending); pending = queue;
+        // 构造时比较器会配置多次；尚无候选时无需反复创建空堆。
+        if(pending==null)return;
+        var previous=pending;pending=null;prepareQueue();pending.addAll(previous);
     }
-    public ScanCoordinator<T> withTieBreaker(Comparator<T> tie) { order = Comparator.comparingLong(distance).thenComparing(tie); rebuild(); return this; }
+    private void prepareQueue() {
+        if(pending==null)pending=new PriorityQueue<>(candidateBound==distance?order:
+                Comparator.comparingLong(candidateBound).thenComparing(order));
+    }
+    public ScanCoordinator<T> withTieBreaker(Comparator<T> tie) { order = distanceOrder.thenComparing(tie); rebuild(); return this; }
     private void customVerification() {
         if (unconditionalConfirmation) throw new IllegalStateException("Unconditional samples cannot reject or adjust anchors");
         customVerification=true;
@@ -259,7 +267,7 @@ public final class ScanCoordinator<T> {
         customVerification();
         if (submitted.get()!=0 || schedulingStep!=0 || done || cancelled.get())
             throw new IllegalStateException("Hints must be supplied before scheduling");
-        if (admit(candidate)) pending.add(candidate);
+        if (admit(candidate)) {prepareQueue();pending.add(candidate);}
         return this;
     }
     /** 调用方必须提供此距离以内全部生成预测；它们仍逐个核对，绝不复用旧区块结论。 */
@@ -276,7 +284,7 @@ public final class ScanCoordinator<T> {
                 || submitted.get()!=0 || schedulingStep!=0 || done || cancelled.get())
             throw new IllegalStateException("Proven sample requires an unused immutable query");
         coveredFloor=actual+1;
-        if(admit(candidate))pending.add(candidate);return this;
+        if(admit(candidate)){prepareQueue();pending.add(candidate);}return this;
     }
     /** 已覆盖预测先核对；仅在需要外部范围时，在调用线程准备新的独立游标。 */
     public ScanCoordinator<T> withDeferredLanes(java.util.function.Supplier<List<Lane<T>>> prepare) {
