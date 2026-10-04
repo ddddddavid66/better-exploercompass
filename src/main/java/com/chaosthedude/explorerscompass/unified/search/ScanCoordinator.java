@@ -26,7 +26,10 @@ public final class ScanCoordinator<T> {
         default long pendingLowerBound() { return 0; }
         default boolean budgetLimited(long maximum) { return false; }
     }
-    private record Packet<T>(List<T> values, long remainingBound) {}
+    private static final class Packet<T> {
+        final List<T> values;final long remainingBound;
+        Packet(List<T> values,long remainingBound){this.values=values;this.remainingBound=remainingBound;}
+    }
     private final class Work {
         final Lane<T> lane;
         final BatchMailbox<Packet<T>> output = new BatchMailbox<>();

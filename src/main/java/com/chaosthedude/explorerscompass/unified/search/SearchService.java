@@ -34,6 +34,7 @@ public final class SearchService {
     private static final Map<CacheKey, List<BlockPos>> biomeHistory = new HashMap<>();
     private static final Map<StructureCacheKey, Set<Long>> structureHistory = new HashMap<>();
     private static int cursor;
+    private static long pendingPreparationNanos;
     private static final Map<UUID, Set<Long>> featureHistory = new HashMap<>();
     private record CacheKey(UUID player, ResourceLocation dimension, ResourceLocation biome) {}
     private record StructureCacheKey(UUID player, ResourceLocation dimension) {}
@@ -51,7 +52,7 @@ public final class SearchService {
         long lastSamples = -1;
         int ticks;
         String lastStage = "";
-        boolean group, next;
+        boolean group, next, fresh=true;
         Session(ServerPlayer player, ItemStack stack, ResourceLocation category, SearchJob job) {
             this.player = player; this.level = player.serverLevel(); this.stack = stack;
             this.category = category; this.job = job;this.requested=List.of(category);
@@ -147,7 +148,8 @@ public final class SearchService {
         session.group = group; session.next = next;session.requested=List.copyOf(keys);session.startedNanos=before;session.startedAt=beforeMillis;
         begin(session);
         SearchRules.charge(player, costKey);
-        job.mainNanos += System.nanoTime() - before;
+        long used=System.nanoTime()-before;
+        job.mainNanos+=used;pendingPreparationNanos+=used;
         return true;
     }
 
@@ -170,7 +172,8 @@ public final class SearchService {
                 SearchConfig.RADIUS.get(), Math.max(0, sampleLimit), SearchConfig.SPACING.get(),
                 SearchConfig.VERTICAL.get(), SearchConfig.DEPTH_INTERVAL.get(), SearchConfig.ASYNC_BIOMES.get());
         Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;begin(session);
-        job.mainNanos += System.nanoTime() - before;
+        long used=System.nanoTime()-before;
+        job.mainNanos+=used;pendingPreparationNanos+=used;
         return true;
     }
     private static boolean held(ServerPlayer player, ItemStack stack) {
@@ -203,12 +206,21 @@ public final class SearchService {
     }
 
     public static void tick() {
-        long deadline = System.nanoTime() + SearchConfig.TICK_MILLIS.get() * 1_000_000L;
+        long budget=SearchConfig.TICK_MILLIS.get()*1_000_000L;
+        long preparation=pendingPreparationNanos;pendingPreparationNanos=0;
+        // 请求准备也消耗主线程时间，不能在它之后重新领取完整的 tick 预算。
+        long deadline=System.nanoTime()+Math.max(0,budget-preparation);
         TeleportService.maintain();
         EndDungeonIndex.maintain(Math.min(deadline, System.nanoTime() + 250_000L));
         if (sessions.isEmpty() && !TeleportService.active()) return;
         
-        List<Session> round = new ArrayList<>(sessions.values());
+        List<Session> round = new ArrayList<>();
+        for(Session session:sessions.values()) {
+            // 新结构任务保留一次核对的余量；较重的准备后首轮核对留到下一 tick。
+            // 已运行任务仍参加本轮轮转，纯群系结果不需要区块核对。
+            if(!session.fresh || preparation<=budget/4 || session.job.biome())round.add(session);
+            session.fresh=false;
+        }
         int idle = 0;
         boolean teleportTurn = true;
         while ((!round.isEmpty() || TeleportService.active()) && System.nanoTime() < deadline && idle < round.size() + 1) {
@@ -343,6 +355,7 @@ public final class SearchService {
         }
     }
     public static void stopAll() {
+        pendingPreparationNanos=0;
         TeleportService.clear();
         for (Session session : List.copyOf(sessions.values())) cancel(session.player, true);
         WorldgenCache.clear(); EndDungeonAdapter.clear(); EndDungeonIndex.clearRuntime();
