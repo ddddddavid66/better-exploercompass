@@ -2,6 +2,8 @@ package com.chaosthedude.explorerscompass.unified.search;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.function.Supplier;
 import java.util.function.Predicate;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
@@ -23,6 +25,9 @@ final class WorldgenCache {
     private final net.minecraft.world.level.biome.Climate.Sampler noise;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, DungeonsPrediction> dungeons = new IdentityHashMap<>();
+    private record PlanKey(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible) {}
+    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<PlanKey,List<StructureSearch.Group>> plans =
+            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     // 少量近期位置只作为下次请求的提示；每次使用仍检查真实结构记录。
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
@@ -42,6 +47,11 @@ final class WorldgenCache {
     }
     SearchCandidate hint(Structure structure) { return hints.peek(structure); }
     void rememberHint(SearchCandidate candidate) { hints.remember(candidate.structure(),candidate); }
+    List<StructureSearch.Group> structurePlan(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible,
+                                            Supplier<List<StructureSearch.Group>> prepare) {
+        // 只缓存注册表分组和预测策略，不能包含玩家位置、历史排除或可变采样游标。
+        return plans.get(new PlanKey(keys,compatible),ignored->prepare.get());
+    }
     Predicate<Holder<Biome>> biomeRule(Structure structure) {
         return biomeRules.computeIfAbsent(structure, StructurePredictor::biomeRule);
     }

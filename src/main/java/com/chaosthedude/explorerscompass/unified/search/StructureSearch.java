@@ -23,8 +23,9 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 
 public final class StructureSearch extends SearchJob {
     private static final ResourceLocation TREASURE=new ResourceLocation("minecraft:buried_treasure");
-    private record Target(ResourceLocation key, Structure structure, Predicate<Holder<Biome>> biomes,
-                          DungeonsPrediction dungeons, SearchCandidate hint) {}
+    record Target(ResourceLocation key, Structure structure, Predicate<Holder<Biome>> biomes,
+                  DungeonsPrediction dungeons) {}
+    record Group(StructurePlacement placement, List<Target> targets) {}
     private final List<ResourceLocation> keys;
     private final Set<Long> excluded;
     private final int maximumSamples;
@@ -60,39 +61,41 @@ public final class StructureSearch extends SearchJob {
     private List<ScanCoordinator.Lane<SearchCandidate>> createLanes() {
         if (radius <= 0 || maximumSamples <= 0) return List.of();
         BlockPos origin = start;
-        int maximumRadius = radius;
         Set<Long> ignoredChunks = excluded;
         var registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
         ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
         WorldgenCache cached = WorldgenCache.get(level);
         context=cached;
-        Map<StructurePlacement, List<Target>> groups = new LinkedHashMap<>();
-        for (ResourceLocation key : keys) registry.getHolder(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE, key))
-                .ifPresent(holder -> state.getPlacementsForStructure(holder).forEach(placement -> {
-                    SearchCandidate hint=cached.hint(holder.value());
-                    if(hint!=null && (hint.placement()!=placement || ignoredChunks.contains(hint.chunk().toLong()))) hint=null;
-                    groups.computeIfAbsent(placement, ignored -> new ArrayList<>()).add(
-                        new Target(key, holder.value(), cached.biomeRule(holder.value()),
-                                !compatiblePrediction && placement.getClass().getName().equals(GelGridPlacement.TYPE)
-                                        ? cached.dungeons(level, key, holder.value()) : null,hint));
-                }));
+        List<Group> groups=cached.structurePlan(keys,compatiblePrediction,()-> {
+            Map<StructurePlacement,List<Target>> grouped=new LinkedHashMap<>();
+            for(ResourceLocation key:keys) registry.getHolder(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE,key))
+                    .ifPresent(holder->state.getPlacementsForStructure(holder).forEach(placement->
+                            grouped.computeIfAbsent(placement,ignored->new ArrayList<>()).add(new Target(key,holder.value(),
+                                    cached.biomeRule(holder.value()),!compatiblePrediction && placement.getClass().getName().equals(GelGridPlacement.TYPE)
+                                            ?cached.dungeons(level,key,holder.value()):null))));
+            return grouped.entrySet().stream().map(entry->new Group(entry.getKey(),List.copyOf(entry.getValue()))).toList();
+        });
         long seed = level.getSeed();
         boolean sourceSafe = BiomeSourceSafety.prepare(level).allowed();
         List<ScanCoordinator.Lane<SearchCandidate>> lanes = new ArrayList<>();
-        for (var group : groups.entrySet()) {
-            StructurePlacement placement = group.getKey(); List<Target> targets = List.copyOf(group.getValue());
+        for (Group group : groups) {
+            StructurePlacement placement=group.placement();List<Target> targets=group.targets();
+            // 放置分组可共享；排除记录和提示必须是每次请求的快照，不能进入共享计划。
+            Map<Structure,SearchCandidate> hinted=new java.util.IdentityHashMap<>();
             for (Target target : targets) {
-                SearchCandidate hint=target.hint();
-                if (hint!=null)
-                    hints.add(new SearchCandidate(hint.position(),hint.key(),hint.structure(),placement,
+                SearchCandidate hint=cached.hint(target.structure());
+                if (hint!=null && hint.placement()==placement && !ignoredChunks.contains(hint.chunk().toLong())) {
+                    hinted.put(target.structure(),hint);
+                    hints.add(new SearchCandidate(hint.position(),target.key(),target.structure(),placement,
                             hint.chunk(),distance(origin,hint.position())));
+                }
             }
             TwilightPlacement twilight = TwilightPlacement.of(placement);
             GelGridPlacement gel = GelGridPlacement.of(placement, level.registryAccess());
             for (Target target : targets) if (target.dungeons() != null && !preparations.contains(target.dungeons()))
                 preparations.add(target.dungeons());
             if (gel != null && gel.exclusion) deferredPlacement = true;
-            Set<Long> visited = java.util.concurrent.ConcurrentHashMap.newKeySet();
+            Set<Long> visited = gel==null?null:java.util.concurrent.ConcurrentHashMap.newKeySet();
             var generator = level.getChunkSource().getGenerator();
             boolean supported = placement.getClass() == RandomSpreadStructurePlacement.class
                     || placement.getClass() == ConcentricRingsStructurePlacement.class;
@@ -112,7 +115,8 @@ public final class StructureSearch extends SearchJob {
                 for (Target target : targets) {
                     // 此结构／区块已作为提示进入待核对队列；仍采样区域，但不重复预测和核对。
                     // 快照在主线程建立，后台不能重新读取可能被其他玩家更新的提示缓存。
-                    if(target.hint()!=null && target.hint().chunk().equals(chunk)) continue;
+                    SearchCandidate hint=hinted.get(target.structure());
+                    if(hint!=null && hint.chunk().equals(chunk)) continue;
                     DungeonsPrediction policy = target.dungeons();
                     BlockPos point = predict ? cached.predict(target.structure(), target.biomes(), chunk)
                             : gel != null && gel.backgroundAllowed && policy != null && policy.allowed()

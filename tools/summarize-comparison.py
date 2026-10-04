@@ -18,18 +18,18 @@ def summary(rows, field):
     values = [float(row[field]) for row in rows if row.get(field, 'N/A') != 'N/A']
     return {'median': statistics.median(values), 'p95': percentile(values, .95), 'max': max(values)} if values else None
 
-def analyze(directory):
+def analyze(directory, engines=ENGINES):
     rows = []
     for path in sorted(directory.glob('*.csv')):
         with path.open(encoding='utf-8-sig', newline='') as stream:
             rows.extend(csv.DictReader(stream))
     identities = [(row['engine'], int(row['seed']), row['target'], row['cache'], int(row['repeat'])) for row in rows]
-    expected = {(engine, seed, target, cache, repeat) for engine in ENGINES for seed in SEEDS
+    expected = {(engine, seed, target, cache, repeat) for engine in engines for seed in SEEDS
                 for target in TARGETS for cache in ('cold', 'warm') for repeat in range(5)}
     complete = len(identities) == len(set(identities)) and set(identities) == expected
     failures = [identity for identity, row in zip(identities, rows) if row['result'] != 'found' or row['verified'] != 'true']
     results = {}
-    for engine in ENGINES:
+    for engine in engines:
         for target in TARGETS:
             for cache in ('cold', 'warm'):
                 group = [row for row in rows if row['engine'] == engine and row['target'] == target and row['cache'] == cache
@@ -50,8 +50,8 @@ def analyze(directory):
                 mismatches.append({'seed': seed, 'target': target, 'positions': {engine: sorted(points) for engine, points in answers.items()}})
     ratios, regressions = [], []
     for target in TARGETS:
-        old, new = results[f'unified105:{target}:warm'], results[f'unified110:{target}:warm']
-        if old['count'] == new['count'] == 25:
+        old, new = results.get(f'unified105:{target}:warm'), results.get(f'unified110:{target}:warm')
+        if old and new and old['count'] == new['count'] == 25:
             ratios.append(new['wall_ms']['median'] / old['wall_ms']['median'])
             for field, statistic in (('wall_ms', 'p95'), ('main_ms', 'median'), ('search_tick_p95_ms', 'p95')):
                 before, after = old[field][statistic], new[field][statistic]
@@ -59,16 +59,20 @@ def analyze(directory):
                 if ratio > 1.1: regressions.append({'target': target, 'metric': field, 'statistic': statistic, 'ratio': ratio})
     improvement = 1 - math.exp(sum(math.log(ratio) for ratio in ratios) / len(ratios)) if len(ratios) == 5 else None
     passed = complete and not failures and not mismatches and improvement is not None and improvement >= .15 and not regressions
-    return {'complete': complete, 'requests': len(rows), 'failures': failures, 'mismatches': mismatches,
+    return {'complete': complete, 'requests': len(rows), 'expected_requests': len(expected), 'engines': engines,
+            'failures': failures, 'mismatches': mismatches,
             'warm_geometric_improvement': improvement, 'regressions_requiring_reproduction': regressions,
             'gate_passed': passed, 'results': results}
 
 def render(report):
-    lines = ['# 三版本真实服务器搜索对比', '', f"记录：{report['requests']} / 750；完整矩阵：{report['complete']}。",
+    engines=report['engines']
+    labels={'unified105':'1.0.5','unified110':'1.1.0','enhance160':'Enhance'}
+    lines = ['# 真实服务器搜索对比', '', f"记录：{report['requests']} / {report['expected_requests']}；完整矩阵：{report['complete']}。",
              f"未经核实／失败记录：{len(report['failures'])}；统一版坐标不一致组：{len(report['mismatches'])}。", '',
-             '| 目标 | 1.0.5 热中位 ms | 1.1.0 热中位 ms | Enhance 热中位 ms |', '|---|---:|---:|---:|']
+             '| 目标 | ' + ' | '.join(labels[engine]+' 热中位 ms' for engine in engines)+' |',
+             '|---|'+'---:|'*len(engines)]
     for target in TARGETS:
-        values = [report['results'][f'{engine}:{target}:warm']['wall_ms'] for engine in ENGINES]
+        values = [report['results'][f'{engine}:{target}:warm']['wall_ms'] for engine in engines]
         lines.append('| ' + target + ' | ' + ' | '.join('N/A' if value is None else f"{value['median']:.3f}" for value in values) + ' |')
     improvement = report['warm_geometric_improvement']
     lines.extend(['', '等权几何平均改善：' + ('尚未完成' if improvement is None else f'{improvement:.2%}') + '。',
@@ -82,8 +86,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('directory', type=Path)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--engines', nargs='+', choices=ENGINES, default=ENGINES,
+                        help='Default: full 750 requests. Use the two Unified engines for a fresh paired 500-request reproduction.')
     args = parser.parse_args()
-    report = analyze(args.directory)
+    report = analyze(args.directory, args.engines)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.with_suffix('.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     args.output.with_suffix('.md').write_text(render(report), encoding='utf-8')
