@@ -44,7 +44,6 @@ public final class ScanCoordinator<T> {
     private final boolean async;
     private final long maximum;
     private final AtomicBoolean cancelled = new AtomicBoolean();
-    private final AtomicBoolean priming = new AtomicBoolean();
     private final AtomicLong priority = new AtomicLong();
     private final AtomicLong verifiedUpper = new AtomicLong();
     private final AtomicLong workerNanos = new AtomicLong(), submitted = new AtomicLong(), count = new AtomicLong();
@@ -64,7 +63,7 @@ public final class ScanCoordinator<T> {
         lanes.forEach(lane -> work.add(new Work(lane)));
     }
     public boolean step(ExecutorService executor) throws Exception {
-        if (done || cancelled.get() || priming.get()) return false;
+        if (done || cancelled.get()) return false;
         for (Work item : work) if (item.failure != null) throw new ExecutionException(item.failure);
         boolean progress = false;
         // 队列里的 packet 在主线程消费之前，旧下界一直保留，覆盖全部在途结果。
@@ -97,7 +96,7 @@ public final class ScanCoordinator<T> {
                 distance.applyAsLong(pending.peek())));
         priority.set(preferred);
         // 核对后的下一波同样在池内展开，避免主线程连续争抢多次入队锁。
-        if (!hasCompatibility() && dispatchBackground(executor)) return true;
+        if (!hasCompatibility()) progress |= dispatchBackground(executor);
         // 按各分区的下界调度；线程池拒绝后仍等待下一轮，不在调用线程执行后台任务。
         int turn = ++schedulingStep;
         for (int pass = 0; pass < work.size(); pass++) {
@@ -130,24 +129,29 @@ public final class ScanCoordinator<T> {
     }
     private boolean dispatchBackground(ExecutorService executor) {
         if (!async || done || cancelled.get()) return false;
-        boolean background=false;
+        List<Work> reserved=null;
         for (Work item : work) if (!item.running.get() && item.output.isEmpty()
-                && item.lane.backgroundAllowed() && item.lane.available(priority.get())) { background=true;break; }
-        if (!background || !priming.compareAndSet(false,true)) return false;
+                && item.lane.backgroundAllowed() && item.lane.available(priority.get())
+                && item.running.compareAndSet(false,true)) {
+            if(reserved==null)reserved=new ArrayList<>(work.size());reserved.add(item);
+        }
+        if(reserved==null)return false;
+        List<Work> wave=reserved;
         // 主线程仅入队一次；分区提交在池中展开，避免与快速缓存批次争抢队列锁。
-        // priming 屏障禁止主线程在展开期间读取可变分区游标。
+        // 先逐分片预留 running，防止游标被并发访问；不挡住其他已就绪批次的消费。
         try {
             executor.execute(() -> {
-                try {
-                    if (done || cancelled.get()) return;
-                    for (Work item : work) if (!item.running.get() && item.output.isEmpty()
-                            && item.lane.backgroundAllowed() && item.lane.available(priority.get())) submit(item,executor);
-                } catch (Throwable failure) { work.get(0).failure=failure; }
-                finally { priming.set(false); }
+                for(Work item:wave) {
+                    if(done || cancelled.get()) {item.running.set(false);continue;}
+                    try {scheduleReserved(item,executor);}
+                    catch(Throwable failure) {item.failure=failure;item.running.set(false);}
+                }
             });
             submitted.incrementAndGet();
             return true;
-        } catch (RejectedExecutionException full) { priming.set(false); return false; }
+        } catch (RejectedExecutionException full) {
+            for(Work item:wave)item.running.set(false);return false;
+        }
     }
     private long unresolvedBound() {
         long bound = pending.isEmpty() ? Long.MAX_VALUE : candidateBound.applyAsLong(pending.peek());
@@ -156,6 +160,9 @@ public final class ScanCoordinator<T> {
     }
     private boolean submit(Work item, ExecutorService executor) {
         if (!item.running.compareAndSet(false, true)) return false;
+        return scheduleReserved(item,executor);
+    }
+    private boolean scheduleReserved(Work item, ExecutorService executor) {
         Runnable task = new Runnable() {
             public void run() {
                 boolean chained = false;
