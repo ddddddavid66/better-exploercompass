@@ -152,6 +152,24 @@ class RectCoordinatorTest {
             assertEquals(new Point(0,0),run(search,pool)); assertTrue(confirmations.get()>0);
         } finally {pool.shutdownNow();}
     }
+    @Test void laterBackgroundWavesUseOneMainThreadSubmission() throws Exception {
+        Thread caller=Thread.currentThread();var submissions=new AtomicInteger();
+        var pool=new ThreadPoolExecutor(4,4,0,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<>()) {
+            @Override public void execute(Runnable command) {
+                if(Thread.currentThread()==caller) submissions.incrementAndGet();
+                super.execute(command);
+            }
+        };
+        try {
+            var scan=search(2000,true,p->p.distance()>=25,p->true).withBatch(1,4_000_000);
+            long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(5);
+            while(!scan.done() && System.nanoTime()<deadline) {
+                int before=submissions.get();scan.step(pool);
+                assertTrue(submissions.get()-before<=1,"main thread expanded a background wave");Thread.yield();
+            }
+            assertTrue(scan.done());assertEquals(new Point(-5,0),scan.result());
+        }finally{pool.shutdownNow();}
+    }
     @Test void primingSynchronousRequestDoesNotMoveWorkToBackground() {
         var pool=Executors.newSingleThreadExecutor();var samples=new AtomicInteger();
         try {

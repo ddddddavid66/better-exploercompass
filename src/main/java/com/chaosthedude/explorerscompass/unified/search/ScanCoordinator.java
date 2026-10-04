@@ -96,6 +96,8 @@ public final class ScanCoordinator<T> {
         long preferred = pending.isEmpty() ? upper : Math.min(upper, Math.max(candidateBound.applyAsLong(pending.peek()),
                 distance.applyAsLong(pending.peek())));
         priority.set(preferred);
+        // 核对后的下一波同样在池内展开，避免主线程连续争抢多次入队锁。
+        if (!hasCompatibility() && dispatchBackground(executor)) return true;
         // 按各分区的下界调度；线程池拒绝后仍等待下一轮，不在调用线程执行后台任务。
         int turn = ++schedulingStep;
         for (int pass = 0; pass < work.size(); pass++) {
@@ -104,7 +106,9 @@ public final class ScanCoordinator<T> {
                     && possible.lane.available(preferred) && (item == null || possible.remaining < item.remaining)) item = possible;
             if (item == null) break;
             item.scheduledStep = turn;
-            if (async && item.lane.backgroundAllowed()) progress |= submit(item, executor);
+            if (async && item.lane.backgroundAllowed()) {
+                if (hasCompatibility()) progress |= submit(item, executor);
+            }
             else {
                 if (!item.lane.available(priority.get())) return progress;
                 // 兼容路径每次只有一个采样；无需创建工作线程的批次包装或内部计时器。
@@ -122,10 +126,14 @@ public final class ScanCoordinator<T> {
     }
     /** 接受请求时只提交已准备好的后台工作；核对与兼容查询仍由 tick 的共享预算执行。 */
     public void prime(ExecutorService executor) {
-        if (!async || done || cancelled.get()) return;
+        dispatchBackground(executor);
+    }
+    private boolean dispatchBackground(ExecutorService executor) {
+        if (!async || done || cancelled.get()) return false;
         boolean background=false;
-        for (Work item : work) if (item.lane.backgroundAllowed()) { background=true;break; }
-        if (!background || !priming.compareAndSet(false,true)) return;
+        for (Work item : work) if (!item.running.get() && item.output.isEmpty()
+                && item.lane.backgroundAllowed() && item.lane.available(priority.get())) { background=true;break; }
+        if (!background || !priming.compareAndSet(false,true)) return false;
         // 主线程仅入队一次；分区提交在池中展开，避免与快速缓存批次争抢队列锁。
         // priming 屏障禁止主线程在展开期间读取可变分区游标。
         try {
@@ -138,7 +146,8 @@ public final class ScanCoordinator<T> {
                 finally { priming.set(false); }
             });
             submitted.incrementAndGet();
-        } catch (RejectedExecutionException full) { priming.set(false); }
+            return true;
+        } catch (RejectedExecutionException full) { priming.set(false); return false; }
     }
     private long unresolvedBound() {
         long bound = pending.isEmpty() ? Long.MAX_VALUE : candidateBound.applyAsLong(pending.peek());

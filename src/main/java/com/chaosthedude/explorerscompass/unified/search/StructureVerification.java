@@ -51,12 +51,13 @@ public final class StructureVerification {
             if (candidate.placement().getClass().getName().equals(GelGridPlacement.TYPE)
                     && !candidate.placement().isStructureChunk(level.getChunkSource().getGeneratorState(),
                             candidate.chunk().x, candidate.chunk().z)) return reject();
-            if (knownAbsent(candidate) && TwilightPlacement.of(candidate.placement()) == null) return reject();
             ChunkHolder holder = holder(candidate);
             if (holder != null) {
                 var loaded = holder.getFutureIfPresentUnchecked(ChunkStatus.STRUCTURE_STARTS).getNow(null);
                 if (loaded != null && loaded.left().isPresent()) return inspect(candidate, loaded.left().get());
             }
+            // 已就绪的真实记录优先，避免热搜索再绕过持久化存在性缓存。
+            if (knownAbsent(candidate) && TwilightPlacement.of(candidate.placement()) == null) return reject();
             waitStarted = System.nanoTime();
         }
         if (!ticket && !acquire()) return ScanCoordinator.Confirmation.WAIT;
