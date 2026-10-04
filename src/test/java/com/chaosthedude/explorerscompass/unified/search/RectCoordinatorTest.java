@@ -157,4 +157,22 @@ class RectCoordinatorTest {
             assertThrows(ExecutionException.class,()->run(search,pool)); assertNull(search.result()); search.cancel();
         }finally{pool.shutdownNow();}
     }
+    @Test void unconditionalActualSamplesPreserveNearestTiesInBothModes() throws Exception {
+        var pool=Executors.newFixedThreadPool(4);
+        try {
+            for(int repeat=0;repeat<40;repeat++)for(boolean async:new boolean[]{true,false}) {
+                var search=search(2000,async,p->p.distance()>=9,p->true)
+                        .withEagerCandidates(false).withUnconditionalConfirmation();
+                search.prime(pool);assertEquals(new Point(-3,0),run(search,pool));
+            }
+        }finally{pool.shutdownNow();}
+    }
+    @Test void unconditionalPathCannotBeMixedWithRejectableOrAdjustedCandidates() {
+        var trusted=search(2000,true,p->true,p->true).withUnconditionalConfirmation();
+        assertThrows(IllegalStateException.class,()->trusted.withConfirmation(p->ScanCoordinator.Confirmation.REJECT));
+        assertThrows(IllegalStateException.class,()->trusted.withResolvedCandidate(p->new Point(999,999)));
+        assertThrows(IllegalStateException.class,()->trusted.withCandidateLowerBound(p->0));
+        var adjusted=search(2000,true,p->true,p->true).withResolvedCandidate(p->p);
+        assertThrows(IllegalStateException.class,adjusted::withUnconditionalConfirmation);
+    }
 }

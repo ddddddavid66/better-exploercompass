@@ -60,8 +60,8 @@ public final class RectFrontier {
     private final int leafSize;
     private final long maximum;
     // 原始类型二叉堆：不为每个分块分配 Node/Rect，也不为每个采样点建树。
-    private int[] minXs = new int[64], minZs = new int[64], maxXs = new int[64], maxZs = new int[64];
-    private long[] bounds = new long[64];
+    private int[] minXs = new int[16], minZs = new int[16], maxXs = new int[16], maxZs = new int[16];
+    private long[] bounds = new long[16];
     private int size, x, z, leafMinX, leafMaxX, leafMinZ, leafMaxZ, rowStartX, leftX, rightX, leftZ, rightZ;
     private boolean leaf;
     private long leafBound;

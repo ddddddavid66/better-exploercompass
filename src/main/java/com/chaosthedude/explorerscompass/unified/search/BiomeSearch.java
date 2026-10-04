@@ -24,7 +24,8 @@ public final class BiomeSearch extends SearchJob {
                 .withTieBreaker(Comparator.<SearchCandidate>comparingInt(candidate -> Math.abs(candidate.position().getY() - start.getY()))
                         .thenComparingInt(candidate -> candidate.position().getX())
                         .thenComparingInt(candidate -> candidate.position().getZ())
-                        .thenComparingInt(candidate -> candidate.position().getY())).withBatch(1024, 4_000_000L).withEagerCandidates(false);
+                        .thenComparingInt(candidate -> candidate.position().getY())).withBatch(1024, 4_000_000L)
+                .withEagerCandidates(false).withUnconditionalConfirmation();
     }
     private List<ScanCoordinator.Lane<SearchCandidate>> createLanes() {
         if (radius <= 0 || maxSamples <= 0) return List.of();

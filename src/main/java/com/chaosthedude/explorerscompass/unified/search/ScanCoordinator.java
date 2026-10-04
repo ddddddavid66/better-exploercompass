@@ -53,6 +53,8 @@ public final class ScanCoordinator<T> {
     private int batchSize = 64;
     private long batchNanos = 4_000_000;
     private boolean eagerCandidates = true;
+    private boolean unconditionalConfirmation;
+    private boolean customVerification;
     private int schedulingStep;
     public ScanCoordinator(List<Lane<T>> lanes, ToLongFunction<T> distance, Predicate<T> confirm, long maximum, boolean async) {
         this.distance = distance; candidateBound = distance; this.maximum = maximum; this.async = async;
@@ -82,7 +84,7 @@ public final class ScanCoordinator<T> {
                 if (outcome == Confirmation.ACCEPT) {
                     T actual = resolved.apply(next);
                     if (distance.applyAsLong(actual) <= maximum && (accepted == null || order.compare(actual, accepted) < 0))
-                        { accepted = actual; verifiedUpper.set(distance.applyAsLong(actual)); }
+                        { accepted = actual; verifiedUpper.accumulateAndGet(distance.applyAsLong(actual), Math::min); }
                 }
             }
         }
@@ -159,7 +161,13 @@ public final class ScanCoordinator<T> {
             for (int i = 0; i < size && !done && !cancelled.get() && !Thread.currentThread().isInterrupted()
                     && item.lane.available(priority.get()); i++) {
                 for (T candidate : item.lane.sample(verifiedUpper.get())) if (candidateBound.applyAsLong(candidate) <= maximum) {
-                    values.add(candidate); count.incrementAndGet();
+                    if (unconditionalConfirmation) {
+                        // 群系的完整官方查询已经给出真实有效点；只保留批内最优点，不丢失可能被拒绝的结构。
+                        verifiedUpper.accumulateAndGet(distance.applyAsLong(candidate), Math::min);
+                        if (values.isEmpty()) values.add(candidate);
+                        else if (order.compare(candidate, values.get(0)) < 0) values.set(0,candidate);
+                    } else values.add(candidate);
+                    count.incrementAndGet();
                     // 暂停更远工作以便先核对；此优先级不用于永久剪枝，拒绝后恢复。
                     priority.accumulateAndGet(Math.max(candidateBound.applyAsLong(candidate), distance.applyAsLong(candidate)), Math::min);
                 }
@@ -174,13 +182,23 @@ public final class ScanCoordinator<T> {
         if (pending != null) queue.addAll(pending); pending = queue;
     }
     public ScanCoordinator<T> withTieBreaker(Comparator<T> tie) { order = Comparator.comparingLong(distance).thenComparing(tie); rebuild(); return this; }
-    public ScanCoordinator<T> withCandidateLowerBound(ToLongFunction<T> bound) { candidateBound = bound; rebuild(); return this; }
-    public ScanCoordinator<T> withResolvedCandidate(Function<T,T> mapper) { resolved = mapper; return this; }
-    public ScanCoordinator<T> withConfirmation(Function<T,Confirmation> confirm) { confirmation = confirm; return this; }
+    private void customVerification() {
+        if (unconditionalConfirmation) throw new IllegalStateException("Unconditional samples cannot reject or adjust anchors");
+        customVerification=true;
+    }
+    public ScanCoordinator<T> withCandidateLowerBound(ToLongFunction<T> bound) { customVerification(); candidateBound = bound; rebuild(); return this; }
+    public ScanCoordinator<T> withResolvedCandidate(Function<T,T> mapper) { customVerification(); resolved = mapper; return this; }
+    public ScanCoordinator<T> withConfirmation(Function<T,Confirmation> confirm) { customVerification(); confirmation = confirm; return this; }
     public ScanCoordinator<T> withBatch(int size, long nanos) {
         if (size < 1 || nanos < 1) throw new IllegalArgumentException(); batchSize = size; batchNanos = nanos; return this;
     }
     public ScanCoordinator<T> withEagerCandidates(boolean eager) { eagerCandidates = eager; return this; }
+    /** 仅供不需要区块核对、不会拒绝且不会修正锚点的真实采样结果使用。 */
+    public ScanCoordinator<T> withUnconditionalConfirmation() {
+        if (customVerification) throw new IllegalStateException("Custom verification requires main-thread confirmation");
+        unconditionalConfirmation=true; confirmation=ignored->Confirmation.ACCEPT;
+        candidateBound=distance; resolved=Function.identity(); rebuild(); return this;
+    }
     public void cancel() { cancelled.set(true); }
     public boolean done() { return done; }
     public boolean cancelled() { return cancelled.get(); }
