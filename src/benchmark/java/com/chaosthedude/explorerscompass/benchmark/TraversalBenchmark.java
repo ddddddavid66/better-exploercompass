@@ -48,8 +48,9 @@ public class TraversalBenchmark {
     }
     private void checkWorkload() {
         long expected=0;
-        for(int x=-64;x<=64;x++)for(int z=-64;z<=64;z++)if((long)x*x+(long)z*z<=4096)expected+=1+(long)x*x+(long)z*z;
-        if(walker.scan(64)!=expected)throw new IllegalStateException("External traversal coverage mismatch: "+engine);
+        for(int x=-radius;x<=radius;x++)for(int z=-radius;z<=radius;z++)
+            if((long)x*x+(long)z*z<=(long)radius*radius)expected+=1+(long)x*x+(long)z*z;
+        if(walker.scan(radius)!=expected)throw new IllegalStateException("Traversal coverage mismatch: "+engine+" radius="+radius);
     }
     @Benchmark public long traversal() { return walker.scan(radius); }
     @TearDown(Level.Trial) public void close() throws Exception {

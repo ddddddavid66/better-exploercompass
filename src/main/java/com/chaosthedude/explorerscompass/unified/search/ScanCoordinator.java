@@ -191,8 +191,9 @@ public final class ScanCoordinator<T> {
         } finally { if (worker) workerNanos.addAndGet(System.nanoTime() - begin); }
     }
     private boolean admit(T candidate) {
-        long bound=candidateBound.applyAsLong(candidate),actual=distance.applyAsLong(candidate);
+        long bound=candidateBound.applyAsLong(candidate);
         if(bound>maximum)return false;
+        long actual=distance.applyAsLong(candidate);
         if(unconditionalConfirmation)verifiedUpper.accumulateAndGet(actual,Math::min);
         count.incrementAndGet();
         // 预测只影响暂时优先级；真实查询／核对才可永久剪枝。

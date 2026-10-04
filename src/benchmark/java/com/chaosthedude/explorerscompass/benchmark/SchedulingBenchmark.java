@@ -29,7 +29,9 @@ public class SchedulingBenchmark {
                 });
                 var search=new ScanCoordinator<>(lanes,Long::longValue,ignored->false,1_000_000,false);
                 while(!search.done())search.step(null);return sampled[0];
-            };return;
+            };
+            if(driver.run(lanes,1024)!=lanes*1024L)throw new IllegalStateException("New scheduler workload mismatch");
+            return;
         }
         String api=Driver.class.getCanonicalName(),name,source;
         if(engine.equals("unified105")) {
