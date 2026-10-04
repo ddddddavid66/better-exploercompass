@@ -102,9 +102,9 @@ public final class StructureSearch extends SearchJob {
             boolean predict = async && !compatiblePrediction && supported && sourceSafe;
             SamplingBudget budget = new SamplingBudget(maximumSamples); budgets.add(budget);
             // 闭包只引用不可变快照；未知规则的闭包始终在主线程采样。
-            BiFunction<Integer, Integer, List<SearchCandidate>> sample = (x, z) -> {
+            boolean cacheRegions=predict && cached.cacheRegions(placement,level);
+            BiFunction<Integer, Integer, List<SearchCandidate>> generate = (x, z) -> {
                 ChunkPos chunk = new ChunkPos(x, z);
-                if (ignoredChunks.contains(chunk.toLong())) return List.of();
                 // Gel 排除规则可递归调用其他模组，统一留给主线程。候选重新核对避免 offset==spacing 的边界误报。
                 if (!(gel != null && gel.exclusion) && !(twilight == null
                         ? placement.isStructureChunk(state, x, z) : twilight.contains(generator, state, x, z))) return List.of();
@@ -113,18 +113,34 @@ public final class StructureSearch extends SearchJob {
                 // 最终锚点可能与 locate 不同，由候选下界和真实核对统一判断半径。
                 List<SearchCandidate> found = new ArrayList<>();
                 for (Target target : targets) {
-                    // 此结构／区块已作为提示进入待核对队列；仍采样区域，但不重复预测和核对。
-                    // 快照在主线程建立，后台不能重新读取可能被其他玩家更新的提示缓存。
                     SearchCandidate hint=hinted.get(target.structure());
-                    if(hint!=null && hint.chunk().equals(chunk)) continue;
+                    if(!cacheRegions && hint!=null && hint.chunk().equals(chunk))continue;
                     DungeonsPrediction policy = target.dungeons();
                     BlockPos point = predict ? cached.predict(target.structure(), target.biomes(), chunk)
                             : gel != null && gel.backgroundAllowed && policy != null && policy.allowed()
                                 ? policy.predict(() -> cached.predict(target.structure(), target.biomes(), chunk)) : locate;
                     if (point != null) found.add(new SearchCandidate(new BlockPos(locate.getX(), point.getY(), locate.getZ()),
-                            target.key(), target.structure(), placement, chunk, distance(origin, locate)));
+                            target.key(), target.structure(), placement, chunk, 0));
                 }
                 return found;
+            };
+            java.util.function.Function<List<SearchCandidate>,List<SearchCandidate>> current = raw -> {
+                if(raw.isEmpty())return raw;
+                List<SearchCandidate> found=new ArrayList<>();
+                for(SearchCandidate candidate:raw) {
+                    SearchCandidate hint=hinted.get(candidate.structure());
+                    if(hint!=null && hint.chunk().equals(candidate.chunk()))continue;
+                    found.add(new SearchCandidate(candidate.position(),candidate.key(),candidate.structure(),placement,
+                            candidate.chunk(),distance(origin,candidate.position())));
+                }
+                return found;
+            };
+            BiFunction<Integer,Integer,List<SearchCandidate>> sample=(x,z)-> {
+                long chunk=ChunkPos.asLong(x,z);
+                if(ignoredChunks.contains(chunk))return List.of();
+                // 这里只缓存生成规则结果；玩家排除记录、提示和距离在本次请求重新应用。
+                List<SearchCandidate> raw=cacheRegions?cached.region(group,chunk,()->generate.apply(x,z)):generate.apply(x,z);
+                return current.apply(raw);
             };
             int stripes = predict ? SearchConfig.threads() : 1;
             if (gel != null) {
@@ -166,8 +182,14 @@ public final class StructureSearch extends SearchJob {
                 int jitter = placement instanceof RandomSpreadStructurePlacement spread
                         ? (spread.spacing() - spread.separation() - 1) * 16 : 0;
                 var geometry = geometry(spacing * 16, offset, 0, jitter, targets);
+                BiFunction<Integer,Integer,List<SearchCandidate>> cachedRegion=cacheRegions?(rx,rz)-> {
+                    ChunkPos chunk=((RandomSpreadStructurePlacement)placement).getPotentialStructureChunk(seed,rx*spacing,rz*spacing);
+                    if(ignoredChunks.contains(chunk.toLong()))return List.of();
+                    List<SearchCandidate> raw=cached.peekRegion(group,chunk.toLong());
+                    return raw==null?null:current.apply(raw);
+                }:null;
                 lanes.addAll(RectLane.create(geometry, radius, 8, stripes, budget, region,
-                        supported && !compatiblePrediction && sourceSafe));
+                        supported && !compatiblePrediction && sourceSafe,cachedRegion));
             }
         }
         return lanes;

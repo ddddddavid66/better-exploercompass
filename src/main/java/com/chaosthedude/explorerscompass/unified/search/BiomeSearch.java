@@ -14,6 +14,7 @@ public final class BiomeSearch extends SearchJob {
     private final List<BlockPos> excluded;
     private final int maxSamples, spacing, vertical, depthInterval;
     private final boolean async;
+    private boolean cachedOrigin;
     public BiomeSearch(ServerLevel level, BlockPos start, ResourceLocation target, List<BlockPos> excluded,
                        int radius, int maxSamples, int spacing, int vertical, int depthInterval, boolean async) {
         super(level, start, radius); this.target = target; this.excluded = List.copyOf(excluded);
@@ -47,12 +48,14 @@ public final class BiomeSearch extends SearchJob {
         boolean safeSource = BiomeSourceSafety.prepare(level).allowed();
         boolean background = async && safeSource;
         var cache = safeSource ? WorldgenCache.get(level) : null;
+        cachedOrigin=cache!=null && cache.peekBiome(QuartPos.fromBlock(origin.getX()),
+                QuartPos.fromBlock(initialY),QuartPos.fromBlock(origin.getZ()))==biome;
         int workers = background ? SearchConfig.threads() : 1;
         List<ScanCoordinator.Lane<SearchCandidate>> lanes = new ArrayList<>();
         var geometry = new RectFrontier.Geometry(origin.getX(), origin.getZ(), spacing,
                 origin.getX(), origin.getZ(), origin.getX(), origin.getZ());
-        for (var partition : RectFrontier.partition(geometry.domain(radius), workers))
-            lanes.add(new BiomeColumnLane(geometry, partition, (long)radius * radius, budget,
+        for (var partition : RectFrontier.partition(geometry.domain(radius), workers)) {
+            var lane=new BiomeColumnLane(geometry, partition, (long)radius * radius, budget,
                     List.copyOf(heights), depthInterval, background, (dx, dz, y) -> {
                 int x = origin.getX() + dx * spacing, z = origin.getZ() + dz * spacing;
                 if (ignoredPositions.excludes(x, z)) return List.of();
@@ -61,9 +64,23 @@ public final class BiomeSearch extends SearchJob {
                     return List.of();
                 BlockPos position = new BlockPos(x, y, z);
                 return List.of(new SearchCandidate(position, key, null, null, null, distance(origin, position)));
-            }));
+            });
+            if(cache!=null)lane.withCachedSampler((dx,dz,y)-> {
+                // 仅复用零水平距离列，远处群系继续并行，避免将大范围热扫描搬到主线程。
+                if(dx!=0 || dz!=0)return null;
+                int x=origin.getX()+dx*spacing,z=origin.getZ()+dz*spacing;
+                if(ignoredPositions.excludes(x,z))return List.of();
+                var known=cache.peekBiome(QuartPos.fromBlock(x),QuartPos.fromBlock(y),QuartPos.fromBlock(z));
+                if(known==null)return null;
+                if(known!=biome)return List.of();
+                BlockPos point=new BlockPos(x,y,z);
+                return List.of(new SearchCandidate(point,key,null,null,null,distance(origin,point)));
+            });
+            lanes.add(lane);
+        }
         return lanes;
     }
+    @Override public void prime() {if(!cachedOrigin)super.prime();}
     public SearchJob synchronousFallback() { return new BiomeSearch(level, start, target, excluded, radius, maxSamples, spacing, vertical, depthInterval, false); }
     public boolean biome() { return true; }
     public boolean asynchronous() { return async; }

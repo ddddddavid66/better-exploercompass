@@ -40,4 +40,14 @@ class BiomeColumnsTest {
                 List.of(64), 4, false, (x,z,y) -> { calls[0]++; return List.of(); });
         lane.sample(); assertEquals(1,calls[0]); assertEquals(Long.MAX_VALUE,lane.pendingLowerBound());
     }
+    @Test void cacheMissRetainsExactHeightWithoutChargingQuota() {
+        var geometry=new RectFrontier.Geometry(0,0,32,0,0,0,0);var budget=new SamplingBudget(4);
+        var calls=new java.util.ArrayList<Integer>();
+        var lane=new BiomeColumnLane(geometry,new RectFrontier.Rect(0,0,0,0),0,budget,List.of(64,0),4,true,
+                (x,z,y)->{calls.add(y);return List.of();}).withCachedSampler((x,z,y)->y==64?List.of():null);
+        assertNotNull(lane.sampleCached(0));assertEquals(1,budget.used());
+        assertNull(lane.sampleCached(0));assertEquals(1,budget.used());assertEquals(0,lane.pendingLowerBound());
+        lane.sample(0);assertEquals(List.of(0),calls);assertEquals(2,budget.used());
+        assertEquals(Long.MAX_VALUE,lane.pendingLowerBound());
+    }
 }

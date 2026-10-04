@@ -20,6 +20,8 @@ public final class ScanCoordinator<T> {
         boolean available(long limit);
         List<T> sample();
         default List<T> sample(long verifiedUpper) { return sample(); }
+        /** null 表示缓存未命中；实现必须保留该点供后台继续，不得执行生成查询。 */
+        default List<T> sampleCached(long verifiedUpper) { return null; }
         default boolean backgroundAllowed() { return true; }
         default long pendingLowerBound() { return 0; }
         default boolean budgetLimited(long maximum) { return false; }
@@ -95,6 +97,19 @@ public final class ScanCoordinator<T> {
         long preferred = pending.isEmpty() ? upper : Math.min(upper, Math.max(candidateBound.applyAsLong(pending.peek()),
                 distance.applyAsLong(pending.peek())));
         priority.set(preferred);
+        // 已核实上界内的不可变生成缓存只做一次短查询，仍受调用方的共享 tick 预算限制。
+        if(async && (accepted!=null || unconditionalConfirmation)) {
+            Work cached=null;
+            for(Work item:work) if(!item.running.get() && item.output.isEmpty()
+                    && item.lane.available(preferred) && (cached==null || item.remaining<cached.remaining)) cached=item;
+            if(cached!=null) {
+                List<T> values=cached.lane.sampleCached(verifiedUpper.get());
+                if(values!=null) {
+                    for(T candidate:values)if(admit(candidate))pending.add(candidate);
+                    cached.remaining=cached.lane.pendingLowerBound();return true;
+                }
+            }
+        }
         // 核对后的下一波同样在池内展开，避免主线程连续争抢多次入队锁。
         if (!hasCompatibility()) progress |= dispatchBackground(executor);
         // 按各分区的下界调度；线程池拒绝后仍等待下一轮，不在调用线程执行后台任务。

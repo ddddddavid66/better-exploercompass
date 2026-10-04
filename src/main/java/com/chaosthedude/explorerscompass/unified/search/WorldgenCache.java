@@ -25,6 +25,26 @@ final class WorldgenCache {
     private final net.minecraft.world.level.biome.Climate.Sampler noise;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, DungeonsPrediction> dungeons = new IdentityHashMap<>();
+    private final Map<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement,Boolean> regionPolicies=new IdentityHashMap<>();
+    boolean cacheRegions(net.minecraft.world.level.levelgen.structure.placement.StructurePlacement placement,ServerLevel level) {
+        return regionPolicies.computeIfAbsent(placement,rule->{
+            if(rule.getClass()!=net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement.class)return false;
+            // 排除依赖可能包含未知模组规则，不能把它的否定结果复用为确定生成事实。
+            try {
+                return net.minecraft.world.level.levelgen.structure.placement.StructurePlacement.CODEC.encodeStart(
+                        net.minecraft.resources.RegistryOps.create(com.mojang.serialization.JsonOps.INSTANCE,level.registryAccess()),rule)
+                        .result().map(json->!json.getAsJsonObject().has("exclusion_zone")).orElse(false);
+            }catch(RuntimeException unknown){return false;}
+        });
+    }
+    private record RegionKey(StructureSearch.Group group,long chunk) {
+        @Override public boolean equals(Object other) {
+            return this==other || other instanceof RegionKey key && group==key.group && chunk==key.chunk;
+        }
+        @Override public int hashCode() {return 31*System.identityHashCode(group)+Long.hashCode(chunk);}
+    }
+    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<RegionKey,List<SearchCandidate>> regions=
+            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
     private record PlanKey(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible) {
         // 显式比较避免 record 动态比较器的首次引导落入第一轮热搜索。
         @Override public boolean equals(Object other) {
@@ -52,6 +72,12 @@ final class WorldgenCache {
         return WORLDS.computeIfAbsent(level, WorldgenCache::new);
     }
     SearchCandidate hint(Structure structure) { return hints.peek(structure); }
+    List<SearchCandidate> region(StructureSearch.Group group,long chunk,Supplier<List<SearchCandidate>> generate) {
+        return regions.get(new RegionKey(group,chunk),ignored->List.copyOf(generate.get()));
+    }
+    List<SearchCandidate> peekRegion(StructureSearch.Group group,long chunk) {
+        return regions.peek(new RegionKey(group,chunk));
+    }
     void rememberHint(SearchCandidate candidate) { hints.remember(candidate.structure(),candidate); }
     List<StructureSearch.Group> structurePlan(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible,
                                             Supplier<List<StructureSearch.Group>> prepare) {
@@ -79,6 +105,9 @@ final class WorldgenCache {
         // Quart 坐标和真实采样器严格隔离；只缓存审核过的不可变生成查询，仍逐点检查。
         long key = net.minecraft.core.BlockPos.asLong(x, y, z);
         return biomePredictions.get(key, ignored -> biomeSource.getNoiseBiome(x, y, z, noise).value());
+    }
+    Biome peekBiome(int x,int y,int z) {
+        return biomePredictions.peek(net.minecraft.core.BlockPos.asLong(x,y,z));
     }
     static void clear() { WORLDS.clear(); BiomeSourceSafety.clear(); }
 }
