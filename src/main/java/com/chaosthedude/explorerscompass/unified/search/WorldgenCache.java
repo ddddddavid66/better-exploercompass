@@ -26,7 +26,7 @@ final class WorldgenCache {
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, DungeonsPrediction> dungeons = new IdentityHashMap<>();
     private final Map<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement,Boolean> regionPolicies=new IdentityHashMap<>();
-    boolean cacheRegions(net.minecraft.world.level.levelgen.structure.placement.StructurePlacement placement,ServerLevel level) {
+    boolean prefixRule(net.minecraft.world.level.levelgen.structure.placement.StructurePlacement placement,ServerLevel level) {
         return regionPolicies.computeIfAbsent(placement,rule->{
             if(rule.getClass()!=net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement.class)return false;
             // 排除依赖可能包含未知模组规则，不能把它的否定结果复用为确定生成事实。
@@ -37,15 +37,20 @@ final class WorldgenCache {
             }catch(RuntimeException unknown){return false;}
         });
     }
-    private record RegionKey(StructureSearch.Group group,long chunk) {
-        @Override public boolean equals(Object other) {
-            return this==other || other instanceof RegionKey key && group==key.group && chunk==key.chunk;
+    static final class Prefix {
+        final int x,z;final long upper,cost;final java.util.Set<Long> excluded;final List<SearchCandidate> candidates;
+        Prefix(int x,int z,long upper,long cost,java.util.Set<Long> excluded,List<SearchCandidate> candidates) {
+            this.x=x;this.z=z;this.upper=upper;this.cost=cost;this.excluded=excluded;this.candidates=candidates;
         }
-        @Override public int hashCode() {return 31*System.identityHashCode(group)+Long.hashCode(chunk);}
+        boolean covers(net.minecraft.core.BlockPos origin,java.util.Set<Long> currentExcluded,long maximum,long quota) {
+            return x==origin.getX() && z==origin.getZ() && upper<=maximum && cost<=quota && currentExcluded.containsAll(excluded);
+        }
     }
-    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<RegionKey,List<SearchCandidate>> regions=
-            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
-    private record PlanKey(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible) {
+    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<List<net.minecraft.resources.ResourceLocation>,Prefix> prefixes=
+            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
+    private static final class PlanKey {
+        final List<net.minecraft.resources.ResourceLocation> keys;final boolean compatible;
+        PlanKey(List<net.minecraft.resources.ResourceLocation> keys,boolean compatible){this.keys=keys;this.compatible=compatible;}
         // 显式比较避免 record 动态比较器的首次引导落入第一轮热搜索。
         @Override public boolean equals(Object other) {
             return this==other || other instanceof PlanKey key && compatible==key.compatible && keys.equals(key.keys);
@@ -72,12 +77,12 @@ final class WorldgenCache {
         return WORLDS.computeIfAbsent(level, WorldgenCache::new);
     }
     SearchCandidate hint(Structure structure) { return hints.peek(structure); }
-    List<SearchCandidate> region(StructureSearch.Group group,long chunk,Supplier<List<SearchCandidate>> generate) {
-        return regions.get(new RegionKey(group,chunk),ignored->List.copyOf(generate.get()));
+    Prefix prefix(List<net.minecraft.resources.ResourceLocation> keys,net.minecraft.core.BlockPos origin,
+                  java.util.Set<Long> excluded,long maximum,long quota) {
+        Prefix known=prefixes.peek(keys);
+        return known!=null && known.covers(origin,excluded,maximum,quota)?known:null;
     }
-    List<SearchCandidate> peekRegion(StructureSearch.Group group,long chunk) {
-        return regions.peek(new RegionKey(group,chunk));
-    }
+    void rememberPrefix(List<net.minecraft.resources.ResourceLocation> keys,Prefix prefix) {prefixes.remember(keys,prefix);}
     void rememberHint(SearchCandidate candidate) { hints.remember(candidate.structure(),candidate); }
     List<StructureSearch.Group> structurePlan(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible,
                                             Supplier<List<StructureSearch.Group>> prepare) {

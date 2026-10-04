@@ -8,9 +8,13 @@ public final class SamplingBudget {
     private final AtomicLong used = new AtomicLong();
     public SamplingBudget(long maximum) { this.maximum = Math.max(0, maximum); }
     public boolean take() {
+        return take(1);
+    }
+    public boolean take(long amount) {
+        if(amount<0)throw new IllegalArgumentException("Negative sample cost");
         long value;
-        do { value = used.get(); if (value >= maximum) return false; }
-        while (!used.compareAndSet(value, value + 1));
+        do { value = used.get(); if (amount>maximum-value) return false; }
+        while (!used.compareAndSet(value, value + amount));
         return true;
     }
     public boolean available() { return used.get() < maximum; }

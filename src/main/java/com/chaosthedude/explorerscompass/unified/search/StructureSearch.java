@@ -38,6 +38,11 @@ public final class StructureSearch extends SearchJob {
     private boolean deferredPlacement;
     private WorldgenCache context;
     private final List<SearchCandidate> hints = new ArrayList<>();
+    private java.util.concurrent.ConcurrentLinkedQueue<SearchCandidate> predictedPrefix;
+    private java.util.concurrent.atomic.AtomicInteger prefixCount;
+    private WorldgenCache.Prefix prefix;
+    private boolean prefixEligible,outerReady;
+    private volatile boolean prefixStored;
     public StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
                            Set<Long> excluded, int radius, int maximumSamples, boolean async) {
         this(level, start, keys, excluded, radius, maximumSamples, async, false);
@@ -56,6 +61,9 @@ public final class StructureSearch extends SearchJob {
                 .withBatch(256, 4_000_000L).withEagerCandidates(false).withConfirmation(this::confirm)
                 .withCandidateLowerBound(this::candidateBound)
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
+        if(prefix!=null)scan.withCoveredPrefix(prefix.upper).withDeferredLanes(()-> {
+            outerReady=true;return createLanes();
+        });
         hints.forEach(scan::withCandidateHint);
     }
     private List<ScanCoordinator.Lane<SearchCandidate>> createLanes() {
@@ -77,17 +85,42 @@ public final class StructureSearch extends SearchJob {
         });
         long seed = level.getSeed();
         boolean sourceSafe = BiomeSourceSafety.prepare(level).allowed();
+        prefixEligible=async && !compatiblePrediction && sourceSafe && groups.size()==1
+                && cached.prefixRule(groups.get(0).placement(),level);
+        if(prefixEligible && !outerReady)prefix=cached.prefix(keys,origin,ignoredChunks,(long)radius*radius,maximumSamples);
+        if(prefix!=null && !outerReady) {
+            prefixStored=true;
+            for(SearchCandidate candidate:prefix.candidates)if(!ignoredChunks.contains(candidate.chunk().toLong()))hints.add(candidate);
+            // 其他请求可能新收录了旧区块位置；它不属于静态生成前缀，仍须加入本次真实核对。
+            Group group=groups.get(0);
+            for(Target target:group.targets()) {
+                SearchCandidate known=cached.hint(target.structure());
+                if(known==null || known.placement()!=group.placement() || ignoredChunks.contains(known.chunk().toLong()))continue;
+                boolean duplicate=false;
+                for(SearchCandidate candidate:hints)if(candidate.key().equals(target.key()) && candidate.chunk().equals(known.chunk())) {duplicate=true;break;}
+                if(!duplicate)hints.add(new SearchCandidate(known.position(),target.key(),target.structure(),group.placement(),
+                        known.chunk(),distance(origin,known.position())));
+            }
+            var budget=new SamplingBudget(maximumSamples);
+            if(!budget.take(prefix.cost))throw new IllegalStateException("Prefix sample cost changed");
+            budgets.add(budget);return List.of();
+        }
+        if(prefixEligible && !prefixStored) {
+            predictedPrefix=new java.util.concurrent.ConcurrentLinkedQueue<>();prefixCount=new java.util.concurrent.atomic.AtomicInteger();
+        }
         List<ScanCoordinator.Lane<SearchCandidate>> lanes = new ArrayList<>();
         for (Group group : groups) {
             StructurePlacement placement=group.placement();List<Target> targets=group.targets();
             // 放置分组可共享；排除记录和提示必须是每次请求的快照，不能进入共享计划。
             Map<Structure,SearchCandidate> hinted=new java.util.IdentityHashMap<>();
             for (Target target : targets) {
+                if(prefix!=null)continue;
                 SearchCandidate hint=cached.hint(target.structure());
                 if (hint!=null && hint.placement()==placement && !ignoredChunks.contains(hint.chunk().toLong())) {
                     hinted.put(target.structure(),hint);
-                    hints.add(new SearchCandidate(hint.position(),target.key(),target.structure(),placement,
-                            hint.chunk(),distance(origin,hint.position())));
+                    SearchCandidate current=new SearchCandidate(hint.position(),target.key(),target.structure(),placement,
+                            hint.chunk(),distance(origin,hint.position()));
+                    hints.add(current);capturePrefix(current);
                 }
             }
             TwilightPlacement twilight = TwilightPlacement.of(placement);
@@ -100,11 +133,12 @@ public final class StructureSearch extends SearchJob {
             boolean supported = placement.getClass() == RandomSpreadStructurePlacement.class
                     || placement.getClass() == ConcentricRingsStructurePlacement.class;
             boolean predict = async && !compatiblePrediction && supported && sourceSafe;
-            SamplingBudget budget = new SamplingBudget(maximumSamples); budgets.add(budget);
+            SamplingBudget budget=outerReady?budgets.get(0):new SamplingBudget(maximumSamples);
+            if(!outerReady)budgets.add(budget);
             // 闭包只引用不可变快照；未知规则的闭包始终在主线程采样。
-            boolean cacheRegions=predict && cached.cacheRegions(placement,level);
-            BiFunction<Integer, Integer, List<SearchCandidate>> generate = (x, z) -> {
+            BiFunction<Integer, Integer, List<SearchCandidate>> sample = (x, z) -> {
                 ChunkPos chunk = new ChunkPos(x, z);
+                if(ignoredChunks.contains(chunk.toLong()))return List.of();
                 // Gel 排除规则可递归调用其他模组，统一留给主线程。候选重新核对避免 offset==spacing 的边界误报。
                 if (!(gel != null && gel.exclusion) && !(twilight == null
                         ? placement.isStructureChunk(state, x, z) : twilight.contains(generator, state, x, z))) return List.of();
@@ -114,33 +148,18 @@ public final class StructureSearch extends SearchJob {
                 List<SearchCandidate> found = new ArrayList<>();
                 for (Target target : targets) {
                     SearchCandidate hint=hinted.get(target.structure());
-                    if(!cacheRegions && hint!=null && hint.chunk().equals(chunk))continue;
+                    if(hint!=null && hint.chunk().equals(chunk))continue;
                     DungeonsPrediction policy = target.dungeons();
                     BlockPos point = predict ? cached.predict(target.structure(), target.biomes(), chunk)
                             : gel != null && gel.backgroundAllowed && policy != null && policy.allowed()
                                 ? policy.predict(() -> cached.predict(target.structure(), target.biomes(), chunk)) : locate;
-                    if (point != null) found.add(new SearchCandidate(new BlockPos(locate.getX(), point.getY(), locate.getZ()),
-                            target.key(), target.structure(), placement, chunk, 0));
+                    if(point!=null) {
+                        SearchCandidate candidate=new SearchCandidate(new BlockPos(locate.getX(), point.getY(), locate.getZ()),
+                                target.key(), target.structure(), placement, chunk, distance(origin,locate));
+                        found.add(candidate);capturePrefix(candidate);
+                    }
                 }
                 return found;
-            };
-            java.util.function.Function<List<SearchCandidate>,List<SearchCandidate>> current = raw -> {
-                if(raw.isEmpty())return raw;
-                List<SearchCandidate> found=new ArrayList<>();
-                for(SearchCandidate candidate:raw) {
-                    SearchCandidate hint=hinted.get(candidate.structure());
-                    if(hint!=null && hint.chunk().equals(candidate.chunk()))continue;
-                    found.add(new SearchCandidate(candidate.position(),candidate.key(),candidate.structure(),placement,
-                            candidate.chunk(),distance(origin,candidate.position())));
-                }
-                return found;
-            };
-            BiFunction<Integer,Integer,List<SearchCandidate>> sample=(x,z)-> {
-                long chunk=ChunkPos.asLong(x,z);
-                if(ignoredChunks.contains(chunk))return List.of();
-                // 这里只缓存生成规则结果；玩家排除记录、提示和距离在本次请求重新应用。
-                List<SearchCandidate> raw=cacheRegions?cached.region(group,chunk,()->generate.apply(x,z)):generate.apply(x,z);
-                return current.apply(raw);
             };
             int stripes = predict ? SearchConfig.threads() : 1;
             if (gel != null) {
@@ -182,17 +201,25 @@ public final class StructureSearch extends SearchJob {
                 int jitter = placement instanceof RandomSpreadStructurePlacement spread
                         ? (spread.spacing() - spread.separation() - 1) * 16 : 0;
                 var geometry = geometry(spacing * 16, offset, 0, jitter, targets);
-                BiFunction<Integer,Integer,List<SearchCandidate>> cachedRegion=cacheRegions?(rx,rz)-> {
-                    ChunkPos chunk=((RandomSpreadStructurePlacement)placement).getPotentialStructureChunk(seed,rx*spacing,rz*spacing);
-                    if(ignoredChunks.contains(chunk.toLong()))return List.of();
-                    List<SearchCandidate> raw=cached.peekRegion(group,chunk.toLong());
-                    return raw==null?null:current.apply(raw);
-                }:null;
                 lanes.addAll(RectLane.create(geometry, radius, 8, stripes, budget, region,
-                        supported && !compatiblePrediction && sourceSafe,cachedRegion));
+                        supported && !compatiblePrediction && sourceSafe));
             }
         }
         return lanes;
+    }
+    private void capturePrefix(SearchCandidate candidate) {
+        if(prefixEligible && !prefixStored && prefixCount.incrementAndGet()<=1024)predictedPrefix.add(candidate);
+    }
+    private void storePrefix() {
+        if(!prefixEligible || prefixStored || !scan.done() || scan.result()==null || prefixCount.get()>1024)return;
+        long before=System.nanoTime();
+        try {
+            // 完整最近性证明已覆盖此距离以内所有生成规则候选，不保存区块是否存在的结论。
+            long upper=scan.result().distanceSquared();var candidates=new ArrayList<SearchCandidate>();
+            for(SearchCandidate candidate:predictedPrefix)if(candidateBound(candidate)<=upper)candidates.add(candidate);
+            context.rememberPrefix(keys,new WorldgenCache.Prefix(start.getX(),start.getZ(),upper,samples(),excluded,List.copyOf(candidates)));
+            prefixStored=true;
+        }finally{mainNanos+=System.nanoTime()-before;}
     }
     private RectFrontier.Geometry geometry(int step, BlockPos offset, int minJitter, int maxJitter, List<Target> targets) {
         boolean treasure = targets.stream().anyMatch(target -> TREASURE.equals(target.key()));
@@ -265,6 +292,7 @@ public final class StructureSearch extends SearchJob {
         try { return super.step(); }
         finally {
             confirmations = verification.confirmations(); chunkLoads = verification.chunkRequests();
+            storePrefix();
             if (scan.done()) verification.cancel();
         }
     }

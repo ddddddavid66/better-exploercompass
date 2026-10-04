@@ -58,6 +58,9 @@ public final class ScanCoordinator<T> {
     private boolean unconditionalConfirmation;
     private boolean customVerification;
     private int schedulingStep;
+    private long coveredFloor;
+    private java.util.function.Supplier<List<Lane<T>>> deferred;
+    private long deferredBound=Long.MAX_VALUE;
     public ScanCoordinator(List<Lane<T>> lanes, ToLongFunction<T> distance, Predicate<T> confirm, long maximum, boolean async) {
         this.distance = distance; candidateBound = distance; this.maximum = maximum; this.async = async;
         confirmation = candidate -> confirm.test(candidate) ? Confirmation.ACCEPT : Confirmation.REJECT;
@@ -97,11 +100,15 @@ public final class ScanCoordinator<T> {
         long preferred = pending.isEmpty() ? upper : Math.min(upper, Math.max(candidateBound.applyAsLong(pending.peek()),
                 distance.applyAsLong(pending.peek())));
         priority.set(preferred);
+        if(deferred!=null && deferredBound<=preferred) {
+            var prepare=deferred;deferred=null;deferredBound=Long.MAX_VALUE;
+            for(Lane<T> lane:prepare.get())work.add(new Work(lane));
+        }
         // 已核实上界内的不可变生成缓存只做一次短查询，仍受调用方的共享 tick 预算限制。
         if(async && (accepted!=null || unconditionalConfirmation)) {
             Work cached=null;
             for(Work item:work) if(!item.running.get() && item.output.isEmpty()
-                    && item.lane.available(preferred) && (cached==null || item.remaining<cached.remaining)) cached=item;
+                    && available(item,preferred) && (cached==null || item.remaining<cached.remaining)) cached=item;
             if(cached!=null) {
                 List<T> values=cached.lane.sampleCached(verifiedUpper.get());
                 if(values!=null) {
@@ -117,14 +124,14 @@ public final class ScanCoordinator<T> {
         for (int pass = 0; pass < work.size(); pass++) {
             Work item = null;
             for (Work possible : work) if (possible.scheduledStep != turn && !possible.running.get() && possible.output.isEmpty()
-                    && possible.lane.available(preferred) && (item == null || possible.remaining < item.remaining)) item = possible;
+                    && available(possible,preferred) && (item == null || possible.remaining < item.remaining)) item = possible;
             if (item == null) break;
             item.scheduledStep = turn;
             if (async && item.lane.backgroundAllowed()) {
                 if (hasCompatibility()) progress |= submit(item, executor);
             }
             else {
-                if (!item.lane.available(priority.get())) return progress;
+                if (!available(item,priority.get())) return progress;
                 // 兼容路径每次只有一个采样；无需创建工作线程的批次包装或内部计时器。
                 for (T candidate : item.lane.sample(verifiedUpper.get())) if (admit(candidate)) pending.add(candidate);
                 item.remaining=item.lane.pendingLowerBound();return true;
@@ -132,7 +139,7 @@ public final class ScanCoordinator<T> {
         }
         for (Work item : work) if (item.running.get() || !item.output.isEmpty()) return progress;
         if (!pending.isEmpty() && candidateBound.applyAsLong(pending.peek()) <= upper) return progress;
-        for (Work item : work) if (item.lane.available(upper)) { priority.set(upper); return progress; }
+        for (Work item : work) if (available(item,upper)) { priority.set(upper); return progress; }
         // 空批次可能在上面的证明检查后完成；终止前再读取一次完整前沿。
         if (accepted != null && unresolvedBound() > upper) result = accepted;
         // 额度耗尽时仍有未处理下界，不能提交暂存结果；完整覆盖才算找到最近目标。
@@ -146,7 +153,7 @@ public final class ScanCoordinator<T> {
         if (!async || done || cancelled.get()) return false;
         List<Work> reserved=null;
         for (Work item : work) if (!item.running.get() && item.output.isEmpty()
-                && item.lane.backgroundAllowed() && item.lane.available(priority.get())
+                && item.lane.backgroundAllowed() && available(item,priority.get())
                 && item.running.compareAndSet(false,true)) {
             if(reserved==null)reserved=new ArrayList<>(work.size());reserved.add(item);
         }
@@ -169,10 +176,11 @@ public final class ScanCoordinator<T> {
         }
     }
     private long unresolvedBound() {
-        long bound = pending.isEmpty() ? Long.MAX_VALUE : candidateBound.applyAsLong(pending.peek());
-        for (Work item : work) bound = Math.min(bound, item.remaining);
+        long bound = pending.isEmpty() ? deferredBound : Math.min(deferredBound,candidateBound.applyAsLong(pending.peek()));
+        for (Work item : work) bound = Math.min(bound, Math.max(coveredFloor,item.remaining));
         return bound;
     }
+    private boolean available(Work item,long limit) {return coveredFloor<=limit && item.lane.available(limit);}
     private boolean submit(Work item, ExecutorService executor) {
         if (!item.running.compareAndSet(false, true)) return false;
         return scheduleReserved(item,executor);
@@ -192,7 +200,7 @@ public final class ScanCoordinator<T> {
                         item.remaining = packet.remainingBound;
                     }
                     // 有限队列保留消费屏障，后台可继续覆盖较近范围，避免核对后再多等一 tick。
-                    if (item.output.remainingCapacity() > 0 && item.lane.available(priority.get())) {
+                    if (item.output.remainingCapacity() > 0 && available(item,priority.get())) {
                         try { executor.execute(this); submitted.incrementAndGet(); chained = true; return; }
                         catch (RejectedExecutionException full) { /* 有限队列拥堵，下个 tick 再提交。 */ }
                     }
@@ -207,7 +215,7 @@ public final class ScanCoordinator<T> {
         long begin = System.nanoTime(); List<T> values = null;
         try {
             for (int i = 0; i < size && !done && !cancelled.get() && !Thread.currentThread().isInterrupted()
-                    && item.lane.available(priority.get()); i++) {
+                    && available(item,priority.get()); i++) {
                 for (T candidate : item.lane.sample(verifiedUpper.get())) if (admit(candidate)) {
                     if (unconditionalConfirmation) {
                         // 群系的完整官方查询已经给出真实有效点；只保留批内最优点，不丢失可能被拒绝的结构。
@@ -254,6 +262,19 @@ public final class ScanCoordinator<T> {
         if (admit(candidate)) pending.add(candidate);
         return this;
     }
+    /** 调用方必须提供此距离以内全部生成预测；它们仍逐个核对，绝不复用旧区块结论。 */
+    public ScanCoordinator<T> withCoveredPrefix(long distanceSquared) {
+        customVerification();
+        if(distanceSquared<0 || distanceSquared>=Long.MAX_VALUE || submitted.get()!=0 || schedulingStep!=0 || done || cancelled.get())
+            throw new IllegalArgumentException("Invalid generation prefix");
+        coveredFloor=distanceSquared+1;return this;
+    }
+    /** 已覆盖预测先核对；仅在需要外部范围时，在调用线程准备新的独立游标。 */
+    public ScanCoordinator<T> withDeferredLanes(java.util.function.Supplier<List<Lane<T>>> prepare) {
+        if(coveredFloor==0 || !work.isEmpty() || submitted.get()!=0 || schedulingStep!=0 || done || cancelled.get())
+            throw new IllegalStateException("Deferred lanes require an unused generation prefix");
+        deferred=java.util.Objects.requireNonNull(prepare);deferredBound=coveredFloor;return this;
+    }
     /** 仅供不需要区块核对、不会拒绝且不会修正锚点的真实采样结果使用。 */
     public ScanCoordinator<T> withUnconditionalConfirmation() {
         if (customVerification) throw new IllegalStateException("Custom verification requires main-thread confirmation");
@@ -265,8 +286,14 @@ public final class ScanCoordinator<T> {
     public boolean cancelled() { return cancelled.get(); }
     public T result() { return result; }
     public boolean confirming() { return confirming; }
-    public boolean budgetLimited() { for(Work item:work)if(item.lane.budgetLimited(maximum))return true;return false; }
-    public boolean hasBackground() { if(async)for(Work item:work)if(item.lane.backgroundAllowed())return true;return false; }
+    public boolean budgetLimited() {
+        if(coveredFloor>maximum)return false;
+        for(Work item:work)if(item.lane.budgetLimited(maximum))return true;return false;
+    }
+    public boolean hasBackground() {
+        if(async && deferred!=null)return true;
+        if(async)for(Work item:work)if(item.lane.backgroundAllowed())return true;return false;
+    }
     public boolean hasCompatibility() { if(!async)return true;for(Work item:work)if(!item.lane.backgroundAllowed())return true;return false; }
     public long workerNanos() { return workerNanos.get(); }
     public long submittedBatches() { return submitted.get(); }

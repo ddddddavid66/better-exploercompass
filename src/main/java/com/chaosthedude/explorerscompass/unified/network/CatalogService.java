@@ -12,7 +12,11 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** 一份不可变生成目录同时用于界面、联合筛选、分组和服务端验证。 */
 public final class CatalogService {
-    private record ConfigKey(List<String> blacklist, List<String> overrides, int defaultCost) {
+    private static final class ConfigKey {
+        final List<String> blacklist,overrides;final int defaultCost;
+        ConfigKey(List<String> blacklist,List<String> overrides,int defaultCost) {
+            this.blacklist=blacklist;this.overrides=overrides;this.defaultCost=defaultCost;
+        }
         @Override public boolean equals(Object other) {
             return this==other || other instanceof ConfigKey key && defaultCost==key.defaultCost
                     && blacklist.equals(key.blacklist) && overrides.equals(key.overrides);
