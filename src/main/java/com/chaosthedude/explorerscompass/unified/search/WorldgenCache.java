@@ -25,7 +25,13 @@ final class WorldgenCache {
     private final net.minecraft.world.level.biome.Climate.Sampler noise;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, DungeonsPrediction> dungeons = new IdentityHashMap<>();
-    private record PlanKey(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible) {}
+    private record PlanKey(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible) {
+        // 显式比较避免 record 动态比较器的首次引导落入第一轮热搜索。
+        @Override public boolean equals(Object other) {
+            return this==other || other instanceof PlanKey key && compatible==key.compatible && keys.equals(key.keys);
+        }
+        @Override public int hashCode() { return 31*keys.hashCode()+(compatible?1:0); }
+    }
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<PlanKey,List<StructureSearch.Group>> plans =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     // 少量近期位置只作为下次请求的提示；每次使用仍检查真实结构记录。
@@ -50,7 +56,11 @@ final class WorldgenCache {
     List<StructureSearch.Group> structurePlan(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible,
                                             Supplier<List<StructureSearch.Group>> prepare) {
         // 只缓存注册表分组和预测策略，不能包含玩家位置、历史排除或可变采样游标。
-        return plans.get(new PlanKey(keys,compatible),ignored->prepare.get());
+        PlanKey key=new PlanKey(keys,compatible);
+        List<StructureSearch.Group> known=plans.peek(key);
+        if(known!=null)return known;
+        // 计划仅在服务端线程读取／建立，不需要缓存加载 future。
+        List<StructureSearch.Group> created=prepare.get();plans.remember(key,created);return created;
     }
     Predicate<Holder<Biome>> biomeRule(Structure structure) {
         return biomeRules.computeIfAbsent(structure, StructurePredictor::biomeRule);

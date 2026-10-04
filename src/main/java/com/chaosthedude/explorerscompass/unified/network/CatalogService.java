@@ -12,7 +12,13 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** 一份不可变生成目录同时用于界面、联合筛选、分组和服务端验证。 */
 public final class CatalogService {
-    private record ConfigKey(List<String> blacklist, List<String> overrides, int defaultCost) {}
+    private record ConfigKey(List<String> blacklist, List<String> overrides, int defaultCost) {
+        @Override public boolean equals(Object other) {
+            return this==other || other instanceof ConfigKey key && defaultCost==key.defaultCost
+                    && blacklist.equals(key.blacklist) && overrides.equals(key.overrides);
+        }
+        @Override public int hashCode() { return 31*(31*blacklist.hashCode()+overrides.hashCode())+defaultCost; }
+    }
     private record Snapshot(ConfigKey config, BiomeCatalogPacket packet) {}
     private record Cost(Pattern pattern, int amount) {}
     private static final Map<MinecraftServer, Snapshot> CACHE = new IdentityHashMap<>();
@@ -95,6 +101,8 @@ public final class CatalogService {
         return fallback;
     }
     public static List<ResourceLocation> allowed(ServerLevel level) { return List.copyOf(directory(level).structures().keySet()); }
+    /** 请求验证直接使用不可变目录集合，避免为单个 ID 复制整个结构列表。 */
+    public static Set<ResourceLocation> allowedSet(ServerLevel level) { return directory(level).structures().keySet(); }
     public static Map<ResourceLocation, ResourceLocation> groups(ServerLevel level) { return directory(level).groups(); }
     public static int xp(ServerLevel level, ResourceLocation key) {
         return directory(level).xpLevels().getOrDefault(key, ConfigHandler.GENERAL.defaultXpLevels.get());

@@ -7,6 +7,7 @@ import com.chaosthedude.explorerscompass.util.StructureUtils;
 import com.chaosthedude.explorerscompass.unified.search.SearchRules;
 import com.chaosthedude.explorerscompass.unified.CompassUnified;
 import com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork;
+import com.chaosthedude.explorerscompass.unified.network.CatalogService;
 import com.chaosthedude.explorerscompass.unified.network.SearchStatusPacket;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -114,7 +115,7 @@ public final class SearchService {
                                              List<ResourceLocation> requested, boolean group, boolean next) {
         long before = System.nanoTime(), beforeMillis=System.currentTimeMillis();
         if (!held(player, stack)) return false;
-        Set<ResourceLocation> allowed = new HashSet<>(StructureUtils.getAllowedStructureKeys(player.serverLevel()));
+        Set<ResourceLocation> allowed = CatalogService.allowedSet(player.serverLevel());
         List<ResourceLocation> keys = requested.stream().filter(allowed::contains).distinct().toList();
         if (keys.isEmpty()) return false;
         ResourceLocation costKey = next ? ExplorersCompass.explorersCompass.getStructureKey(stack) : category;
