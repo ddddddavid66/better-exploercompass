@@ -10,9 +10,14 @@ test-tools/
 decompiled/
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+*.class
 *.zip
 *.csv
 *.jsonl
+benchmark-worlds*/
+comparison-status.txt
+concurrent-status.txt
+smoke-*-results.txt
 *.log
 *.hprof
 .idea/
