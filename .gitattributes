@@ -7,6 +7,9 @@ src/generated/**/*.json text eol=lf
 # Pin archive inputs across Windows/Linux checkouts. Preserve the already
 # measured archive's owned-resource line endings and upstream resources.
 * text=auto eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.mcmeta text eol=lf
 *.bat text eol=crlf
 *.jar binary
 *.png binary
