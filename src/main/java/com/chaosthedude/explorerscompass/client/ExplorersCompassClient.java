@@ -40,6 +40,9 @@ public class ExplorersCompassClient {
                 @OnlyIn(Dist.CLIENT)
                 @Override
                 public float unclampedCall(ItemStack stack, ClientLevel world, LivingEntity entityLiving, int seed) {
+                    String targetDimension = stack.getOrCreateTag().getString(com.chaosthedude.explorerscompass.unified.search.SearchService.TARGET_DIMENSION);
+                    var target=com.chaosthedude.explorerscompass.unified.data.TargetDimension.parse(targetDimension);
+                    if (world != null && target!=null && !target.equals(world.dimension().location())) return 0.0F;
                     if (entityLiving == null && !stack.isFramed()) {
                         return 0.0F;
                     } else {

@@ -1,0 +1,17 @@
+Explorer’s Compass Unified 1.0 — 探险者指南针 统一
+Original Explorer’s Compass: ChaosTheDude / MattCzyr
+Unified modifications and maintenance: David, 2026
+Upstream: https://github.com/MattCzyr/ExplorersCompass
+Commit: e7f31c400bca0ced222d3086524da35e9bcc50de (forge-1.20.1, 1.4.0)
+This is an unofficial modified derivative; no endorsement by the original author is implied.
+Main code and assets: CC BY-NC-SA 4.0, see META-INF/licenses/ExplorersCompass-CC-BY-NC-SA-4.0.txt.
+
+TinyPinyin 2.0.3: promeG and contributors, https://github.com/promeG/TinyPinyin
+Apache License 2.0, see META-INF/licenses/TinyPinyin-Apache-2.0.txt.
+assets/explorerscompass/pinyin.bin derives from TinyPinyin single-character pronunciation data.
+The data format was modified into a compact syllable dictionary and UTF-16 character index by David.
+TinyPinyin's full Java library and dictionary matcher are not bundled.
+
+Acknowledgments: MCMostWolf (Edited reference), xinian (Enhance reference), TeamTwilight (optional landmark API).
+No Edited, Enhance or Twilight Forest classes/assets are bundled.
+Detailed changes and sources accompany the full source release.

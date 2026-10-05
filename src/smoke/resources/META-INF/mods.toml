@@ -1,0 +1,7 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="CC BY-NC-SA 4.0"
+[[mods]]
+modId="filterschecks"
+version="1.0.0"
+displayName="Compass Filters Isolated Smoke Checks"

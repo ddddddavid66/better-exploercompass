@@ -7,12 +7,12 @@ import java.util.Map;
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.gui.GuiWrapper;
-import com.chaosthedude.explorerscompass.network.SyncPacket;
 import com.chaosthedude.explorerscompass.util.CompassState;
 import com.chaosthedude.explorerscompass.util.ItemUtils;
 import com.chaosthedude.explorerscompass.util.PlayerUtils;
 import com.chaosthedude.explorerscompass.util.StructureUtils;
-import com.chaosthedude.explorerscompass.worker.SearchWorkerManager;
+import com.chaosthedude.explorerscompass.unified.search.SearchService;
+import com.chaosthedude.explorerscompass.unified.network.CatalogService;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -36,41 +36,31 @@ public class ExplorersCompassItem extends Item {
 
 	public static final String NAME = "explorerscompass";
 
-	private SearchWorkerManager workerManager;
 
 	public ExplorersCompassItem() {
 		super(new Properties().stacksTo(1));
-		workerManager = new SearchWorkerManager();
 	}
 
 	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-		if (!player.isCrouching()) {
-			if (isBroken(player.getItemInHand(hand))) {
-				return new InteractionResultHolder<>(InteractionResult.PASS, player.getItemInHand(hand));
-			}
-			if (level.isClientSide()) {
-				final ItemStack stack = ItemUtils.getHeldItem(player, ExplorersCompass.explorersCompass);
-				GuiWrapper.openGUI(level, player, stack);
-			} else {
-				final ServerLevel serverLevel = (ServerLevel) level;
-				final ServerPlayer serverPlayer = (ServerPlayer) player;
-				final boolean canTeleport = ConfigHandler.GENERAL.allowTeleport.get() && PlayerUtils.canTeleport(player.getServer(), player);
-				final int maxNextSearches = ConfigHandler.GENERAL.maxNextSearches.get();
-				final boolean infiniteXp = player.getAbilities().instabuild;
-				final List<ResourceLocation> allowedStructureKeys = StructureUtils.getAllowedStructureKeys(serverLevel);
-				final Map<ResourceLocation, Integer> xpLevels = StructureUtils.getXpLevelsForAllowedStructures(serverLevel);
-				ExplorersCompass.network.sendTo(new SyncPacket(canTeleport, maxNextSearches, infiniteXp, allowedStructureKeys, xpLevels, StructureUtils.getGeneratingDimensionsForAllowedStructures(serverLevel), StructureUtils.getStructureKeysToTypeKeys(serverLevel)), serverPlayer.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
-			}
-		} else {
-			workerManager.stop();
-			workerManager.clear();
-			ItemStack stack = player.getItemInHand(hand);
-			setState(stack, null, CompassState.INACTIVE, player);
-			stack.getOrCreateTag().remove("PrevPos");
-		}
-		return new InteractionResultHolder<ItemStack>(InteractionResult.PASS, player.getItemInHand(hand));
-	}
+        ItemStack stack = player.getItemInHand(hand);
+        if (player instanceof ServerPlayer serverPlayer) restoreState(serverPlayer, stack);
+        // 按键状态在 PRESS_SHIFT_KEY 后立即生效；蹲伏姿态可能要到下一 tick 才更新。
+        if (player.isShiftKeyDown()) {
+            if (player instanceof ServerPlayer serverPlayer) { SearchService.cancel(serverPlayer, true); setInactive(stack, player); }
+        } else if (!isBroken(stack)) {
+            if (level.isClientSide()) GuiWrapper.openGUI(level, player, stack);
+            // 目录由客户端请求一次，服务端只发送统一目录，不再发送旧 SyncPacket。
+        }
+        return new InteractionResultHolder<>(InteractionResult.PASS, stack);
+    }
+
+    @Override public void inventoryTick(ItemStack stack, Level level, net.minecraft.world.entity.Entity entity, int slot, boolean selected) {
+        if (entity instanceof ServerPlayer player) restoreState(player, stack);
+    }
+    private void restoreState(ServerPlayer player, ItemStack stack) {
+        if (getState(stack) == CompassState.SEARCHING && !SearchService.owns(player, stack)) setInactive(stack, player);
+    }
 
 	@Override
  	public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
@@ -108,93 +98,19 @@ public class ExplorersCompassItem extends Item {
 		return Mth.hsvToRgb(Math.max(0.0F, (1.0F - f) / 3.0F), 1.0F, 1.0F);
 	}
 
-	public void searchForStructure(ServerLevel level, Player player, BlockPos pos, ResourceLocation structureOrGroupKey, boolean isGroup, ItemStack stack) {
-		if (!isBroken(stack)) {
-			setSearching(stack, structureOrGroupKey, player);
-			setSearchRadius(stack, 0, player);
-			setIsGroup(stack, isGroup);
-
-			List<ResourceLocation> structureKeys = List.of(structureOrGroupKey);
-			if (isGroup) {
-				structureKeys = StructureUtils.getStructuresForGroup(level, structureOrGroupKey);
-			}
-
-			List<Structure> structures = new ArrayList<Structure>();
-			for (ResourceLocation key : structureKeys) {
-				structures.add(StructureUtils.getStructureForKey(level, key));
-			}
-			List<BlockPos> prevPos = new ArrayList<BlockPos>();
-			workerManager.stop();
-			workerManager.createWorkers(level, player, stack, structures, structureOrGroupKey, isGroup, pos, prevPos);
-			boolean started = workerManager.start();
-			if (!started) {
-				setNotFound(stack, 0, 0);
-			}
-
-			int xpLevelCost = StructureUtils.getXpLevelsForStructure(level, structureOrGroupKey);
-			if (!player.getAbilities().instabuild && xpLevelCost > 0) {
-				player.giveExperienceLevels(-xpLevelCost);
-			}
-		}
-	}
+	public void searchForStructure(ServerLevel level, Player player, BlockPos pos, ResourceLocation key, boolean group, ItemStack stack) {
+        if (player instanceof ServerPlayer serverPlayer && serverPlayer.serverLevel() == level)
+            SearchService.requestStructures(serverPlayer, stack, key, group, false, null);
+    }
 
 	public void searchForNextStructure(ServerLevel level, Player player, BlockPos pos, ItemStack stack) {
-		if (!isBroken(stack)) {
-			ResourceLocation structureKey = getStructureKey(stack);
-			List<BlockPos> prevPos = getPrevPos(stack);
-			boolean isGroup = getIsGroup(stack);
-			if (structureKey != null && prevPos != null) {
-				setSearchRadius(stack, 0, player);
+        if (player instanceof ServerPlayer serverPlayer && serverPlayer.serverLevel() == level)
+            SearchService.requestStructures(serverPlayer, stack, getStructureKey(stack), false, true, null);
+    }
 
-				List<ResourceLocation> structureKeys;
-				if (isGroup) {
-					// The compass stores the ID of the specific structure found, so re-determine the group key
-					ResourceLocation groupKey = StructureUtils.getStructureKeysToTypeKeys(level).get(structureKey);
-					setSearching(stack, groupKey, player);
-					structureKeys = StructureUtils.getStructuresForGroup(level, groupKey);
-				} else {
-					setSearching(stack, structureKey, player);
-					structureKeys = List.of(structureKey);
-				}
+	
 
-				List<Structure> structures = new ArrayList<Structure>();
-				for (ResourceLocation key : structureKeys) {
-					structures.add(StructureUtils.getStructureForKey(level, key));
-				}
-				workerManager.stop();
-				workerManager.createWorkers(level, player, stack, structures, structureKey, isGroup, pos, prevPos);
-				boolean started = workerManager.start();
-				if (!started) {
-					setNotFound(stack, 0, 0);
-				}
-
-                int xpLevelCost = StructureUtils.getXpLevelsForStructure(level, structureKey);
-                if (!player.getAbilities().instabuild && xpLevelCost > 0) {
-                    player.giveExperienceLevels(-xpLevelCost);
-                }
-			}
-		}
-	}
-
-	public void succeed(ItemStack stack, ResourceLocation structureKey, boolean isGroup, int x, int z, List<BlockPos> prevPos, int samples, boolean displayCoordinates) {
-		setFound(stack, structureKey, x, z, samples);
-		setDisplayCoordinates(stack, displayCoordinates);
-		setIsGroup(stack, isGroup);
-		setPrevPos(stack, prevPos);
-		damageCompass(stack);
-		workerManager.clear();
-	}
-
-	public void fail(ItemStack stack, ResourceLocation structureKey, int radius, int samples) {
-		workerManager.pop();
-		boolean started = workerManager.start();
-		if (!started) {
-			setNotFound(stack, radius, samples);
-			if (ItemUtils.verifyNBT(stack)) {
-				stack.getTag().putString("StructureKey", structureKey.toString());
-			}
-		}
-	}
+	
 
 	public boolean isActive(ItemStack stack) {
 		if (ItemUtils.verifyNBT(stack)) {
@@ -299,31 +215,9 @@ public class ExplorersCompassItem extends Item {
 		return false;
 	}
 
-    private void setPrevPos(ItemStack stack, List<BlockPos> prevPos) {
-        if (ItemUtils.verifyNBT(stack)) {
-            ListTag listTag = new ListTag();
-            for (BlockPos pos : prevPos) {
-                CompoundTag posTag = new CompoundTag();
-                posTag.putInt("X", pos.getX());
-                posTag.putInt("Y", pos.getY());
-                posTag.putInt("Z", pos.getZ());
-                listTag.add(posTag);
-            }
-            stack.getTag().put("PrevPos", listTag);
-        }
-    }
+    
 
-    private List<BlockPos> getPrevPos(ItemStack stack) {
-        List<BlockPos> prevPos = new ArrayList<BlockPos>();
-        if (ItemUtils.verifyNBT(stack) && stack.getTag().contains("PrevPos", Tag.TAG_LIST)) {
-            ListTag listTag = stack.getTag().getList("PrevPos", Tag.TAG_COMPOUND);
-            for (int i = 0; i < listTag.size(); i++) {
-                CompoundTag posTag = listTag.getCompound(i);
-                prevPos.add(new BlockPos(posTag.getInt("X"), posTag.getInt("Y"), posTag.getInt("Z")));
-            }
-        }
-        return prevPos;
-    }
+    
 
 	public int getFoundStructureX(ItemStack stack) {
 		if (ItemUtils.verifyNBT(stack)) {
@@ -384,13 +278,7 @@ public class ExplorersCompassItem extends Item {
 		return 0;
 	}
 
-	private void damageCompass(ItemStack stack) {
-		int max = ConfigHandler.GENERAL.compassDurability.get();
-		if (max > 0) {
-			int damage = getDamage(stack) + 1;
-			stack.getOrCreateTag().putInt("CompassDamage", damage);
-		}
-	}
+	
 
 	public boolean isBroken(ItemStack stack) {
 		int max = ConfigHandler.GENERAL.compassDurability.get();

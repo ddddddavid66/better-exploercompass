@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="CC BY-NC-SA 4.0"
+[[mods]]
+modId="compassbench"
+version="1.0"
+displayName="Compass comparison harness"
+description='''Neutral, opt-in dedicated server search validation. Do not install in normal play.'''
+[[dependencies.compassbench]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="SERVER"
