@@ -10,7 +10,7 @@
 ## 参考与可选依赖
 
 - **MCMostWolf / ExplorersCompassEdited**：https://github.com/MCMostWolf/ExplorersCompassEdited ，此前界面及兼容行为的参考。没有将 Edited jar 或其反编译目录导入统一版。
-- **xinian / Explorer’s Compass Enhance**：此前异步搜索设计参考，用户提供 1.20.1 Forge 1.6.0 jar；不在发布包嵌入 Enhance 类或资源。
+- **xinian / Explorer’s Compass Enhance**：此前异步搜索设计参考。
 - **TeamTwilight / Twilight Forest**：https://github.com/TeamTwilight/twilightforest/tree/1.20.1 。适配器在安装时调用该模组的官方地标中心和放置 API；未嵌入其类或资源。测试版本 twilightforest-1.20.1-4.3.2508-universal。暮色森林仍为可选模组，遵循其自身许可，不重新许可它。
 
 - **Modding Legacy / Dungeons Plus 与 Structure Gel API**：可选兼容对象和 API 行为对照来源，https://gitlab.com/modding-legacy/dungeons-plus 和 https://gitlab.com/modding-legacy/structure-gel-api 。核对本地版本 Dungeons Plus 1.5.0、Structure Gel 2.16.2；对照源码分支为 1.20.1，对照提交分别为 `86bd756cfc747b7fc7e292b0880ba85edabb8d95`、`dcd8de2d668f4c2f3467cf34456ee9ccc3f53004`。这些提交用于对照，不宣称本地 jar 必定由相同提交构建。适配器读取运行时注册规则，调用现有公开候选 API；发布包不嵌入其 Java 实现、模板或其他资源。两模组保持自身许可与作者署名，不重新许可第三方模组。
@@ -25,6 +25,6 @@ Minecraft、Forge、Mixin、Gson、Guava、Log4j 等由 Minecraft/Forge 运行�
 
 Gradle Wrapper 随源码提供，构建工具许可 Apache-2.0；JUnit Jupiter 5.11.0 / Platform 1.11.0 通过 Maven 引入，仅用于测试，主体 EPL-2.0。TinyPinyin 完整库仅为生成与测试依赖。验收代码在 src/smoke，比较工具在 src/benchmarkHarness，JMH 测试在 src/benchmark；均不打入发布 jar。OpenJDK JMH 1.37 仅用于开发测试，遵循 GPL-2.0-with-Classpath-Exception，参见其官方仓库许可。
 
-1.1.0 的距离下界和增量最近邻理论依据为 Hjaltason / Samet（1999）及 Roussopoulos / Kelley / Vincent（1995），链接和本项目推导见 ALGORITHM.md。历史版本参考 Enhance 的事实继续保留；新核心独立重写不等同于法律上保证与其毫无关联。
+1.1.0 的距离下界和增量最近邻理论依据为 Hjaltason / Samet（1999）及 Roussopoulos / Kelley / Vincent（1995），链接和本项目推导见 ALGORITHM.md。
 
 本项目允许按主体 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en) 非商业分享与修改，保留署名、来源、修改说明与相同许可。Apache-2.0 数据单独适用其许可。没有要求额外许可才能执行该许可已经允许的分享；此次主动提供完整源码。

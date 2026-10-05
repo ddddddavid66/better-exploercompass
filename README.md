@@ -47,11 +47,11 @@
 
 ## 搜索算法与来源
 
-1.1.0 使用距离下界优先的矩形二分域，替换历史圆环和 X 条带遍历。预测不能永久剪枝；只有真实结构核对后的目标形成上界，未处理范围、在途任务和未消费候选全部参与最近性证明。额度不足时显示采样上限，不返回未经证明的最近结果。
+1.1.0 使用距离下界优先的矩形二分。预测不能永久剪枝；只有真实结构核对后的目标形成上界，未处理范围、在途任务和未消费候选全部参与最近性证明。额度不足时显示采样上限，不返回未经证明的最近结果。
 
 理论来自 [Hjaltason／Samet 1999](https://www.cs.umd.edu/~hjs/pubs/incnear2.pdf) 的增量最近邻和 [Roussopoulos 等 1995](https://www.cs.umd.edu/~nick/papers/nnpaper.pdf) 的矩形最短距离思想。本项目自行推导程序生成域；详细范围、负坐标处理、并发证明和测试见 [ALGORITHM.md](ALGORITHM.md)。
 
-官方来源提交为 `e7f31c400bca0ced222d3086524da35e9bcc50de`，见 [UPSTREAM.json](UPSTREAM.json)。历史版本曾参考 Enhance，此事实保留；1.1.0 整体替换已识别的相近遍历实现，不能描述为“从未参考过 Enhance”。模块对应关系见 [SOURCE_AUDIT.md](SOURCE_AUDIT.md)。
+官方来源提交为 `e7f31c400bca0ced222d3086524da35e9bcc50de`，见 [UPSTREAM.json](UPSTREAM.json)。历史版本曾参考 Enhance；1.1.0 整体替换已识别的相近遍历实现。模块对应关系见 [SOURCE_AUDIT.md](SOURCE_AUDIT.md)。
 
 ## 构建与测试
 
