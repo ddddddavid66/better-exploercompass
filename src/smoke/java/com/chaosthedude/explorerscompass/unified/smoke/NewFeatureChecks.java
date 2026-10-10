@@ -35,7 +35,7 @@ final class NewFeatureChecks {
             TeleportService.cancel(player.getUUID());
             TeleportService.setMode(player.getUUID(),LandingMode.SAFE_ONLY);
             check(TeleportService.start(player,stack,SearchService.token(stack)),"strict only first click");
-            task=task(player);var expires=task.getClass().getDeclaredField("expires");expires.setAccessible(true);expires.setInt(task,server.getTickCount());
+            task=task(player);var expires=task.getClass().getDeclaredField("requestDeadline");expires.setAccessible(true);expires.setLong(task,System.nanoTime()-1);
             TeleportService.maintain();
             check(TeleportService.request(player,stack,SearchService.token(stack),UUID.randomUUID(),true),"strict-only retries valid target");
             check(!bool(task(player),"fallback"),"strict-only cannot enter relaxed phase");

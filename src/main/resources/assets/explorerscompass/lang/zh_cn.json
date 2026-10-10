@@ -151,5 +151,10 @@
   "filters.end_feature_hint": "特殊地物：定位自然生成点，十字架可能尚未展开为完整地牢。",
   "filters.stage.feature_index_only": "仅定位已收录地牢（预测规则不受支持）",
   "filters.end_pending": "自然生成点（地牢尚未展开）",
-  "filters.end_expanded": "完整末地地牢已核实"
+  "filters.end_expanded": "完整末地地牢已核实",
+  "filters.teleport_reason_scan_budget": "本轮落点检查额度已用完，重试将继续检查。",
+  "filters.teleport_water_surface": "已传送至水面，请自行游泳。",
+  "filters.teleport_reason_waiting_slots": "等待准备名额…",
+  "filters.teleport_reason_waiting_chunks": "等待区块…",
+  "filters.teleport_reason_checking": "检查落点…"
 }
