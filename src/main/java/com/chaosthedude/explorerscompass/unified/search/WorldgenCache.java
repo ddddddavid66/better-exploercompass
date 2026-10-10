@@ -114,8 +114,13 @@ final class WorldgenCache {
     net.minecraft.core.BlockPos predict(Structure structure, Predicate<Holder<Biome>> biomes, net.minecraft.world.level.ChunkPos chunk) {
         // 缓存正/负生成预测，绝不缓存真实区块核对；快照失效后旧任务只能写入自己的旧缓存。
         return predictions.get(new PredictionKey(structure, chunk.toLong()), ignored -> {
-            var point = predictor.predict(structure, biomes, chunk);
-            return new Prediction(point == null ? null : point.immutable());
+            try {
+                var point = predictor.predict(structure, biomes, chunk);
+                return new Prediction(point == null ? null : point.immutable());
+            }catch(HeightBiomeFilter.Rejected impossible) {
+                // 全高度群系证明同样属于负生成结果；不能让它逃出缓存并在下次重算。
+                return new Prediction(null);
+            }
         }).point();
     }
     Biome predictBiome(int x, int y, int z) {
