@@ -27,6 +27,7 @@ public final class PredictionHeights {
     public static Integer cached(Object generator, int x, int z, Heightmap.Types type,
                                  LevelHeightAccessor bounds, RandomState noise) {
         var cache = CURRENT.get();
+        if(cache!=null && cache.matches(generator,noise,bounds))HeightBiomeFilter.beforeHeight(x,z);
         return cache != null && cache.matches(generator, noise, bounds)
                 ? cache.values.peek(new Key(x, z, type)) : null;
     }

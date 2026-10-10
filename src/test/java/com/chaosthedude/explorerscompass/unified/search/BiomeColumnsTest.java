@@ -7,6 +7,21 @@ import org.junit.jupiter.api.Test;
 
 class BiomeColumnsTest {
     record Sample(int x, int y, int z) {}
+    @Test void rarityGateRunsOnceAndRejectedColumnsNeverQueryClimateHeights() {
+        var geometry=new RectFrontier.Geometry(0,0,32,0,0,0,0);
+        var gate=new int[1];var samples=new int[1];var budget=new SamplingBudget(100);
+        var lane=new BiomeColumnLane(geometry,new RectFrontier.Rect(0,0,0,0),0,budget,List.of(64,60,56),1,true,
+                (x,z,y)->{samples[0]++;return List.of();}).withColumnGate((x,z)->{gate[0]++;return false;});
+        while(lane.available(0))lane.sample();
+        assertEquals(1,gate[0]);assertEquals(0,samples[0]);assertEquals(1,budget.used());
+        assertFalse(lane.budgetLimited(0));
+    }
+    @Test void quotaAfterPositiveRarityGateCannotFalselyProveFullHeightCoverage() {
+        var geometry=new RectFrontier.Geometry(0,0,32,0,0,0,0);var budget=new SamplingBudget(1);
+        var lane=new BiomeColumnLane(geometry,new RectFrontier.Rect(0,0,0,0),0,budget,List.of(64,60),1,true,
+                (x,z,y)->{fail("height cannot run without quota");return List.of();}).withColumnGate((x,z)->true);
+        lane.sample();assertEquals(0,lane.pendingLowerBound());assertTrue(lane.budgetLimited(0));
+    }
     @Test void combinedColumnsPreserveExactOldMultiHeightSamplingSet() {
         int radius = 512, spacing = 32;
         var geometry = new RectFrontier.Geometry(-17, 31, spacing, -17, 31, -17, 31);

@@ -17,7 +17,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 /** 起始预测只需几何尺寸；不复制方块/NBT，不允许以空模板偷偷继续完整生成。 */
-final class TemplateGeometry extends StructureTemplate {
+class TemplateGeometry extends StructureTemplate {
     private final Vec3i dimensions;
     TemplateGeometry(Vec3i size) {
         if (size.getX() < 0 || size.getY() < 0 || size.getZ() < 0) throw new IllegalArgumentException("模板尺寸不能为负数");
