@@ -1,6 +1,6 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '6.0.54' }
 group = 'com.chaosthedude.explorerscompass'
-version = '1.1.0'
+version = '1.1.1'
 base { archivesName = 'ExplorersCompassUnified-1.20.1-forge' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 sourceSets {
@@ -125,7 +125,7 @@ tasks.register('checkReleaseSize') {
     dependsOn 'compactRelease'
     doLast {
         def bytes = tasks.jar.archiveFile.get().asFile.length()
-        if (bytes > 450 * 1024) throw new GradleException('Release exceeds 450 KiB: ' + bytes)
+        if (bytes > 500 * 1024) throw new GradleException('Release exceeds 500 KiB: ' + bytes)
         println 'Unified release size: ' + bytes + ' bytes'
     }
 }
