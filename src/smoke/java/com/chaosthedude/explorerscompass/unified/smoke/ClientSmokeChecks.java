@@ -49,7 +49,7 @@ public final class ClientSmokeChecks {
     private ClientSmokeChecks() {}
 
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || stage == 100) return;
+        if (Boolean.getBoolean("unified.client111") || event.phase != TickEvent.Phase.END || stage == 100) return;
         tick++;
         Minecraft mc = Minecraft.getInstance();
         if (tick < waitUntil) return;

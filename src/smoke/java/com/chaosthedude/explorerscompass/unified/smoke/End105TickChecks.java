@@ -76,7 +76,9 @@ public final class End105TickChecks {
                 if(TeleportEvents.latest(player.getUUID())!=null) {
                     require(TeleportEvents.latest(player.getUUID()).target().equals(EndDungeonAdapter.KEY),"successful teleport retains feature counter ID");
                     require(player.distanceToSqr(first.getX(),first.getY(),first.getZ())<10000,"player moved to dungeon vicinity");
-                    require(TeleportService.ticketCount()==0,"successful feature teleport releases tickets");
+                    // 1.1.1 成功后保留至多 40 tick，等待玩家跟踪接管；不可要求同 tick 立即释放。
+                    if(TeleportService.ticketCount()>0 && System.nanoTime()-started<30_000_000_000L)return;
+                    require(TeleportService.ticketCount()==0,"successful feature teleport releases handoff tickets");
                     completed++;test=null;
                 } else {
                     if(TeleportService.awaitingConfirmation(player.getUUID()) && TeleportService.mode(player.getUUID())==LandingMode.DEFAULT)
