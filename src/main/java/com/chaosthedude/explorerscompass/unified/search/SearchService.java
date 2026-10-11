@@ -168,7 +168,12 @@ public final class SearchService {
         }
         cancel(player, true);
         List<BlockPos> previous = biomeHistory.getOrDefault(new CacheKey(player.getUUID(), player.level().dimension().location(), key), List.of());
-        SearchJob job = new BiomeSearch(player.serverLevel(), player.blockPosition(), key, previous,
+        SearchJob job;
+        if(AlexCavesAdapter.target(key)) {
+            var adapter=AlexCavesAdapter.prepare(player.serverLevel(),key);
+            job=new AlexCavesSearch(player.serverLevel(),player.blockPosition(),key,previous,
+                    SearchConfig.RADIUS.get(),Math.max(0,sampleLimit),SearchConfig.SPACING.get(),SearchConfig.ASYNC_BIOMES.get(),adapter);
+        }else job = new BiomeSearch(player.serverLevel(), player.blockPosition(), key, previous,
                 SearchConfig.RADIUS.get(), Math.max(0, sampleLimit), SearchConfig.SPACING.get(),
                 SearchConfig.VERTICAL.get(), SearchConfig.DEPTH_INTERVAL.get(), SearchConfig.ASYNC_BIOMES.get());
         Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;begin(session);
@@ -291,6 +296,7 @@ public final class SearchService {
                 session.token, session.job.biome() ? "群系" : "结构", candidate == null ? "未找到" : candidate.position(),
                 session.job.samples(), session.job.candidates(), session.job.confirmations, session.job.chunkLoads,
                 session.job.mainNanos / 1_000_000.0, (System.nanoTime() - session.job.startedNanos) / 1_000_000.0);
+        if(!session.job.diagnostics().isEmpty())CompassUnified.LOGGER.info("搜索 {} 阶段摘要：{}",session.token,session.job.diagnostics());
         session.job.cancel(); sessions.remove(session.player.getUUID());
     }
     private static void fail(Session session) {

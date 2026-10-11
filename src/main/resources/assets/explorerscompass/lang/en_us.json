@@ -149,5 +149,10 @@
   "filters.end_feature_hint": "Feature landmark: locates a natural site; the cross may not have expanded yet.",
   "filters.stage.feature_index_only": "Recorded landmarks only (unsupported prediction rules)",
   "filters.end_pending": "Natural site (dungeon not expanded yet)",
-  "filters.end_expanded": "Expanded End Dungeon verified"
+  "filters.end_expanded": "Expanded End Dungeon verified",
+  "filters.teleport_reason_scan_budget": "Landing check budget exhausted; retry resumes progress.",
+  "filters.teleport_water_surface": "Teleported to the water surface. Please swim.",
+  "filters.teleport_reason_waiting_slots": "Waiting for a slot…",
+  "filters.teleport_reason_waiting_chunks": "Waiting for chunks…",
+  "filters.teleport_reason_checking": "Checking landing…"
 }

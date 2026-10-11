@@ -66,7 +66,9 @@ final class BiomeSourceSafety {
         chain.add(source.getClass().getName());
         try {
             if (source.getClass() == FixedBiomeSource.class) { source.possibleBiomes(); return; }
-            if (source.getClass() == MultiNoiseBiomeSource.class) { prepareTerraBlender(source); source.possibleBiomes(); return; }
+            if (source.getClass() == MultiNoiseBiomeSource.class) {
+                if(ModList.get().isLoaded("alexscaves"))reject("Alex 洞穴使用共享可变 Voronoi 状态，仅专用快照预测可后台运行");
+                prepareTerraBlender(source); source.possibleBiomes(); return; }
             if (source.getClass() == TheEndBiomeSource.class) { prepareEnd(source); return; }
             if (!source.getClass().getName().equals(BLUEPRINT)) reject("未经核对的群系来源 " + source.getClass().getName());
             requireVersion("blueprint", "7.1.0");

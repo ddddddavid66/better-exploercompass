@@ -13,7 +13,12 @@
     "StructureCheckAccessor",
     "LeviathanPrecheckMixin",
     "FeatureOrderAccessor",
-    "EndDungeonObserverMixin"
+    "EndDungeonObserverMixin",
+    "TemplatePaletteAccessor",
+    "AlexLocatorProtectionMixin",
+    "ClimateParametersAccessor",
+    "ColumnClimateMixin",
+    "DensityAddAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

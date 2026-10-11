@@ -1,4 +1,4 @@
-Explorer’s Compass Unified 1.0 — 探险者指南针 统一
+Explorer’s Compass Unified 1.1.1 — 探险者指南针 统一
 Original Explorer’s Compass: ChaosTheDude / MattCzyr
 Unified modifications and maintenance: David, 2026
 Upstream: https://github.com/MattCzyr/ExplorersCompass
@@ -15,3 +15,9 @@ TinyPinyin's full Java library and dictionary matcher are not bundled.
 Acknowledgments: MCMostWolf (Edited reference), xinian (Enhance reference), TeamTwilight (optional landmark API).
 No Edited, Enhance or Twilight Forest classes/assets are bundled.
 Detailed changes and sources accompany the full source release.
+
+1.1.1 optional compatibility references: AlexModGuy / Alex Caves 2.0.2;
+YUNG-GANG / YUNG's API 4.0.5, Better Jungle Temples 2.0.5, Better Ocean Monuments 3.0.4;
+ObscuriaLithium / Aquamirae 6.API15. See THIRD_PARTY.md and SOURCE_AUDIT.md in the source release.
+These mods remain separate optional dependencies under their respective licenses.
+No third-party mod classes, templates or textures are bundled.

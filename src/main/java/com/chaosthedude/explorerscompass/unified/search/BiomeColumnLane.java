@@ -13,6 +13,8 @@ final class BiomeColumnLane implements ScanCoordinator.Lane<SearchCandidate> {
     private final boolean background;
     private final Sampler sampler;
     private Sampler cachedSampler;
+    private java.util.function.BiPredicate<Integer,Integer> columnGate;
+    BiomeColumnLane withColumnGate(java.util.function.BiPredicate<Integer,Integer> gate){columnGate=gate;return this;}
     private int x, z, height;
     private boolean column;
     BiomeColumnLane(RectFrontier.Geometry geometry, RectFrontier.Rect domain, long maximum, SamplingBudget budget,
@@ -42,6 +44,11 @@ final class BiomeColumnLane implements ScanCoordinator.Lane<SearchCandidate> {
             long point = frontier.next(); x = (int)(point >> 32); z = (int)point;
             if (!frontier.inRange(x, z, verifiedUpper)) return List.of();
             column = true; height = 0;
+            if(columnGate!=null) {
+                if(!budget.take())return List.of();
+                if(!columnGate.test(x,z))column=false;
+                return List.of();
+            }
         }
         List<SearchCandidate> values=null;
         if(cached) {

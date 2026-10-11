@@ -25,7 +25,7 @@ public final class SmokeChecks {
     @SubscribeEvent
     public void serverStarted(ServerStartedEvent event) {
         if (!event.getServer().isDedicatedServer()) return;
-        if (Boolean.getBoolean("unified.dungeons103") || Boolean.getBoolean("unified.end105")) return;
+        if (Boolean.getBoolean("unified.optional111") || Boolean.getBoolean("unified.dungeons103") || Boolean.getBoolean("unified.end105")) return;
         String result;
         try {
             check(net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("explorerscompass:explorerscompass")) == com.chaosthedude.explorerscompass.ExplorersCompass.explorersCompass, "original item ID registered once");
@@ -46,7 +46,7 @@ public final class SmokeChecks {
             TwilightChecks.verify(event.getServer());
             DungeonsChecks.verify(event.getServer());
             NewFeatureChecks.verify(event.getServer());
-            result = "PASS: dedicated server boot; actual dimension/biome/structure relationships; unified-2 codec and old protocol rejection; direct item ordinary/next APIs, legacy NBT recovery, XP/durability, clear cache and group filter; surface/cave/nether landing; fluid/collision/fire/magma/biome rejection; border/ceiling; permissions; legacy/wrong dimension/stale token rejection; 40/20 tick deadlines; confirmation; water/slab/short drop; "
+            result = "PASS: dedicated server boot; actual dimension/biome/structure relationships; unified-2 codec and old protocol rejection; direct item ordinary/next APIs, legacy NBT recovery, XP/durability, clear cache and group filter; surface/cave/nether landing; fluid/collision/fire/magma/biome rejection; border/ceiling; permissions; legacy/wrong dimension/stale token rejection; ten-second wall deadlines and independent check budgets; confirmation; water/slab/short drop; "
                     + (net.minecraftforge.fml.ModList.get().isLoaded("twilightforest")
                        ? "actual Twilight labyrinth/hydra/knight/dark tower; " : "Twilight absent: optional checks skipped; ")
                     + "new search cancels teleport; no safe landing leaves player unchanged.\n";

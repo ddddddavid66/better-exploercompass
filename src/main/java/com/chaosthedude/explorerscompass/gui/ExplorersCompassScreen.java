@@ -113,7 +113,7 @@ public class ExplorersCompassScreen extends Screen implements com.chaosthedude.e
         boolean busy = LandingClientState.busy(stack), fallback = LandingClientState.fallback(stack);
         teleportButton.visible = ExplorersCompass.canTeleport;
         teleportButton.active = canTeleport() && !busy;
-        teleportButton.setMessage(Component.translatable(busy ? "filters.teleport_preparing" : fallback ? "filters.teleport_fallback" : "string.explorerscompass.teleport"));
+        teleportButton.setMessage(busy ? LandingClientState.preparing(stack) : Component.translatable(fallback ? "filters.teleport_fallback" : "string.explorerscompass.teleport"));
         teleportButton.setTooltip(fallback ? net.minecraft.client.gui.components.Tooltip.create(LandingClientState.confirmation(stack)) : null);
         landingModeButton.setMessage(Component.translatable("filters.landing_mode",Component.translatable(com.chaosthedude.explorerscompass.config.ConfigHandler.CLIENT.landingMode.get().key())));
         landingModeButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(com.chaosthedude.explorerscompass.config.ConfigHandler.CLIENT.landingMode.get().key()+"_tip")));

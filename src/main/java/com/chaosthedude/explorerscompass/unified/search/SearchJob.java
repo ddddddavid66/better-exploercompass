@@ -42,6 +42,7 @@ public abstract class SearchJob {
         return scan.confirming() ? "confirming" : biome() ? "sampling" : "predicting";
     }
     public SearchJob asFallback() { fallback = true; return this; }
+    public String diagnostics(){return "";}
     public long preparationNanos() { return 0; }
     public long confirmationNanos() { return 0; }
     public long waitingNanos() { return 0; }

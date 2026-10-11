@@ -27,8 +27,9 @@ final class WorldgenCache {
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
     private final net.minecraft.world.level.biome.BiomeSource biomeSource;
     private final net.minecraft.world.level.biome.Climate.Sampler noise;
+    private final ColumnClimate columns;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
-    private final Map<Structure, DungeonsPrediction> dungeons = new IdentityHashMap<>();
+    private final Map<Structure, StartPrediction> dungeons = new IdentityHashMap<>();
     private final Map<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement,Boolean> regionPolicies=new IdentityHashMap<>();
     boolean prefixRule(net.minecraft.world.level.levelgen.structure.placement.StructurePlacement placement,ServerLevel level) {
         return regionPolicies.computeIfAbsent(placement,rule->{
@@ -74,6 +75,7 @@ final class WorldgenCache {
     private WorldgenCache(ServerLevel level) {
         biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
         noise = level.getChunkSource().randomState().sampler();
+        columns=ColumnClimate.prepare(level,noise);
         var state = level.getChunkSource().getGeneratorState();
         state.ensureStructuresGenerated();
         state.possibleStructureSets().forEach(set -> {
@@ -106,20 +108,31 @@ final class WorldgenCache {
     Predicate<Holder<Biome>> biomeRule(Structure structure) {
         return biomeRules.computeIfAbsent(structure, StructurePredictor::biomeRule);
     }
-    DungeonsPrediction dungeons(ServerLevel level, net.minecraft.resources.ResourceLocation key, Structure structure) {
-        return dungeons.computeIfAbsent(structure, ignored -> DungeonsPrediction.of(level, key, structure));
+    StartPrediction dungeons(ServerLevel level, net.minecraft.resources.ResourceLocation key, Structure structure) {
+        return dungeons.computeIfAbsent(structure, ignored -> StartPrediction.of(level, key, structure));
     }
     net.minecraft.core.BlockPos predict(Structure structure, Predicate<Holder<Biome>> biomes, net.minecraft.world.level.ChunkPos chunk) {
         // 缓存正/负生成预测，绝不缓存真实区块核对；快照失效后旧任务只能写入自己的旧缓存。
         return predictions.get(new PredictionKey(structure, chunk.toLong()), ignored -> {
-            var point = predictor.predict(structure, biomes, chunk);
-            return new Prediction(point == null ? null : point.immutable());
+            try {
+                var point = predictor.predict(structure, biomes, chunk);
+                return new Prediction(point == null ? null : point.immutable());
+            }catch(HeightBiomeFilter.Rejected impossible) {
+                // 全高度群系证明同样属于负生成结果；不能让它逃出缓存并在下次重算。
+                return new Prediction(null);
+            }
         }).point();
     }
     Biome predictBiome(int x, int y, int z) {
         // Quart 坐标和真实采样器严格隔离；只缓存审核过的不可变生成查询，仍逐点检查。
         long key = net.minecraft.core.BlockPos.asLong(x, y, z);
         return biomePredictions.get(key, ignored -> biomeSource.getNoiseBiome(x, y, z, noise).value());
+    }
+    <T> T inColumn(int x,int z,java.util.function.Supplier<T> action) {return columns==null?action.get():columns.with(x,z,action);}
+    boolean allowedBiome(int x,int y,int z,Predicate<Holder<Biome>> allowed) {
+        long key=net.minecraft.core.BlockPos.asLong(x,y,z);
+        Biome biome=biomePredictions.get(key,ignored->biomeSource.getNoiseBiome(x,y,z,noise).value());
+        return allowed.test(net.minecraft.core.Holder.direct(biome));
     }
     Biome peekBiome(int x,int y,int z) {
         return biomePredictions.peek(net.minecraft.core.BlockPos.asLong(x,y,z));

@@ -26,6 +26,7 @@ public final class TeleportService {
     private static long revision;
     private static int cursor;
     private static final long CONFIRM_NANOS=30_000_000_000L;
+    private static final long WAIT_NANOS=5_000_000_000L, REQUEST_NANOS=10_000_000_000L;
     private static final class Task {
         final ServerPlayer player; final ServerLevel level; final ItemStack stack;
         final UUID token,ticketId=UUID.randomUUID(); final ResourceLocation key;
@@ -33,7 +34,11 @@ public final class TeleportService {
         BlockPos origin; ChunkPos center;
         final int[] strictHeights=new int[LandingColumns.STRICT.size()], relaxedHeights=new int[LandingColumns.RELAXED.size()];
         int[] heights=strictHeights;
-        int expires,column,offset,localUntil; boolean ticket,clicked,fallback,waiting,surface;
+        int expires,column;
+        final int[] surfaceHeights=new int[LandingColumns.RELAXED.size()];
+        long requestDeadline,centerDeadline,checkNanos,attemptStarted,waitStarted,waitNanos; int lastCenterTick=-1,handoffUntil;
+        String phase="";
+        boolean heightResolved,alternateSurface; boolean ticket,clicked,fallback,waiting;
         long chunksReady,confirmationUntil;
         Vec3 landing,strictLanding,relaxedLanding;
         Task(ServerPlayer player,ItemStack stack,UUID token) {
@@ -45,7 +50,7 @@ public final class TeleportService {
             mode=modes.getOrDefault(player.getUUID(),LandingMode.DEFAULT);fallback=mode==LandingMode.RELAXED_ONLY;
             heights=fallback?relaxedHeights:strictHeights;
             origin=new BlockPos(x,legacyHeight?player.blockPosition().getY():sourceY,z);center=new ChunkPos(origin);
-            expires=player.getServer().getTickCount()+100;localUntil=player.getServer().getTickCount()+8;
+            expires=player.getServer().getTickCount()+100;
         }
         boolean valid() {
             var compass=ExplorersCompass.explorersCompass;
@@ -58,12 +63,13 @@ public final class TeleportService {
     public static LandingMode mode(UUID player) {return modes.getOrDefault(player,LandingMode.DEFAULT);}
     public static void setMode(UUID player,LandingMode mode) {
         if(modes.put(player,mode)==mode)return;
-        Task task=tasks.get(player);if(task==null)return;
+        Task task=tasks.get(player);if(task==null || task.handoffUntil>0)return;
         // 不丢弃已就绪区块和候选，但旧的确认授权立即失效。
         task.mode=mode;task.waiting=false;task.clicked=false;task.fallback=mode==LandingMode.RELAXED_ONLY;
-        task.heights=task.fallback?task.relaxedHeights:task.strictHeights;task.column=0;task.surface=false;
+        task.heights=task.fallback?task.relaxedHeights:task.strictHeights;task.column=0;
         task.landing=task.fallback?task.relaxedLanding:task.strictLanding;
-        task.expires=task.player.getServer().getTickCount()+100;task.localUntil=task.player.getServer().getTickCount()+8;
+        task.expires=task.player.getServer().getTickCount()+100;
+        task.requestDeadline=0;task.checkNanos=0;
         status(task,TeleportStatusPacket.State.CANCELLED,"mode_changed");
     }
     private static ResourceLocation target(ItemStack stack) {
@@ -106,6 +112,7 @@ public final class TeleportService {
         if(task==null || task.stack!=stack || !task.token.equals(actual) || !task.valid()) {
             prepare(player,stack,actual);task=tasks.get(player.getUUID());
         }
+        if(task.handoffUntil>0) {finish(task,"handoff",1);prepare(player,stack,actual);task=tasks.get(player.getUUID());}
         if(task.clicked)return true;
         if(task.waiting && now>=task.confirmationUntil) {finish(task,"expired",0);prepare(player,stack,actual);task=tasks.get(player.getUUID());}
         if(task.mode==LandingMode.SAFE_ONLY)fallback=false;
@@ -113,12 +120,19 @@ public final class TeleportService {
         if(fallback && task.mode==LandingMode.DEFAULT && !task.waiting) {status(task,TeleportStatusPacket.State.CANCELLED,"confirmation_required");return false;}
         if(task.waiting && !fallback && task.mode==LandingMode.DEFAULT) {status(task,TeleportStatusPacket.State.NEEDS_CONFIRMATION,"confirm");return true;}
         boolean retry=task.waiting;
-        task.waiting=false;task.clicked=true;task.fallback=fallback;
-        if(retry && !fallback) {Arrays.fill(task.strictHeights,0);task.strictLanding=null;task.landing=null;}
+        task.waiting=false;task.clicked=true;task.fallback=fallback;task.phase="";
+        if(retry && !fallback && Arrays.stream(task.strictHeights).allMatch(h->h>=33)) {
+            Arrays.fill(task.strictHeights,0);task.strictLanding=null;task.landing=null;
+        }
+        if(retry && fallback && Arrays.stream(task.relaxedHeights).allMatch(h->h>=129)
+                && Arrays.stream(task.surfaceHeights).allMatch(h->h>=1)) {
+            Arrays.fill(task.relaxedHeights,0);Arrays.fill(task.surfaceHeights,0);task.relaxedLanding=null;
+        }
         task.heights=fallback?task.relaxedHeights:task.strictHeights;task.column=0;
-        task.expires=player.getServer().getTickCount()+(fallback?20:40);task.localUntil=player.getServer().getTickCount()+8;
+        task.requestDeadline=now+REQUEST_NANOS;task.attemptStarted=now;task.waitStarted=now;task.waitNanos=0;task.checkNanos=0;task.centerDeadline=now+WAIT_NANOS;
+        task.expires=player.getServer().getTickCount()+200;
         task.landing=fallback?task.relaxedLanding:task.strictLanding;
-        status(task,fallback?TeleportStatusPacket.State.FALLBACK_PREPARING:TeleportStatusPacket.State.PREPARING,"checking");
+        phase(task,task.ticket?"waiting_chunks":"waiting_slots");
         message(player,"filters.teleport_checking");return true;
     }
     public static boolean active() {return tasks.values().stream().anyMatch(t->!t.waiting && (t.clicked || t.landing==null));}
@@ -127,43 +141,66 @@ public final class TeleportService {
     public static int ticketCount() {return (int)tasks.values().stream().filter(t->t.ticket).count();}
     public static void maintain() {
         for(Task task:List.copyOf(tasks.values())) {
+            if(task.handoffUntil>0) {
+                if(task.player.isRemoved() || task.player.serverLevel()!=task.level || task.player.getServer().getTickCount()>=task.handoffUntil) finish(task,"handoff",1);
+                continue;
+            }
             if(!task.valid()) {finish(task,"cancelled",0);continue;}
             if(task.waiting) {
                 if(System.nanoTime()>=task.confirmationUntil)finish(task,"expired",0);
                 else if(task.player.getServer().getTickCount()>=task.expires)release(task);
                 continue;
             }
-            if(task.player.getServer().getTickCount()>=task.expires) {
-                if(task.clicked)failed(task,task.chunksReady==0?"chunks_not_ready":"timeout");else finish(task,"timeout",0);
-            }
+            if(task.clicked && System.nanoTime()>=task.requestDeadline) {
+                failed(task,!task.ticket?"waiting_slots":!windowReady(task)?"chunks_not_ready":"timeout");
+            } else if(!task.clicked && task.player.getServer().getTickCount()>=task.expires) finish(task,"timeout",0);
         }
-        for(Task task:tasks.values().stream().filter(t->!t.waiting).sorted(Comparator.comparing(t->!t.clicked)).toList()) {
+        for(Task task:tasks.values().stream().filter(t->!t.waiting && t.handoffUntil==0).sorted(Comparator.comparing(t->!t.clicked)).toList()) {
             if(task.ticket)continue;
-            if(ticketCount()>=4 && task.clicked)tasks.values().stream().filter(t->t.ticket && !t.clicked).findFirst().ifPresent(TeleportService::release);
+            if(ticketCount()>=4 && task.clicked)tasks.values().stream().filter(t->t.ticket && !t.clicked && t.handoffUntil==0).findFirst().ifPresent(TeleportService::release);
             if(ticketCount()>=4)break;
             acquire(task,task.center);
         }
     }
     private static void acquire(Task task,ChunkPos center) {
-        release(task);task.center=center;task.level.getChunkSource().addRegionTicket(PREPARE,center,1,task.ticketId);task.ticket=true;
+        release(task);task.center=center;task.centerDeadline=System.nanoTime()+WAIT_NANOS;task.chunksReady=0;
+        if(task.clicked && task.waitStarted==0)task.waitStarted=System.nanoTime();
+        if(task.clicked)phase(task,"waiting_chunks");
+        task.lastCenterTick=task.player.getServer().getTickCount();task.level.getChunkSource().addRegionTicket(PREPARE,center,1,task.ticketId);task.ticket=true;
     }
     private static void release(Task task) {
         if(task.ticket){task.level.getChunkSource().removeRegionTicket(PREPARE,task.center,1,task.ticketId);task.ticket=false;}
     }
+    private static boolean windowReady(Task task) {
+        for(int x=task.center.x-1;x<=task.center.x+1;x++)
+            for(int z=task.center.z-1;z<=task.center.z+1;z++)
+                if(task.level.getChunkSource().getChunkNow(x,z)==null)return false;
+        return true;
+    }
     public static boolean step() {
-        List<Task> choices=tasks.values().stream().filter(t->!t.waiting && t.clicked).toList();
-        if(choices.isEmpty())choices=tasks.values().stream().filter(t->!t.waiting && t.landing==null).toList();
+        List<Task> choices=tasks.values().stream().filter(t->!t.waiting && t.handoffUntil==0 && t.clicked).toList();
+        if(choices.isEmpty())choices=tasks.values().stream().filter(t->!t.waiting && t.handoffUntil==0 && t.landing==null).toList();
         if(choices.isEmpty())return false;
         Task task=choices.get(Math.floorMod(cursor++,choices.size()));
         if(!task.valid()){finish(task,"cancelled",0);return true;}
         if(!task.ticket)return false;
+        // 等待中心固定，不能在生成线程尚未推进前反复搬走同一组票据。
+        if(!windowReady(task)) {
+            if(task.clicked && System.nanoTime()>=task.centerDeadline)failed(task,"chunks_not_ready");
+            return false;
+        }
+        if(task.chunksReady==0) {
+            task.chunksReady=System.nanoTime();
+            if(task.waitStarted!=0){task.waitNanos+=task.chunksReady-task.waitStarted;task.waitStarted=0;}
+            if(task.clicked)phase(task,"checking");
+        }
+        long quantum=System.nanoTime()+250_000L;
         try {
-            if(task.treasure) return treasureStep(task);
-            if(task.legacyHeight && task.origin.getY()==task.sourceY)task.origin=task.origin.atY(task.player.blockPosition().getY());
-            if(task.legacyHeight) {
+            if(task.treasure)return treasureStep(task);
+            if(task.legacyHeight && !task.heightResolved) {
                 var chunk=task.level.getChunkSource().getChunkNow(task.x>>4,task.z>>4);
                 if(chunk==null)return false;
-                task.origin=task.origin.atY(chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,task.x&15,task.z&15)+1);
+                task.origin=task.origin.atY(chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,task.x&15,task.z&15)+1);task.heightResolved=true;
             }
             if(task.landing!=null) {
                 if(recheck(task,task.landing,task.fallback)){if(task.clicked)move(task);return false;}
@@ -173,42 +210,71 @@ public final class TeleportService {
                 if(recheck(task,task.relaxedLanding,true)){task.landing=task.relaxedLanding;if(task.clicked)move(task);return true;}
                 task.relaxedLanding=null;
             }
-            if(task.fallback && !task.surface && task.player.getServer().getTickCount()>=task.localUntil) {
-                task.surface=true;Arrays.fill(task.heights,0);task.column=0;
-            }
             var columns=task.fallback?LandingColumns.RELAXED:LandingColumns.STRICT;
-            int count=task.surface?1:task.fallback?129:33;
-            ChunkPos missing=null;
-            for(int attempt=0;attempt<Math.min(128,columns.size());attempt++) {
+            // 地表与局部交替推进，使用独立游标；不清空第一轮已完成的高度。
+            boolean surface=task.fallback && (task.alternateSurface=!task.alternateSurface);
+            int[] progress=surface?task.surfaceHeights:task.heights;
+            int count=surface?1:task.fallback?129:33;
+            ChunkPos missing=null;boolean work=false;
+            for(int attempt=0;attempt<columns.size();attempt++) {
                 int index=task.column;task.column=(task.column+1)%columns.size();
-                if(task.heights[index]>=count)continue;
+                if(progress[index]>=count)continue;
                 var column=columns.get(index);int x=task.x+column.x(),z=task.z+column.z();
                 BlockPos point=new BlockPos(x,task.origin.getY(),z);
-                if(!LandingChecks.ready(task.player,task.level,point,!task.fallback && task.biome)) {if(missing==null)missing=new ChunkPos(point);continue;}
-                if(task.chunksReady==0)task.chunksReady=System.nanoTime();
-                int indexY=task.heights[index]++;
-                int y=task.surface?task.level.getChunkSource().getChunkNow(x>>4,z>>4).getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x&15,z&15)+1:task.origin.getY()+LandingColumns.vertical(indexY);
-                point=point.atY(y);task.offset++;
-                Vec3 landing=LandingChecks.find(task.player,task.level,task.stack,point,task.fallback);
+                if(!LandingChecks.ready(task.player,task.level,point,!task.fallback && task.biome)) {
+                    if(missing==null)missing=new ChunkPos(point);
+                    continue;
+                }
+                int y=surface?task.level.getChunkSource().getChunkNow(x>>4,z>>4)
+                        .getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x&15,z&15)+1
+                        :task.origin.getY()+LandingColumns.vertical(progress[index]);
+                long before=System.nanoTime();Vec3 landing;
+                try {
+                    point=point.atY(y);progress[index]++;
+                    landing=LandingChecks.find(task.player,task.level,task.stack,point,task.fallback);
+                    if(landing==null && surface)landing=LandingChecks.waterSurface(task.player,task.level,task.stack,point);
+                    if(!task.fallback && task.relaxedLanding==null)
+                        task.relaxedLanding=LandingChecks.find(task.player,task.level,task.stack,point,true);
+                } finally {task.checkNanos+=System.nanoTime()-before;}
+                work=true;
                 if(landing!=null) {
                     task.landing=landing;
                     if(task.fallback)task.relaxedLanding=landing;else task.strictLanding=landing;
-                    if(task.clicked)move(task);
-                } else if(!task.fallback && task.relaxedLanding==null)task.relaxedLanding=LandingChecks.find(task.player,task.level,task.stack,point,true);
+                    if(task.clicked)move(task);return true;
+                }
+                // 在一列内连续检查上下高度，不轮转四千列后才查看第二个 Y。
+                if(!surface && progress[index]<count)task.column=index;
+                if(task.clicked && task.checkNanos>=(task.fallback?40_000_000L:80_000_000L)) {
+                    failed(task,"scan_budget");return true;
+                }
+                if(System.nanoTime()>=quantum)return true;
+            }
+            boolean exhausted=Arrays.stream(task.heights).allMatch(h->h>=(task.fallback?129:33));
+            if(exhausted && (!task.fallback || Arrays.stream(task.surfaceHeights).allMatch(h->h>=1))) {
+                if(task.clicked)failed(task,"no_position");else finish(task,"no_position",0);
                 return true;
             }
-            if(Arrays.stream(task.heights).allMatch(h->h>=count)) {
-                if(task.fallback && !task.surface){task.surface=true;Arrays.fill(task.heights,0);task.column=0;}
-                else if(task.clicked)failed(task,"no_position");else finish(task,"no_position",0);
-                return true;
+            if(!work && missing!=null && !missing.equals(task.center)
+                    && task.lastCenterTick!=task.player.getServer().getTickCount()) {
+                if(resumeReady(task,columns))return true;
+                acquire(task,missing);return false;
             }
-            // 外围按需移动同一个 3x3 ticket，不同步等待，也不同时准备整个搜索范围。
-            if(task.fallback && missing!=null && !missing.equals(task.center)){acquire(task,missing);return true;}
-            return false;
+            return work;
         } catch(RuntimeException error) {
-            com.chaosthedude.explorerscompass.unified.CompassUnified.LOGGER.warn("落点检查失败",error);
+            ExplorersCompass.LOGGER.warn("落点检查失败",error);
             if(task.clicked)failed(task,"error");else finish(task,"error",0);return true;
         }
+    }
+    private static boolean resumeReady(Task task,List<LandingColumns.Column> columns) {
+        for(int i=0;i<columns.size();i++) {
+            boolean local=task.heights[i]<(task.fallback?129:33);
+            boolean surface=task.fallback && task.surfaceHeights[i]<1;
+            if(!local && !surface)continue;
+            var c=columns.get(i);var p=new BlockPos(task.x+c.x(),task.origin.getY(),task.z+c.z());
+            if(!LandingChecks.ready(task.player,task.level,p,!task.fallback && task.biome))continue;
+            task.column=i;task.alternateSurface=local;return true;
+        }
+        return false;
     }
     /** 宝藏只检查真实箱子列的地表，绝不进入外围列或地下落点。 */
     private static boolean treasureStep(Task task) {
@@ -224,14 +290,19 @@ public final class TeleportService {
         if(task.clicked)move(task);return true;
     }
     private static boolean recheck(Task task,Vec3 point,boolean relaxed) {
-        return LandingChecks.standing(task.player,task.level,task.stack,point,relaxed);
+        return LandingChecks.standing(task.player,task.level,task.stack,point,relaxed)
+                || relaxed && LandingChecks.waterStanding(task.player,task.level,task.stack,point);
     }
     private static void failed(Task task,String reason) {
-        task.clicked=false;task.waiting=true;task.confirmationUntil=System.nanoTime()+CONFIRM_NANOS;task.expires=task.player.getServer().getTickCount()+100;
+        summary(task,reason);task.clicked=false;task.waiting=true;task.confirmationUntil=System.nanoTime()+CONFIRM_NANOS;task.expires=task.player.getServer().getTickCount()+100;
         boolean confirm=!task.fallback && task.mode==LandingMode.DEFAULT;
         status(task,confirm?TeleportStatusPacket.State.NEEDS_CONFIRMATION:TeleportStatusPacket.State.FAILED_RETRYABLE,reason);
         if(task.player.connection!=null)task.player.displayClientMessage(Component.translatable(confirm?"filters.teleport_confirm":"filters.teleport_retry")
                 .append(" ").append(Component.translatable("filters.teleport_reason_"+reason)),true);
+    }
+    private static void phase(Task task,String phase) {
+        if(task.phase.equals(phase))return;task.phase=phase;
+        status(task,task.fallback?TeleportStatusPacket.State.FALLBACK_PREPARING:TeleportStatusPacket.State.PREPARING,phase);
     }
     private static void status(Task task,TeleportStatusPacket.State state,String reason) {
         UnifiedNetwork.send(task.player,new TeleportStatusPacket(task.token,state,++revision,reason));
@@ -243,7 +314,16 @@ public final class TeleportService {
         task.player.setDeltaMovement(0,0,0);task.player.fallDistance=0;
         task.level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT,new ChunkPos(BlockPos.containing(point)),1,task.player.getId());
         TeleportEvents.succeeded(task.player,task.biome?TeleportSucceededPacket.Kind.BIOME:TeleportSucceededPacket.Kind.STRUCTURE,task.key,task.level.dimension().location(),point.x,point.y,point.z);
-        status(task,TeleportStatusPacket.State.SUCCEEDED,task.fallback?"fallback_moved":"moved");finish(task,"moved",System.nanoTime());
+        boolean water=LandingChecks.waterStanding(task.player,task.level,task.stack,point);
+        if(water)message(task.player,"filters.teleport_water_surface");
+        status(task,TeleportStatusPacket.State.SUCCEEDED,water?"water_moved":task.fallback?"fallback_moved":"moved");
+        summary(task,water?"water_moved":"moved");
+        task.clicked=false;task.waiting=true;task.handoffUntil=task.player.getServer().getTickCount()+40;
+    }
+    private static void summary(Task task,String result) {
+        long now=System.nanoTime(),waiting=task.waitNanos+(task.waitStarted==0?0:now-task.waitStarted);
+        ExplorersCompass.LOGGER.info("传送 {} 阶段摘要：result={}, phase={}, elapsed_ms={}, waiting_ms={}, checking_ms={}",
+                task.token,result,task.phase,(now-task.attemptStarted)/1e6,waiting/1e6,task.checkNanos/1e6);
     }
     public static boolean safe(ServerPlayer player,ServerLevel level,ItemStack stack,BlockPos point) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("落点检查必须在服务端线程");
@@ -260,7 +340,7 @@ public final class TeleportService {
     private static void finish(Task task,String reason,long moved) {
         if(tasks.remove(task.player.getUUID(),task)) {
             release(task);
-            if(moved==0)status(task,TeleportStatusPacket.State.CANCELLED,reason);
+            if(moved==0 && task.handoffUntil==0)status(task,TeleportStatusPacket.State.CANCELLED,reason);
         }
     }
     public static void cancel(UUID player){Task t=tasks.get(player);if(t!=null)finish(t,"cancelled",0);}

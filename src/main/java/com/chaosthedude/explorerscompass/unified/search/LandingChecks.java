@@ -70,6 +70,26 @@ final class LandingChecks {
         }
         return false;
     }
+    /** 海面是独立候选：水提供浮力，不伪装成实体地面。 */
+    static Vec3 waterSurface(ServerPlayer player,ServerLevel level,ItemStack stack,BlockPos point) {
+        if(!ready(player,level,point,false))return null;
+        for(int dy=0;dy<=4;dy++) {
+            BlockPos water=point.below(dy);var fluid=level.getFluidState(water);
+            if(!fluid.is(FluidTags.WATER) || !level.getFluidState(water.above()).isEmpty())continue;
+            Vec3 candidate=new Vec3(water.getX()+.5,water.getY()+fluid.getHeight(level,water)-.25,water.getZ()+.5);
+            if(waterStanding(player,level,stack,candidate))return candidate;
+        }
+        return null;
+    }
+    static boolean waterStanding(ServerPlayer player,ServerLevel level,ItemStack stack,Vec3 point) {
+        if(!valid(player,level,stack,point,true))return false;
+        var feet=BlockPos.containing(point);
+        if(!level.getFluidState(feet).is(FluidTags.WATER))return false;
+        double eye=point.y+player.getEyeHeight(Pose.STANDING);
+        if(!level.getFluidState(BlockPos.containing(point.x,eye,point.z)).isEmpty())return false;
+        var fluid=level.getFluidState(feet);
+        return Math.abs(feet.getY()+fluid.getHeight(level,feet)-.25-point.y)<.01;
+    }
     private static boolean bad(net.minecraft.world.level.block.state.BlockState state, boolean relaxed) {
         return state.getFluidState().is(FluidTags.LAVA) || (relaxed?FORBIDDEN:STRICT).contains(state.getBlock());
     }

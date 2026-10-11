@@ -101,7 +101,7 @@ public final class DungeonsChecks {
         var original=level.registryAccess().registryOrThrow(Registries.STRUCTURE).get(key);
         var ops=RegistryOps.create(JsonOps.INSTANCE,level.registryAccess());
         var json=net.minecraft.world.level.levelgen.structure.Structure.DIRECT_CODEC.encodeStart(ops,original).getOrThrow(false,System.out::println).getAsJsonObject();
-        var type=Class.forName("com.chaosthedude.explorerscompass.unified.search.DungeonsPrediction");
+        var type=Class.forName("com.chaosthedude.explorerscompass.unified.search.StartPrediction");
         var create=type.getDeclaredMethod("of",ServerLevel.class,ResourceLocation.class,net.minecraft.world.level.levelgen.structure.Structure.class);create.setAccessible(true);
         var allowed=type.getDeclaredMethod("allowed");allowed.setAccessible(true);
         var named=json.deepCopy();named.addProperty("start_jigsaw_name","unifiedchecks:custom_name");

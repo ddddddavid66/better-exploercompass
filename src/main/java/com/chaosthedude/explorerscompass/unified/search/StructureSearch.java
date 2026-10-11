@@ -29,12 +29,12 @@ public final class StructureSearch extends SearchJob {
     // 快照按对象身份使用，无需 record 的动态比较器与字符串生成代码。
     static final class Target {
         private final ResourceLocation key;private final Structure structure;
-        private final Predicate<Holder<Biome>> biomes;private final DungeonsPrediction dungeons;
-        Target(ResourceLocation key,Structure structure,Predicate<Holder<Biome>> biomes,DungeonsPrediction dungeons) {
+        private final Predicate<Holder<Biome>> biomes;private final StartPrediction dungeons;
+        Target(ResourceLocation key,Structure structure,Predicate<Holder<Biome>> biomes,StartPrediction dungeons) {
             this.key=key;this.structure=structure;this.biomes=biomes;this.dungeons=dungeons;
         }
         ResourceLocation key(){return key;} Structure structure(){return structure;}
-        Predicate<Holder<Biome>> biomes(){return biomes;} DungeonsPrediction dungeons(){return dungeons;}
+        Predicate<Holder<Biome>> biomes(){return biomes;} StartPrediction dungeons(){return dungeons;}
     }
     static final class Group {
         private final StructurePlacement placement;private final List<Target> targets;
@@ -49,8 +49,10 @@ public final class StructureSearch extends SearchJob {
     private final StructureVerification verification;
     private final Map<SearchCandidate, SearchCandidate> verified = new java.util.HashMap<>();
     private long preparationNanos;
-    private final List<DungeonsPrediction> preparations = new ArrayList<>();
+    private final List<StartPrediction> preparations = new ArrayList<>();
     private boolean deferredPlacement;
+    private final HeightBiomeFilter.Metrics prefilter=new HeightBiomeFilter.Metrics();
+    @Override public String diagnostics(){return "biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum();}
     private WorldgenCache context;
     private final List<SearchCandidate> hints = new ArrayList<>();
     private java.util.concurrent.ConcurrentLinkedQueue<SearchCandidate> predictedPrefix;
@@ -98,7 +100,9 @@ public final class StructureSearch extends SearchJob {
             for(ResourceLocation key:keys) registry.getHolder(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE,key))
                     .ifPresent(holder->state.getPlacementsForStructure(holder).forEach(placement->
                             grouped.computeIfAbsent(placement,ignored->new ArrayList<>()).add(new Target(key,holder.value(),
-                                    cached.biomeRule(holder.value()),!compatiblePrediction && placement.getClass().getName().equals(GelGridPlacement.TYPE)
+                                    cached.biomeRule(holder.value()),!compatiblePrediction && (placement.getClass().getName().equals(GelGridPlacement.TYPE)
+                                    || holder.value().getClass()==net.minecraft.world.level.levelgen.structure.structures.JigsawStructure.class
+                                    || holder.value().getClass().getName().equals("com.yungnickyoung.minecraft.yungsapi.world.structure.YungJigsawStructure"))
                                             ?cached.dungeons(level,key,holder.value()):null))));
             return grouped.entrySet().stream().map(entry->new Group(entry.getKey(),List.copyOf(entry.getValue()))).toList();
         });
@@ -132,9 +136,8 @@ public final class StructureSearch extends SearchJob {
             if (gel != null && gel.exclusion) deferredPlacement = true;
             Set<Long> visited = gel==null?null:java.util.concurrent.ConcurrentHashMap.newKeySet();
             var generator = level.getChunkSource().getGenerator();
-            boolean supported = placement.getClass() == RandomSpreadStructurePlacement.class
-                    || placement.getClass() == ConcentricRingsStructurePlacement.class;
-            boolean predict = async && !compatiblePrediction && supported && sourceSafe;
+            boolean supported = PlacementSafety.supported(level,placement);
+            boolean predict = !compatiblePrediction && supported && sourceSafe;
             SamplingBudget budget=outerReady?budgets.get(0):new SamplingBudget(maximumSamples);
             if(!outerReady)budgets.add(budget);
             // 闭包只引用不可变快照；未知规则的闭包始终在主线程采样。
@@ -151,10 +154,12 @@ public final class StructureSearch extends SearchJob {
                 for (Target target : targets) {
                     SearchCandidate hint=hinted.get(target.structure());
                     if(hint!=null && hint.chunk().equals(chunk))continue;
-                    DungeonsPrediction policy = target.dungeons();
-                    BlockPos point = predict ? cached.predict(target.structure(), target.biomes(), chunk)
+                    StartPrediction policy = target.dungeons();
+                    BlockPos point = predict && (policy==null || policy.allowed()) ? (policy==null
+                            ? PredictionTemplates.with(Map.of(),()->cached.predict(target.structure(),target.biomes(),chunk))
+                            : policy.predict(prefilter,()->cached.predict(target.structure(),target.biomes(),chunk)))
                             : gel != null && gel.backgroundAllowed && policy != null && policy.allowed()
-                                ? policy.predict(() -> cached.predict(target.structure(), target.biomes(), chunk)) : locate;
+                                ? policy.predict(prefilter,() -> cached.predict(target.structure(), target.biomes(), chunk)) : locate;
                     if(point!=null) {
                         SearchCandidate candidate=new SearchCandidate(new BlockPos(locate.getX(), point.getY(), locate.getZ()),
                                 target.key(), target.structure(), placement, chunk, distance(origin,locate));
@@ -163,7 +168,7 @@ public final class StructureSearch extends SearchJob {
                 }
                 return found;
             };
-            int stripes = predict ? SearchConfig.threads() : 1;
+            int stripes = async && predict ? SearchConfig.threads() : 1;
             if (gel != null) {
                 boolean background = async && gel.backgroundAllowed && sourceSafe;
                 int count = background ? SearchConfig.threads() : 1;
@@ -296,14 +301,14 @@ public final class StructureSearch extends SearchJob {
     @Override public void cancel() { verification.cancel(); super.cancel(); }
     @Override public void prime() {
         // 有提示时先在正常 tick 中核对，再按真实上界启动，避免首批计算无关远处位置。
-        if (hints.isEmpty() && preparations.stream().noneMatch(DungeonsPrediction::preparing)) super.prime();
+        if (hints.isEmpty() && preparations.stream().noneMatch(StartPrediction::preparing)) super.prime();
     }
     @Override public long preparationNanos() { return preparationNanos; }
     @Override public long confirmationNanos() { return verification.mainNanos(); }
     @Override public long waitingNanos() { return verification.waitingNanos(); }
     @Override public boolean step() throws Exception {
         if (scan.cancelled()) return false;
-        for (DungeonsPrediction policy : preparations) if (policy.preparing()) {
+        for (StartPrediction policy : preparations) if (policy.preparing()) {
             long begin = System.nanoTime();
             try { policy.prepareOne(); return true; }
             finally { long used = System.nanoTime() - begin; mainNanos += used; preparationNanos += used; }
@@ -316,7 +321,7 @@ public final class StructureSearch extends SearchJob {
         }
     }
     @Override public String stage() {
-        return preparations.stream().anyMatch(DungeonsPrediction::preparing) ? "preparing_templates" : super.stage();
+        return preparations.stream().anyMatch(StartPrediction::preparing) ? "preparing_templates" : super.stage();
     }
     @Override public String mode() {
         String mode = super.mode();

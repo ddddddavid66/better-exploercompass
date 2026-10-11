@@ -28,3 +28,10 @@ Gradle Wrapper 随源码提供，构建工具许可 Apache-2.0；JUnit Jupiter 5
 1.1.0 的距离下界和增量最近邻理论依据为 Hjaltason / Samet（1999）及 Roussopoulos / Kelley / Vincent（1995），链接和本项目推导见 ALGORITHM.md。
 
 本项目允许按主体 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en) 非商业分享与修改，保留署名、来源、修改说明与相同许可。Apache-2.0 数据单独适用其许可。没有要求额外许可才能执行该许可已经允许的分享；此次主动提供完整源码。
+
+
+## 1.1.1 新增可选兼容来源
+
+- **AlexModGuy / Alex Caves 2.0.2**：[官方源码](https://github.com/AlexModGuy/AlexsCaves/tree/94eeb0810c72eb6c06a7e308955ebda6da9c6f75)。使用运行时官方 Voronoi API，定位器根据其生成条件建立快照，并仅保护统一版定位六洞穴群系的物品限制钩子。不分发 Alex 类、资源或 jar，第三方保持自身许可。
+- **YUNG-GANG / YUNG’s API 4.0.5、Better Jungle Temples 2.0.5、Better Ocean Monuments 3.0.4**：[API](https://github.com/YUNG-GANG/YUNGs-API)、[丛林神庙](https://github.com/YUNG-GANG/YUNGs-Better-Jungle-Temples)、[海底神殿](https://github.com/YUNG-GANG/YUNGs-Better-Ocean-Monuments)。审核放置与拼接起点接口；不复制完整结构生成或模板资源。
+- **ObscuriaLithium / Aquamirae 6.API15**：[官方项目](https://github.com/ObscuriaLithium/Aquamirae)。运行时读取允许群系和起始池，采用本项目列预筛减少无效地形预测。未嵌入其 Java 类和资源。
