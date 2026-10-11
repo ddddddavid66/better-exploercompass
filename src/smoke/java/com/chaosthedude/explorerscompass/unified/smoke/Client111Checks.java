@@ -41,6 +41,14 @@ public final class Client111Checks {
             if(error!=null)throw new AssertionError("server callback",error);
             if(System.nanoTime()>deadline)throw new AssertionError("timeout stage="+stage+" target="+index);
             if(stage==0) {
+                // 整合包可能先显示 Forge 警告页；只允许跳过无加载错误的提示。
+                if(mc.screen instanceof net.minecraftforge.client.gui.LoadingErrorScreen loading) {
+                    var field=loading.getClass().getDeclaredField("modLoadErrors");field.setAccessible(true);
+                    var errors=(List<?>)field.get(loading);
+                    if(!errors.isEmpty())throw new AssertionError("Forge loading errors: "+errors);
+                    System.out.println("CLIENT111: continuing past Forge warnings");mc.setScreen(new TitleScreen());
+                }
+                if(ticks%100==0)System.out.println("CLIENT111: waiting for title, screen="+(mc.screen==null?"null":mc.screen.getClass().getName()));
                 if(mc.screen instanceof net.minecraft.client.gui.screens.AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
                 if(!(mc.screen instanceof TitleScreen))return;
                 mc.createWorldOpenFlows().createFreshLevel("unified-111-client-"+System.currentTimeMillis(),
