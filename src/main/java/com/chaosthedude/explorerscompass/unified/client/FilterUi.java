@@ -20,7 +20,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
 /** 浮层独立接管输入，不能让点击、滚轮和拼音输入穿透到结构列表。 */
-public final class FilterUi {
+public final class FilterUi implements PopupLayer {
     private final int rowHeight;
     private final boolean dimension;
     private Runnable onOpen = () -> {};

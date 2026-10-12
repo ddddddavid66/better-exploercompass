@@ -1,6 +1,6 @@
 plugins { id 'java'; id 'net.minecraftforge.gradle' version '6.0.54' }
 group = 'com.chaosthedude.explorerscompass'
-version = '1.1.1'
+version = providers.gradleProperty('mod_version').get()
 base { archivesName = 'ExplorersCompassUnified-1.20.1-forge' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 sourceSets {
@@ -118,6 +118,41 @@ tasks.register('compactRelease') {
             java.nio.file.Files.move(temporary, archive, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
         } finally {
             java.nio.file.Files.deleteIfExists(temporary)
+        }
+        // 接近体积上限时使用更深的 Deflate；原始内容不变，玩家不需要安装 7-Zip。
+        if (java.nio.file.Files.size(archive) > 500 * 1024) {
+            def staging = layout.buildDirectory.dir('tmp/release-strong').get().asFile
+            if (!staging.canonicalPath.startsWith(layout.buildDirectory.get().asFile.canonicalPath + File.separator))
+                throw new GradleException('Unsafe release staging path')
+            delete staging
+            copy { from zipTree(archive.toFile()); into staging }
+            fileTree(staging).files.each { it.setLastModified(315532800000L) }
+            def strong = archive.resolveSibling(archive.fileName.toString() + '.strong.zip').toFile()
+            delete strong
+            def outputLog = new ByteArrayOutputStream()
+            try {
+                exec {
+                    workingDir staging
+                    commandLine '7z', 'a', '-tzip', strong.absolutePath, './*', '-mx=9', '-mfb=258', '-mpass=15', '-mtc=off', '-mta=off', '-mtm=off', '-r'
+                    standardOutput = outputLog
+                }
+                // 拷贝原始压缩流，剔除目录项和额外元数据，避免再次压缩损失收益。
+                new org.apache.commons.compress.archivers.zip.ZipFile(strong).withCloseable { input ->
+                    new org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream(temporary.toFile()).withCloseable { output ->
+                        input.entries.toList().findAll { !it.directory }.sort { it.name }.each { entry ->
+                            entry.setExtra(new byte[0])
+                            entry.setTimeLocal(java.time.LocalDateTime.of(1980, 1, 1, 0, 0))
+                            input.getRawInputStream(entry).withCloseable { raw -> output.addRawArchiveEntry(entry, raw) }
+                        }
+                    }
+                }
+                java.nio.file.Files.move(temporary, archive, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            } catch (Exception failure) {
+                throw new GradleException('Release compression requires 7-Zip (7z on PATH).', failure)
+            } finally {
+                delete strong
+                java.nio.file.Files.deleteIfExists(temporary)
+            }
         }
     }
 }
