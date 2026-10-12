@@ -167,7 +167,7 @@
   "entertainment.phase.search": "Searching biome",
   "entertainment.phase.land": "Preparing landing",
   "entertainment.phase.landing": "Waiting for chunks / checking landing",
-  "entertainment.phase.visit": "Waiting for visit confirmation",
+  "entertainment.phase.visit": "Confirming actual visit / advancement",
   "entertainment.phase.return": "Preparing return",
   "entertainment.phase.returning": "Returning to departure point",
   "entertainment.phase.completed": "Journey complete",
@@ -192,5 +192,7 @@
   "entertainment.aether_biomes_description": "Visit every biome in this Aether dimension, including addon biomes, then return.",
   "entertainment.attempt": "Candidate %s/%s",
   "entertainment.no_biomes": "No travel biomes are available in this dimension.",
-  "entertainment.search_timeout": "Biome search exceeded 60 seconds. Stopping and attempting to return."
+  "entertainment.search_timeout": "Biome search exceeded 60 seconds. Stopping and attempting to return.",
+  "entertainment.phase.waiting_chunks": "Waiting for actual chunks",
+  "entertainment.phase.checking": "Checking landing"
 }

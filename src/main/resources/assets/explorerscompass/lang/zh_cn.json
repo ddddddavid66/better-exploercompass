@@ -169,7 +169,7 @@
   "entertainment.phase.search": "搜索群系中",
   "entertainment.phase.land": "准备落点",
   "entertainment.phase.landing": "等待区块 / 检查落点",
-  "entertainment.phase.visit": "等待游戏确认到访",
+  "entertainment.phase.visit": "核对实际到访 / 等待原版进度",
   "entertainment.phase.return": "准备返回",
   "entertainment.phase.returning": "正在返回出发点",
   "entertainment.phase.completed": "旅行完成",
@@ -194,5 +194,7 @@
   "entertainment.aether_biomes_description": "真实到访当前天境维度的全部群系，含附属模组群系，完成后返回。",
   "entertainment.attempt": "候选 %s/%s",
   "entertainment.no_biomes": "当前维度目录没有可旅行的群系。",
-  "entertainment.search_timeout": "本次群系定位超过60秒，已停止并尝试返回。"
+  "entertainment.search_timeout": "本次群系定位超过60秒，已停止并尝试返回。",
+  "entertainment.phase.waiting_chunks": "等待实际区块加载",
+  "entertainment.phase.checking": "检查落点"
 }

@@ -31,10 +31,11 @@ public final class AdventureTravel {
         final float yaw, pitch;
         Phase phase = Phase.NEXT;
         AdventureRequirements.Visit current;
-        int attempts, arrivedTick;
-        long searchDeadline;
+        int attempts, visitTicks;
+        long searchDeadline, visitDeadline, attemptRevision;
         String detail = "";
-        boolean completed,dense;
+        boolean completed,awaitedTarget;
+        ResourceLocation actualBiome;
         Task(ServerPlayer player, ItemStack stack, Advancement advancement, List<AdventureRequirements.Visit> visits,EntertainmentFeature feature) {
             this.player=player;this.stack=stack;this.advancement=advancement;this.visits=visits;this.feature=feature;
             observe();
@@ -44,8 +45,8 @@ public final class AdventureTravel {
             return player.serverLevel().dimension().location().equals(feature.dimension()) && TeleportService.allowedTravel(player,stack);
         }
         void observe() {
-            if(feature==EntertainmentFeature.AETHER_BIOMES)
-                player.serverLevel().getBiome(player.blockPosition()).unwrapKey().ifPresent(key->observed.add(key.location()));
+            actualBiome=TeleportService.loadedBiome(player);
+            if(actualBiome!=null && feature==EntertainmentFeature.AETHER_BIOMES)observed.add(actualBiome);
         }
         boolean visited(AdventureRequirements.Visit visit) {
             return advancement==null?observed.contains(visit.biome()):AdventureRequirements.visited(player,advancement,visit);
@@ -64,6 +65,7 @@ public final class AdventureTravel {
         }
         try {
             Advancement advancement=feature==EntertainmentFeature.ADVENTURING_TIME?AdventureRequirements.advancement(player):null;
+            if(feature==EntertainmentFeature.ADVENTURING_TIME && advancement==null)throw new IllegalArgumentException("entertainment.missing_advancement");
             var visits=advancement!=null?AdventureRequirements.read(advancement):aetherVisits(player);
             if(advancement!=null && player.getAdvancements().getOrStartProgress(advancement).isDone()) {message(player,"entertainment.already_done");return;}
             if(visits.isEmpty()) {message(player,"entertainment.no_biomes");return;}
@@ -112,23 +114,34 @@ public final class AdventureTravel {
     }
     private static void step(Task task) {
         task.observe();
+        if(advanceVisited(task))return;
+        // 已经实际进入目标时，等待原版条件自然更新；旧传送结果不能再次触发搜索。
+        if(task.current!=null && !task.awaitedTarget && task.current.biome().equals(task.actualBiome)
+                && task.phase!=Phase.VISIT && task.phase!=Phase.RETURN && task.phase!=Phase.RETURNING) {
+            task.awaitedTarget=true;task.attemptRevision++;task.phase=Phase.VISIT;
+            SearchService.cancel(task.player,true);beginVisit(task);return;
+        }
         if(task.phase==Phase.SEARCH && System.nanoTime()>=task.searchDeadline) {
-            returnHome(task,"entertainment.search_timeout");return;
+            task.attemptRevision++;task.phase=Phase.VISIT;
+            SearchService.cancel(task.player,true);beginVisit(task);task.detail="entertainment.search_timeout";return;
         }
         switch(task.phase) {
             case NEXT -> next(task);
             case LAND -> {
                 task.phase=Phase.LANDING;
-                if(!TeleportService.travel(task.player,task.stack,success->{
-                    if(!owns(task,Phase.LANDING))return;
-                    if(success) {task.phase=Phase.VISIT;task.arrivedTick=task.player.getServer().getTickCount();}
-                    else retry(task);
-                }))retry(task);
+                long attempt=task.attemptRevision;
+                if(!TeleportService.travel(task.player,task.stack,result->{
+                    if(!owns(task,Phase.LANDING,attempt))return;
+                    beginVisit(task);
+                    if(result!=TeleportService.TravelResult.MOVED)task.detail="entertainment.no_landing";
+                }))beginVisit(task);
             }
             case VISIT -> {
-                if(task.visited(task.current)) {
-                    task.current=null;task.attempts=0;task.dense=false;task.phase=Phase.NEXT;
-                } else if(task.player.getServer().getTickCount()-task.arrivedTick>=40)retry(task);
+                // 只有实际区块可读取的 tick 才计入自然进度等待，加载期间绝不提前重搜。
+                if(task.actualBiome!=null)task.visitTicks++;
+                boolean atTarget=task.current.biome().equals(task.actualBiome);
+                if(atTarget)task.awaitedTarget=true;
+                if(task.visitTicks>=(atTarget?200:20) || System.nanoTime()>=task.visitDeadline)retry(task);
             }
             case RETURN -> {
                 task.phase=Phase.RETURNING;
@@ -139,6 +152,7 @@ public final class AdventureTravel {
         }
     }
     private static void next(Task task) {
+        task.observe();if(advanceVisited(task))return;
         if(task.done()) {
             task.completed=true;returnHome(task,"entertainment.completed");return;
         }
@@ -146,22 +160,36 @@ public final class AdventureTravel {
             task.current=task.visits.stream().filter(v->!task.visited(v)).findFirst().orElse(null);
         }
         if(task.current==null) {returnHome(task,"entertainment.unsupported_advancement");return;}
-        task.attempts++;task.phase=Phase.SEARCH;task.searchDeadline=System.nanoTime()+60_000_000_000L;
-        boolean accepted=SearchService.startTravelBiome(task.player,task.stack,task.current.biome(),task.dense,candidate->{
-            if(!owns(task,Phase.SEARCH))return;
-            if(candidate==null && task.feature==EntertainmentFeature.AETHER_BIOMES && !task.dense) {
-                // 同一目标补查薄高度层，不额外消耗落点候选次数，且受当前任务拥有权保护。
-                task.dense=true;task.attempts--;task.phase=Phase.NEXT;
-            } else if(candidate==null)returnHome(task,"entertainment.not_found");else task.phase=Phase.LAND;
+        if(task.attempts>=MAX_ATTEMPTS) {returnHome(task,"entertainment.no_landing");return;}
+        task.attempts++;long attempt=++task.attemptRevision;task.detail="";task.awaitedTarget=false;
+        task.phase=Phase.SEARCH;task.searchDeadline=System.nanoTime()+60_000_000_000L;
+        ExplorersCompass.LOGGER.info("娱乐旅行 {} 目标={} attempt={}/5 search_start revision={}",task.id,task.current.biome(),task.attempts,attempt);
+        boolean accepted=SearchService.startTravelBiome(task.player,task.stack,task.current.biome(),candidate->{
+            if(!owns(task,Phase.SEARCH,attempt))return;
+            task.observe();if(advanceVisited(task))return;
+            if(candidate==null) {task.detail="entertainment.not_found";beginVisit(task);}else task.phase=Phase.LAND;
         });
-        if(!accepted)returnHome(task,"entertainment.not_found");
+        if(!accepted && owns(task,Phase.SEARCH,attempt)) {task.detail="entertainment.not_found";beginVisit(task);}
+    }
+    private static void beginVisit(Task task) {
+        task.phase=Phase.VISIT;task.visitTicks=0;task.visitDeadline=System.nanoTime()+60_000_000_000L;
+    }
+    private static boolean advanceVisited(Task task) {
+        if(task.current==null || task.phase==Phase.RETURN || task.phase==Phase.RETURNING || !task.visited(task.current))return false;
+        ExplorersCompass.LOGGER.info("娱乐旅行 {} 目标={} visited actual={} attempts={}",task.id,task.current.biome(),task.actualBiome,task.attempts);
+        // 先使回调失效再取消子任务；否则同步取消回调会重新推进已完成目标。
+        task.attemptRevision++;task.current=null;task.attempts=0;task.detail="";task.awaitedTarget=false;task.phase=Phase.NEXT;
+        SearchService.cancel(task.player,true);publish(task,true);return true;
     }
     private static boolean owns(Task task,Phase phase) { return tasks.get(task.player.getUUID())==task && task.phase==phase; }
+    private static boolean owns(Task task,Phase phase,long attempt) {return owns(task,phase) && task.attemptRevision==attempt;}
     private static void retry(Task task) {
-        if(task.attempts>=MAX_ATTEMPTS)returnHome(task,"entertainment.no_landing");else task.phase=Phase.NEXT;
+        task.observe();if(advanceVisited(task))return;
+        task.attemptRevision++;task.phase=Phase.NEXT;SearchService.cancel(task.player,true);
+        if(task.attempts>=MAX_ATTEMPTS)returnHome(task,task.detail.isEmpty()?"entertainment.no_landing":task.detail);
     }
     private static void returnHome(Task task,String reason) {
-        task.detail=reason;task.phase=Phase.RETURN;
+        task.attemptRevision++;task.detail=reason;task.phase=Phase.RETURN;
         SearchService.cancel(task.player,true);TeleportService.cancel(task.player.getUUID());publish(task,true);
     }
     private static void finish(Task task,boolean returned) {
@@ -171,6 +199,7 @@ public final class AdventureTravel {
     }
     private static void publish(Task task,boolean active) {
         String phase=active?task.phase.name().toLowerCase(java.util.Locale.ROOT):task.completed?"completed":"stopped";
+        if(active && task.phase==Phase.LANDING)phase=TeleportService.travelPhase(task.player.getUUID());
         UnifiedNetwork.send(task.player,new EntertainmentStatus(task.id,active,task.count(),task.visits.size(),
                 task.current==null?null:task.current.biome(),phase,task.detail,++revision,task.feature,TeleportService.mode(task.player.getUUID()),task.attempts));
     }

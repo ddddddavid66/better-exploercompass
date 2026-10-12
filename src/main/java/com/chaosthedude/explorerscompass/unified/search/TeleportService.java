@@ -18,6 +18,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** 群系/结构统一传送。所有世界读取都在主线程且区块已就绪。 */
 public final class TeleportService {
+    public enum TravelResult { MOVED, FAILED, CANCELLED }
     private static final TicketType<UUID> PREPARE=TicketType.create("compassfilters_landing",Comparator.<UUID>naturalOrder());
     private static final Map<UUID,Task> tasks=new LinkedHashMap<>();
     private static final Map<UUID,LinkedHashMap<UUID,Long>> requests=new HashMap<>();
@@ -41,7 +42,7 @@ public final class TeleportService {
         long chunksReady,confirmationUntil;
         Vec3 landing,strictLanding,relaxedLanding,travelAlternate;
         boolean travel, returning; float returnYaw, returnPitch;
-        java.util.function.Consumer<Boolean> completion;
+        java.util.function.Consumer<TravelResult> completion;
         Task(ServerPlayer player,ItemStack stack,UUID token) { this(player,stack,token,null); }
         Task(ServerPlayer player,ItemStack stack,UUID token,BlockPos returnPoint) {
             returning=returnPoint!=null;
@@ -143,10 +144,11 @@ public final class TeleportService {
         message(player,"filters.teleport_checking");return true;
     }
     /** 自动旅行继承用户模式；默认模式在同一任务内推进降级，保留区块与扫描进度。 */
-    public static boolean travel(ServerPlayer player,ItemStack stack,java.util.function.Consumer<Boolean> completion) {
+    public static boolean travel(ServerPlayer player,ItemStack stack,java.util.function.Consumer<TravelResult> completion) {
         UUID token=SearchService.token(stack);
         if(!eligible(player,stack,token))return false;
-        prepare(player,stack,token);
+        Task prepared=tasks.get(player.getUUID());
+        if(prepared==null || !prepared.valid() || !prepared.token.equals(token) || prepared.handoffUntil>0)prepare(player,stack,token);
         Task task=tasks.get(player.getUUID());task.travel=true;task.completion=completion;
         beginTravelStage(task,task.mode==LandingMode.RELAXED_ONLY);return true;
     }
@@ -163,7 +165,7 @@ public final class TeleportService {
         UUID token=SearchService.token(stack);
         Task task=new Task(player,stack,token==null?UUID.randomUUID():token,BlockPos.containing(origin));
         task.travel=true;
-        task.clicked=true;task.completion=completion;task.returnYaw=yaw;task.returnPitch=pitch;
+        task.clicked=true;task.completion=result->completion.accept(result==TravelResult.MOVED);task.returnYaw=yaw;task.returnPitch=pitch;
         task.requestDeadline=System.nanoTime()+REQUEST_NANOS;task.attemptStarted=System.nanoTime();
         task.waitStarted=System.nanoTime();task.expires=player.getServer().getTickCount()+200;
         if(LandingChecks.ready(player,task.level,BlockPos.containing(origin),false)) {
@@ -179,13 +181,25 @@ public final class TeleportService {
         task.heights=relaxed?task.relaxedHeights:task.strictHeights;task.column=0;
         task.landing=relaxed?task.relaxedLanding:task.strictLanding;
         long now=System.nanoTime();task.requestDeadline=now+REQUEST_NANOS;
-        task.centerDeadline=now+WAIT_NANOS;task.attemptStarted=now;task.checkNanos=0;
+        task.centerDeadline=now+(task.travel?60_000_000_000L:WAIT_NANOS);task.attemptStarted=now;task.checkNanos=0;
+        if(task.travel)task.requestDeadline=now+70_000_000_000L;
         task.waitStarted=now;task.waitNanos=0;task.expires=task.player.getServer().getTickCount()+200;
         phase(task,task.ticket?"waiting_chunks":"waiting_slots");
     }
     private static ItemStack landingStack(Task task){return task.returning?ItemStack.EMPTY:task.stack;}
-    private static void completed(Task task,boolean success) {
-        var callback=task.completion;task.completion=null;if(callback!=null)callback.accept(success);
+    private static void completed(Task task,TravelResult result) {
+        var callback=task.completion;task.completion=null;if(callback!=null)callback.accept(result);
+    }
+    /** 仅读取已经就绪的真实区块；加载期间返回未知，不能用生成预测冒充到访。 */
+    public static ResourceLocation loadedBiome(ServerPlayer player) {
+        var level=player.serverLevel();var pos=player.blockPosition();
+        for(int x=(pos.getX()-4)>>4;x<=(pos.getX()+4)>>4;x++)
+            for(int z=(pos.getZ()-4)>>4;z<=(pos.getZ()+4)>>4;z++)
+                if(level.getChunkSource().getChunkNow(x,z)==null)return null;
+        return level.getBiome(pos).unwrapKey().map(key->key.location()).orElse(null);
+    }
+    public static String travelPhase(UUID player) {
+        Task task=tasks.get(player);return task==null?"landing":task.phase.equals("checking")?"checking":"waiting_chunks";
     }
     private static boolean travelBiome(Task task,Vec3 point) {
         return !task.travel || !task.biome || task.fallback || task.level.getBiome(BlockPos.containing(point)).unwrapKey()
@@ -226,7 +240,7 @@ public final class TeleportService {
         }
     }
     private static void acquire(Task task,ChunkPos center) {
-        release(task);task.center=center;task.centerDeadline=System.nanoTime()+WAIT_NANOS;task.chunksReady=0;
+        release(task);task.center=center;task.centerDeadline=System.nanoTime()+(task.travel?60_000_000_000L:WAIT_NANOS);task.chunksReady=0;
         if(task.clicked && task.waitStarted==0)task.waitStarted=System.nanoTime();
         if(task.clicked)phase(task,"waiting_chunks");
         task.lastCenterTick=task.player.getServer().getTickCount();task.level.getChunkSource().addRegionTicket(PREPARE,center,1,task.ticketId);task.ticket=true;
@@ -392,7 +406,7 @@ public final class TeleportService {
         status(task,TeleportStatusPacket.State.SUCCEEDED,water?"water_moved":task.fallback?"fallback_moved":"moved");
         summary(task,water?"water_moved":"moved");
         task.clicked=false;task.waiting=true;task.handoffUntil=task.player.getServer().getTickCount()+40;
-        completed(task,true);
+        completed(task,TravelResult.MOVED);
     }
     private static void summary(Task task,String result) {
         long now=System.nanoTime(),waiting=task.waitNanos+(task.waitStarted==0?0:now-task.waitStarted);
@@ -415,7 +429,7 @@ public final class TeleportService {
         if(tasks.remove(task.player.getUUID(),task)) {
             release(task);
             if(moved==0 && task.handoffUntil==0)status(task,TeleportStatusPacket.State.CANCELLED,reason);
-            completed(task,false);
+            completed(task,reason.equals("cancelled")?TravelResult.CANCELLED:TravelResult.FAILED);
         }
     }
     public static void cancel(UUID player){Task t=tasks.get(player);if(t!=null)finish(t,"cancelled",0);}
