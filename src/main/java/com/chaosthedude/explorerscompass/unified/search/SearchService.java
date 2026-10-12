@@ -164,10 +164,18 @@ public final class SearchService {
     }
     public static boolean startTravelBiome(ServerPlayer player, ItemStack stack, ResourceLocation key,
                                            java.util.function.Consumer<SearchCandidate> completion) {
-        return startBiome(player, stack, key, SearchConfig.BIOME_SAMPLES.get(), completion);
+        return startTravelBiome(player,stack,key,false,completion);
+    }
+    public static boolean startTravelBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,boolean dense,
+                                           java.util.function.Consumer<SearchCandidate> completion) {
+        return startBiome(player,stack,key,SearchConfig.BIOME_SAMPLES.get(),completion,dense);
     }
     private static boolean startBiome(ServerPlayer player, ItemStack stack, ResourceLocation key, int sampleLimit,
                                       java.util.function.Consumer<SearchCandidate> completion) {
+        return startBiome(player,stack,key,sampleLimit,completion,false);
+    }
+    private static boolean startBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,int sampleLimit,
+                                      java.util.function.Consumer<SearchCandidate> completion,boolean dense) {
         long before = System.nanoTime(), beforeMillis=System.currentTimeMillis();
         if (!held(player, stack) || SearchRules.broken(stack)) return false;
         var source = player.serverLevel().getChunkSource().getGenerator().getBiomeSource();
@@ -178,7 +186,8 @@ public final class SearchService {
         }
         if (completion == null) com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player, "entertainment.replaced");
         cancel(player, true);
-        boolean underground = completion != null && Set.of("deep_dark", "dripstone_caves", "lush_caves").contains(key.getPath());
+        // 普通采样没有结果时，旅行状态机可显式请求四格高度补查；旧回调不能自行发起搜索。
+        boolean underground = completion != null && (dense || Set.of("deep_dark", "dripstone_caves", "lush_caves").contains(key.getPath()));
         List<BlockPos> previous = biomeHistory.getOrDefault(new CacheKey(player.getUUID(), player.level().dimension().location(), key), List.of());
         SearchJob job;
         if(AlexCavesAdapter.target(key)) {
