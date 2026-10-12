@@ -13,6 +13,7 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void disconnect(ClientPlayerNetworkEvent.LoggingOut event) {
         SearchLogClient.disconnect();
+        com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentClient.clear();
         ClientSession.clear();
         SearchClientState.clear(); LandingClientState.clear();
     }

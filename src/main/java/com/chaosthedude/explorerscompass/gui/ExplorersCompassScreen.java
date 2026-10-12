@@ -47,11 +47,14 @@ public class ExplorersCompassScreen extends Screen implements com.chaosthedude.e
 	private StructureSearchList selectionList;
 	private ISorting sortingCategory;
     private FilterUi biomeFilter, dimensionFilter;
+    private com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentUi entertainment;
     private Button locateBiomeButton, clearCacheButton, landingModeButton;
     private int sidebarScroll, sidebarMaximum;
     private long catalogRevision = -1;
-    private FilterUi activePopup() { return dimensionFilter != null && dimensionFilter.isOpen() ? dimensionFilter : biomeFilter; }
-    @Override public boolean popupOpen() { return biomeFilter != null && biomeFilter.isOpen() || dimensionFilter != null && dimensionFilter.isOpen(); }
+    private PopupLayer activePopup() {
+        if(entertainment!=null && entertainment.isOpen())return entertainment;
+        return dimensionFilter != null && dimensionFilter.isOpen() ? dimensionFilter : biomeFilter; }
+    @Override public boolean popupOpen() { return entertainment!=null && entertainment.isOpen() || biomeFilter != null && biomeFilter.isOpen() || dimensionFilter != null && dimensionFilter.isOpen(); }
     @Override public boolean isPauseScreen() { return false; }
 
 	public ExplorersCompassScreen(Level level, Player player, ItemStack stack, ExplorersCompassItem explorersCompass, List<ResourceLocation> allowedStructureKeys) {
@@ -94,7 +97,7 @@ public class ExplorersCompassScreen extends Screen implements com.chaosthedude.e
 
 	@Override
 	public void tick() {
-        searchTextField.tick(); biomeFilter.tick(); dimensionFilter.tick();
+        searchTextField.tick(); biomeFilter.tick(); dimensionFilter.tick();entertainment.tick();
         stack = com.chaosthedude.explorerscompass.util.ItemUtils.getHeldItem(player, explorersCompass);
         foundStructureKey = explorersCompass.getState(stack) == CompassState.FOUND ? explorersCompass.getStructureKey(stack) : null;
         if (catalogRevision != ClientSession.revision()) {
@@ -125,7 +128,7 @@ public class ExplorersCompassScreen extends Screen implements com.chaosthedude.e
         renderBackground(graphics); super.render(graphics,mouseX,mouseY,partialTick);
         graphics.drawCenteredString(font, title, 65,15,0xffffff);
         if (selectionList.children().isEmpty()) graphics.drawCenteredString(font, Component.translatable("filters.no_structures"), selectionList.getRowLeft()+selectionList.getRowWidth()/2,55,0xaaaaaa);
-        biomeFilter.render(graphics,mouseX,mouseY,partialTick); dimensionFilter.render(graphics,mouseX,mouseY,partialTick);
+        biomeFilter.render(graphics,mouseX,mouseY,partialTick); dimensionFilter.render(graphics,mouseX,mouseY,partialTick);entertainment.render(graphics,mouseX,mouseY,partialTick);
     }
 
 	@Override
@@ -233,7 +236,10 @@ public class ExplorersCompassScreen extends Screen implements com.chaosthedude.e
 		addRenderableWidget(selectionList);
         biomeFilter = new FilterUi(this,10,150,this::processSearchTerm);
         dimensionFilter = new FilterUi(this,10,175,this::processSearchTerm,true);
-        biomeFilter.onOpen(dimensionFilter::close); dimensionFilter.onOpen(biomeFilter::close);
+        entertainment=new com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentUi(this,()->{biomeFilter.close();dimensionFilter.close();});
+        addRenderableWidget(entertainment.button());
+        biomeFilter.onOpen(()->{dimensionFilter.close();entertainment.close();});
+        dimensionFilter.onOpen(()->{biomeFilter.close();entertainment.close();});
         addRenderableWidget(biomeFilter.button()); addRenderableWidget(dimensionFilter.button());
         locateBiomeButton = addRenderableWidget(new TransparentButton(10,200,110,20,Component.translatable("filters.locate_biome"), ignored -> {
             if (ClientSession.canSearch() && ClientSession.selected() != null) {
@@ -253,7 +259,7 @@ public class ExplorersCompassScreen extends Screen implements com.chaosthedude.e
         boolean next=ExplorersCompass.maxNextSearches>0;
         var buttons=new ArrayList<Button>(List.of(searchButton,searchForGroupButton));
         if(next)buttons.add(searchForNextButton);else searchForNextButton.visible=false;
-        buttons.addAll(List.of(sortByButton,biomeFilter.button(),dimensionFilter.button(),locateBiomeButton,landingModeButton,clearCacheButton));
+        buttons.addAll(List.of(sortByButton,biomeFilter.button(),dimensionFilter.button(),locateBiomeButton,landingModeButton,clearCacheButton,entertainment.button()));
         int top=30,bottom=height-35;
         int gap=Math.min(25,Math.max(21,(bottom-top-20)/Math.max(1,buttons.size()-1)));
         sidebarMaximum=Math.max(0,(buttons.size()-1)*gap+20-(bottom-top));

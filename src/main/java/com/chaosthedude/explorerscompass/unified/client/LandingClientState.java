@@ -18,7 +18,7 @@ public final class LandingClientState {
         if(old!=null && packet.revision()<=old.packet.revision())return;
         states.put(packet.token(),new Entry(packet,System.nanoTime()));
         // 成功消息到达时关闭当时的界面；不能在下一 tick 关闭玩家刚重新打开的界面。
-        if(packet.state()==TeleportStatusPacket.State.SUCCEEDED && mc.player!=null && mc.screen instanceof com.chaosthedude.explorerscompass.gui.ExplorersCompassScreen) {
+        if(!com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentClient.active() && packet.state()==TeleportStatusPacket.State.SUCCEEDED && mc.player!=null && mc.screen instanceof com.chaosthedude.explorerscompass.gui.ExplorersCompassScreen) {
             var held=com.chaosthedude.explorerscompass.util.ItemUtils.getHeldItem(mc.player,com.chaosthedude.explorerscompass.ExplorersCompass.explorersCompass);
             if(packet.token().equals(SearchService.token(held)))mc.setScreen(null);
         }

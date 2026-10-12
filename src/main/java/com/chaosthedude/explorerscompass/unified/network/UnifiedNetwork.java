@@ -10,7 +10,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class UnifiedNetwork {
-    public static final String VERSION = "unified-2";
+    public static final String VERSION = "unified-3";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(CompassUnified.MOD_ID, "unified"), () -> VERSION,
             UnifiedNetwork::acceptsVersion, UnifiedNetwork::acceptsVersion);
@@ -20,6 +20,14 @@ public final class UnifiedNetwork {
     public static boolean acceptsVersion(String remote) { return VERSION.equals(remote); }
 
     public static void register() {
+        CHANNEL.registerMessage(14, com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentRequest.class,
+                com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentRequest::encode,
+                com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentRequest::decode,
+                com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentRequest::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(15, com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentStatus.class,
+                com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentStatus::encode,
+                com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentStatus::decode,
+                com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentStatus::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(12, LandingModePacket.class, LandingModePacket::encode, LandingModePacket::decode, LandingModePacket::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(13, SearchLifecyclePacket.class, SearchLifecyclePacket::encode, SearchLifecyclePacket::decode, SearchLifecyclePacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(10, StructureSearchPacket.class, StructureSearchPacket::encode, StructureSearchPacket::decode,

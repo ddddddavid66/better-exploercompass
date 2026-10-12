@@ -51,6 +51,11 @@ public final class CompassHud {
             line(graphics, Integer.toString(compass.getSearchRadius(stack)), 10, 0xaaaaaa); progress = 12;
         }
         ProgressHud.render(graphics, stack, progress);
+        if(com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentClient.active()) {
+            var message=com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentClient.summary();
+            int row=progress+5;
+            for(var part:message.getString().split("\\n"))line(graphics,part,row++,0xffffaa);
+        }
     }
     private static String text(String key) { return Component.translatable(key).getString(); }
     private static void line(GuiGraphics graphics, String text, int row, int color) { RenderUtils.drawConfiguredStringOnHUD(graphics, text, 5, 5, color, row); }

@@ -49,6 +49,7 @@ public final class SearchService {
         long startedAt=System.currentTimeMillis(),startedNanos=System.nanoTime();
         long priorSamples,priorCandidates,priorMain,priorWorker,priorPreparation,priorConfirmation,priorWaiting;int priorChecks,priorChunks;
         boolean terminalSent;
+        java.util.function.Consumer<SearchCandidate> completion;
         long lastSamples = -1;
         int ticks;
         String lastStage = "";
@@ -143,6 +144,7 @@ public final class SearchService {
         } else job = new StructureSearch(player.serverLevel(), player.blockPosition(), keys, previous,
                 player.getServer().getWorldData().worldGenOptions().generateStructures() ? radius : 0,
                 samples, SearchConfig.ASYNC_STRUCTURES.get());
+        com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player, "entertainment.replaced");
         cancel(player, true);
         Session session = new Session(player, stack, category, job);
         session.group = group; session.next = next;session.requested=List.copyOf(keys);session.startedNanos=before;session.startedAt=beforeMillis;
@@ -158,6 +160,14 @@ public final class SearchService {
     }
     /** 服务端调用方提供本次额度快照；测试无需修改持久化 Forge 配置。 */
     public static boolean startBiome(ServerPlayer player, ItemStack stack, ResourceLocation key, int sampleLimit) {
+        return startBiome(player, stack, key, sampleLimit, null);
+    }
+    public static boolean startTravelBiome(ServerPlayer player, ItemStack stack, ResourceLocation key,
+                                           java.util.function.Consumer<SearchCandidate> completion) {
+        return startBiome(player, stack, key, SearchConfig.BIOME_SAMPLES.get(), completion);
+    }
+    private static boolean startBiome(ServerPlayer player, ItemStack stack, ResourceLocation key, int sampleLimit,
+                                      java.util.function.Consumer<SearchCandidate> completion) {
         long before = System.nanoTime(), beforeMillis=System.currentTimeMillis();
         if (!held(player, stack) || SearchRules.broken(stack)) return false;
         var source = player.serverLevel().getChunkSource().getGenerator().getBiomeSource();
@@ -166,7 +176,9 @@ public final class SearchService {
             if (player.connection != null) player.displayClientMessage(net.minecraft.network.chat.Component.translatable("filters.biome_absent"), true);
             return false;
         }
+        if (completion == null) com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player, "entertainment.replaced");
         cancel(player, true);
+        boolean underground = completion != null && Set.of("deep_dark", "dripstone_caves", "lush_caves").contains(key.getPath());
         List<BlockPos> previous = biomeHistory.getOrDefault(new CacheKey(player.getUUID(), player.level().dimension().location(), key), List.of());
         SearchJob job;
         if(AlexCavesAdapter.target(key)) {
@@ -174,9 +186,10 @@ public final class SearchService {
             job=new AlexCavesSearch(player.serverLevel(),player.blockPosition(),key,previous,
                     SearchConfig.RADIUS.get(),Math.max(0,sampleLimit),SearchConfig.SPACING.get(),SearchConfig.ASYNC_BIOMES.get(),adapter);
         }else job = new BiomeSearch(player.serverLevel(), player.blockPosition(), key, previous,
-                SearchConfig.RADIUS.get(), Math.max(0, sampleLimit), SearchConfig.SPACING.get(),
-                SearchConfig.VERTICAL.get(), SearchConfig.DEPTH_INTERVAL.get(), SearchConfig.ASYNC_BIOMES.get());
-        Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;begin(session);
+                SearchConfig.RADIUS.get(), Math.max(0, sampleLimit), underground ? 16 : SearchConfig.SPACING.get(),
+                underground ? 4 : SearchConfig.VERTICAL.get(), SearchConfig.DEPTH_INTERVAL.get(), SearchConfig.ASYNC_BIOMES.get());
+        Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;
+        session.completion=completion;begin(session);
         long used=System.nanoTime()-before;
         job.mainNanos+=used;pendingPreparationNanos+=used;
         return true;
@@ -251,7 +264,7 @@ public final class SearchService {
                     session.job = session.job.synchronousFallback().asFallback();
                 } else {
                     CompassUnified.LOGGER.error("搜索 {} 兼容路径失败", session.token, error);
-                    fail(session);status(session);lifecycle(session,true,"error",""); sessions.remove(session.player.getUUID());
+                    fail(session);status(session);lifecycle(session,true,"error",""); sessions.remove(session.player.getUUID());complete(session,null);
                 }
                 idle++;
             }
@@ -298,6 +311,11 @@ public final class SearchService {
                 session.job.mainNanos / 1_000_000.0, (System.nanoTime() - session.job.startedNanos) / 1_000_000.0);
         if(!session.job.diagnostics().isEmpty())CompassUnified.LOGGER.info("搜索 {} 阶段摘要：{}",session.token,session.job.diagnostics());
         session.job.cancel(); sessions.remove(session.player.getUUID());
+        complete(session, candidate);
+    }
+    private static void complete(Session session, SearchCandidate result) {
+        var callback=session.completion;session.completion=null;
+        if(callback!=null)callback.accept(result);
     }
     private static void fail(Session session) {
         ExplorersCompass.explorersCompass.setNotFound(session.stack, session.job.radius, session.job.legacySamples());
@@ -322,7 +340,7 @@ public final class SearchService {
         data.putString("category",session.category.toString());data.putString("kind",session.job.biome()?"biome":"structure");
         data.putString("dimension",session.level.dimension().location().toString());
         if (session.job instanceof EndDungeonSearch) data.putString("targetImplementation","feature");
-        data.putString("requestKind",session.next?"next":session.group?"group":"normal");
+        data.putString("requestKind",session.completion!=null?"entertainment":session.next?"next":session.group?"group":"normal");
         data.putIntArray("origin",new int[]{session.job.start.getX(),session.job.start.getY(),session.job.start.getZ()});
         var targets=new net.minecraft.nbt.ListTag();for(var key:session.requested)targets.add(net.minecraft.nbt.StringTag.valueOf(key.toString()));
         data.put("targets",targets);data.putString("mode",session.job.mode());
@@ -349,6 +367,7 @@ public final class SearchService {
                 && session.token.equals(session.stack.getTag().getUUID(TOKEN))) {
             ExplorersCompass.explorersCompass.setInactive(session.stack, player); status(session);
         }
+        complete(session,null);
     }
     public static void clearCache(UUID player) {
         featureHistory.remove(player);
