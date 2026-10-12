@@ -34,7 +34,7 @@ public final class AdventureTravel {
         int attempts, arrivedTick;
         long searchDeadline;
         String detail = "";
-        boolean completed;
+        boolean completed,dense;
         Task(ServerPlayer player, ItemStack stack, Advancement advancement, List<AdventureRequirements.Visit> visits,EntertainmentFeature feature) {
             this.player=player;this.stack=stack;this.advancement=advancement;this.visits=visits;this.feature=feature;
             observe();
@@ -127,7 +127,7 @@ public final class AdventureTravel {
             }
             case VISIT -> {
                 if(task.visited(task.current)) {
-                    task.current=null;task.attempts=0;task.phase=Phase.NEXT;
+                    task.current=null;task.attempts=0;task.dense=false;task.phase=Phase.NEXT;
                 } else if(task.player.getServer().getTickCount()-task.arrivedTick>=40)retry(task);
             }
             case RETURN -> {
@@ -147,9 +147,12 @@ public final class AdventureTravel {
         }
         if(task.current==null) {returnHome(task,"entertainment.unsupported_advancement");return;}
         task.attempts++;task.phase=Phase.SEARCH;task.searchDeadline=System.nanoTime()+60_000_000_000L;
-        boolean accepted=SearchService.startTravelBiome(task.player,task.stack,task.current.biome(),candidate->{
+        boolean accepted=SearchService.startTravelBiome(task.player,task.stack,task.current.biome(),task.dense,candidate->{
             if(!owns(task,Phase.SEARCH))return;
-            if(candidate==null)returnHome(task,"entertainment.not_found");else task.phase=Phase.LAND;
+            if(candidate==null && task.feature==EntertainmentFeature.AETHER_BIOMES && !task.dense) {
+                // 同一目标补查薄高度层，不额外消耗落点候选次数，且受当前任务拥有权保护。
+                task.dense=true;task.attempts--;task.phase=Phase.NEXT;
+            } else if(candidate==null)returnHome(task,"entertainment.not_found");else task.phase=Phase.LAND;
         });
         if(!accepted)returnHome(task,"entertainment.not_found");
     }
