@@ -29,10 +29,10 @@ public final class SmokeChecks {
         String result;
         try {
             check(net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("explorerscompass:explorerscompass")) == com.chaosthedude.explorerscompass.ExplorersCompass.explorersCompass, "original item ID registered once");
-            check(com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.VERSION.equals("unified-3"), "unified protocol");
+            check(com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.VERSION.equals("unified-4"), "unified protocol");
             for (String version : List.of("1", "5", "6", "ABSENT", "ACCEPTVANILLA", "unified-1", "unified-2"))
                 check(!com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.acceptsVersion(version), "reject old/missing protocol: " + version);
-            check(com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.acceptsVersion("unified-3"), "matching protocol accepted");
+            check(com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.acceptsVersion("unified-4"), "matching protocol accepted");
             BiomeCatalogPacket catalog = CatalogService.snapshot(event.getServer().getLevel(Level.OVERWORLD), UUID.randomUUID());
             ResourceLocation plains = new ResourceLocation("minecraft:plains");
             check(catalog.structures().get(new ResourceLocation("minecraft:village_plains")).contains(plains), "plains village generation");
