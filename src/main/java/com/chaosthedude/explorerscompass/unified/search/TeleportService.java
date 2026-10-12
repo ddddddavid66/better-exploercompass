@@ -3,7 +3,6 @@ package com.chaosthedude.explorerscompass.unified.search;
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.util.CompassState;
-import com.chaosthedude.explorerscompass.util.PlayerUtils;
 import com.chaosthedude.explorerscompass.unified.data.LandingColumns;
 import com.chaosthedude.explorerscompass.unified.data.LandingMode;
 import com.chaosthedude.explorerscompass.unified.network.*;
@@ -71,7 +70,9 @@ public final class TeleportService {
         if(modes.put(player,mode)==mode)return;
         Task task=tasks.get(player);if(task==null || task.handoffUntil>0)return;
         // 不丢弃已就绪区块和候选，但旧的确认授权立即失效。
-        task.mode=mode;task.waiting=false;task.clicked=false;task.fallback=mode==LandingMode.RELAXED_ONLY;
+        task.mode=mode;
+        if(task.travel) {beginTravelStage(task,mode==LandingMode.RELAXED_ONLY);return;}
+        task.waiting=false;task.clicked=false;task.fallback=mode==LandingMode.RELAXED_ONLY;
         task.heights=task.fallback?task.relaxedHeights:task.strictHeights;task.column=0;
         task.landing=task.fallback?task.relaxedLanding:task.strictLanding;
         task.expires=task.player.getServer().getTickCount()+100;
@@ -85,7 +86,7 @@ public final class TeleportService {
         if(player.isRemoved() || !player.isAlive() || stack.isEmpty() || stack.getItem()!=ExplorersCompass.explorersCompass
             || (player.getMainHandItem()!=stack && player.getOffhandItem()!=stack)
             || ExplorersCompass.explorersCompass.getState(stack)!=CompassState.FOUND
-            || !ConfigHandler.GENERAL.allowTeleport.get() || !PlayerUtils.canTeleport(player.getServer(),player)) return false;
+            || !ConfigHandler.GENERAL.allowTeleport.get()) return false;
         if(stack.getTag()==null || target(stack)==null) return false;
         String dimension=stack.getTag().getString(SearchService.TARGET_DIMENSION);
         return (dimension.isEmpty() && !SearchService.isBiome(stack)) || dimension.equals(player.level().dimension().location().toString());
@@ -141,19 +142,18 @@ public final class TeleportService {
         phase(task,task.ticket?"waiting_chunks":"waiting_slots");
         message(player,"filters.teleport_checking");return true;
     }
-    /** 自动旅行始终保持目标群系，不继承手动降级模式。 */
+    /** 自动旅行继承用户模式；默认模式在同一任务内推进降级，保留区块与扫描进度。 */
     public static boolean travel(ServerPlayer player,ItemStack stack,java.util.function.Consumer<Boolean> completion) {
         UUID token=SearchService.token(stack);
         if(!eligible(player,stack,token))return false;
         prepare(player,stack,token);
-        Task task=tasks.get(player.getUUID());task.travel=true;task.mode=LandingMode.SAFE_ONLY;task.fallback=false;
-        task.heights=task.strictHeights;task.landing=task.strictLanding;task.completion=completion;
-        return request(player,stack,token,UUID.randomUUID(),false);
+        Task task=tasks.get(player.getUUID());task.travel=true;task.completion=completion;
+        beginTravelStage(task,task.mode==LandingMode.RELAXED_ONLY);return true;
     }
     public static boolean allowedTravel(ServerPlayer player,ItemStack stack) {
         return !player.isRemoved() && player.isAlive() && stack.getItem()==ExplorersCompass.explorersCompass
                 && (player.getMainHandItem()==stack || player.getOffhandItem()==stack)
-                && ConfigHandler.GENERAL.allowTeleport.get() && PlayerUtils.canTeleport(player.getServer(),player);
+                && ConfigHandler.GENERAL.allowTeleport.get();
     }
     /** 返回也复用同一票据、落点检查与调度预算，但不写目标和不累计次数。 */
     public static boolean returnTravel(ServerPlayer player,ItemStack stack,Vec3 origin,float yaw,float pitch,
@@ -162,20 +162,30 @@ public final class TeleportService {
         cancel(player.getUUID());
         UUID token=SearchService.token(stack);
         Task task=new Task(player,stack,token==null?UUID.randomUUID():token,BlockPos.containing(origin));
-        task.travel=true;task.mode=LandingMode.SAFE_ONLY;task.fallback=false;task.heights=task.strictHeights;
+        task.travel=true;
         task.clicked=true;task.completion=completion;task.returnYaw=yaw;task.returnPitch=pitch;
         task.requestDeadline=System.nanoTime()+REQUEST_NANOS;task.attemptStarted=System.nanoTime();
         task.waitStarted=System.nanoTime();task.expires=player.getServer().getTickCount()+200;
         if(LandingChecks.ready(player,task.level,BlockPos.containing(origin),false)
                 && LandingChecks.standing(player,task.level,ItemStack.EMPTY,origin,false))task.landing=origin;
-        tasks.put(player.getUUID(),task);phase(task,"waiting_slots");return true;
+        task.strictLanding=task.landing;
+        tasks.put(player.getUUID(),task);beginTravelStage(task,task.mode==LandingMode.RELAXED_ONLY);return true;
+    }
+    private static void beginTravelStage(Task task,boolean relaxed) {
+        task.fallback=relaxed;task.clicked=true;task.waiting=false;task.phase="";
+        task.heights=relaxed?task.relaxedHeights:task.strictHeights;task.column=0;
+        task.landing=relaxed?task.relaxedLanding:task.strictLanding;
+        long now=System.nanoTime();task.requestDeadline=now+REQUEST_NANOS;
+        task.centerDeadline=now+WAIT_NANOS;task.attemptStarted=now;task.checkNanos=0;
+        task.waitStarted=now;task.waitNanos=0;task.expires=task.player.getServer().getTickCount()+200;
+        phase(task,task.ticket?"waiting_chunks":"waiting_slots");
     }
     private static ItemStack landingStack(Task task){return task.returning?ItemStack.EMPTY:task.stack;}
     private static void completed(Task task,boolean success) {
         var callback=task.completion;task.completion=null;if(callback!=null)callback.accept(success);
     }
     private static boolean travelBiome(Task task,Vec3 point) {
-        return !task.travel || !task.biome || task.level.getBiome(BlockPos.containing(point)).unwrapKey()
+        return !task.travel || !task.biome || task.fallback || task.level.getBiome(BlockPos.containing(point)).unwrapKey()
                 .map(key->key.location().equals(task.key)).orElse(false);
     }
     public static boolean active() {return tasks.values().stream().anyMatch(t->!t.waiting && (t.clicked || t.landing==null));}
@@ -275,7 +285,7 @@ public final class TeleportService {
                 try {
                     point=point.atY(y);progress[index]++;
                     landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback);
-                    if(landing==null && surface)landing=LandingChecks.waterSurface(task.player,task.level,landingStack(task),point);
+                    if(landing==null && surface && task.fallback)landing=LandingChecks.waterSurface(task.player,task.level,landingStack(task),point);
                     if(landing!=null && !travelBiome(task,landing))landing=null;
                     if(!task.fallback && task.relaxedLanding==null)
                         task.relaxedLanding=LandingChecks.find(task.player,task.level,task.stack,point,true);
@@ -336,10 +346,14 @@ public final class TeleportService {
     }
     private static boolean recheck(Task task,Vec3 point,boolean relaxed) {
         return travelBiome(task,point) && (LandingChecks.standing(task.player,task.level,landingStack(task),point,relaxed)
-                || (relaxed || task.travel) && LandingChecks.waterStanding(task.player,task.level,landingStack(task),point));
+                || relaxed && LandingChecks.waterStanding(task.player,task.level,landingStack(task),point));
     }
     private static void failed(Task task,String reason) {
-        if(task.travel) {summary(task,reason);finish(task,reason,0);return;}
+        if(task.travel) {
+            summary(task,reason);
+            if(!task.fallback && task.mode==LandingMode.DEFAULT) {beginTravelStage(task,true);return;}
+            finish(task,reason,0);return;
+        }
         summary(task,reason);task.clicked=false;task.waiting=true;task.confirmationUntil=System.nanoTime()+CONFIRM_NANOS;task.expires=task.player.getServer().getTickCount()+100;
         boolean confirm=!task.fallback && task.mode==LandingMode.DEFAULT;
         status(task,confirm?TeleportStatusPacket.State.NEEDS_CONFIRMATION:TeleportStatusPacket.State.FAILED_RETRYABLE,reason);

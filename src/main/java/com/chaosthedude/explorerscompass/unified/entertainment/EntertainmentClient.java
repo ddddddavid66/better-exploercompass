@@ -24,8 +24,11 @@ public final class EntertainmentClient {
     }
     public static Component summary() {
         if (state == null) return Component.translatable("entertainment.description");
-        var text = Component.translatable("entertainment.progress", state.completed(), state.total())
+        var text = Component.translatable(state.feature().key()).append(" · ")
+                .append(Component.translatable("entertainment.progress", state.completed(), state.total()))
                 .append(" · ").append(Component.translatable("entertainment.phase." + state.phase()));
+        text.append("\n").append(Component.translatable(state.mode().key()))
+                .append(" · ").append(Component.translatable("entertainment.attempt",state.attempts(),5));
         if (state.biome() != null) text.append("\n").append(FilterUi.biomeName(state.biome()));
         if (!state.detail().isEmpty()) text.append("\n").append(Component.translatable(state.detail()));
         return text;

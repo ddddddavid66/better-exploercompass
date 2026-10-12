@@ -32,7 +32,7 @@ public class ConfigHandler {
 			String desc;
 			builder.push("General");
 
-			desc = "Allows a player to teleport to a located structure when in creative mode, opped, or in cheat mode.";
+			desc = "Allows all players to use compass teleportation and entertainment travel, without cheats or operator status.";
 			allowTeleport = builder.comment(desc).define("allowTeleport", true);
 
 			desc = "The maximum number of times a player can search for the next instance of a located structure, excluding already-found locations. Set to 0 to disable searching for additional structure instances and make the compass always locate the nearest instance.";

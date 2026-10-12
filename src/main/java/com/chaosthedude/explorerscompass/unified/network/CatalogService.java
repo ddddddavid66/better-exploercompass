@@ -1,7 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.network;
 
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
-import com.chaosthedude.explorerscompass.util.PlayerUtils;
 import java.util.*;
 import java.util.regex.Pattern;
 import net.minecraft.core.registries.Registries;
@@ -113,7 +112,7 @@ public final class CatalogService {
     }
     public static BiomeCatalogPacket snapshot(ServerLevel level, UUID requestId) { return response(level, requestId, false, false); }
     public static BiomeCatalogPacket snapshot(ServerPlayer player, UUID requestId) {
-        return response(player.serverLevel(), requestId, ConfigHandler.GENERAL.allowTeleport.get() && PlayerUtils.canTeleport(player.getServer(), player), player.getAbilities().instabuild);
+        return response(player.serverLevel(), requestId, ConfigHandler.GENERAL.allowTeleport.get(), player.getAbilities().instabuild);
     }
     private static BiomeCatalogPacket response(ServerLevel level, UUID requestId, boolean teleport, boolean infiniteXp) {
         var data = directory(level);
