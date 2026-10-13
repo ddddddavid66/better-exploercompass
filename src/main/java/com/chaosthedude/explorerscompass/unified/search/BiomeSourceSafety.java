@@ -121,7 +121,7 @@ final class BiomeSourceSafety {
         }
         return value.get(owner);
     }
-    private static Object call(Object owner, String... names) throws ReflectiveOperationException {
+    static Object call(Object owner, String... names) throws ReflectiveOperationException {
         return method(owner.getClass(), names).invoke(owner);
     }
     private static Method method(Class<?> type, String... names) throws ReflectiveOperationException {

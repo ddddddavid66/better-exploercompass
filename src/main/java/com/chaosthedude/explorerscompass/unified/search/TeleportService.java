@@ -18,7 +18,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** 群系/结构统一传送。所有世界读取都在主线程且区块已就绪。 */
 public final class TeleportService {
-    public enum TravelResult { MOVED, FAILED, CANCELLED }
+    public enum TravelResult { MOVED, NO_POSITION, TIMED_OUT, CANCELLED, ERROR }
     private static final TicketType<UUID> PREPARE=TicketType.create("compassfilters_landing",Comparator.<UUID>naturalOrder());
     private static final Map<UUID,Task> tasks=new LinkedHashMap<>();
     private static final Map<UUID,LinkedHashMap<UUID,Long>> requests=new HashMap<>();
@@ -149,8 +149,9 @@ public final class TeleportService {
         if(!eligible(player,stack,token))return false;
         Task prepared=tasks.get(player.getUUID());
         if(prepared==null || !prepared.valid() || !prepared.token.equals(token) || prepared.handoffUntil>0)prepare(player,stack,token);
-        Task task=tasks.get(player.getUUID());task.travel=true;task.completion=completion;
-        beginTravelStage(task,task.mode==LandingMode.RELAXED_ONLY);return true;
+        Task task=tasks.get(player.getUUID());boolean resumed=task.travel;
+        task.travel=true;task.completion=completion;
+        beginTravelStage(task,resumed?task.fallback:task.mode==LandingMode.RELAXED_ONLY);return true;
     }
     public static boolean allowedTravel(ServerPlayer player,ItemStack stack) {
         return !player.isRemoved() && player.isAlive() && stack.getItem()==ExplorersCompass.explorersCompass
@@ -374,6 +375,13 @@ public final class TeleportService {
     }
     private static void failed(Task task,String reason) {
         if(task.travel) {
+            if(reason.equals("error")){finish(task,reason,0);return;}
+            if(reason.equals("chunks_not_ready") || reason.equals("waiting_slots") || reason.equals("timeout")) {
+                // 真正等待超时保留当前候选、票据和游标，由旅行模块决定是否恢复。
+                summary(task,reason);task.clicked=false;task.waiting=true;
+                task.confirmationUntil=Long.MAX_VALUE;task.expires=task.player.getServer().getTickCount()+1200;
+                completed(task,TravelResult.TIMED_OUT);return;
+            }
             if(task.fallback && task.travelAlternate!=null && recheck(task,task.travelAlternate,true)) {
                 task.landing=task.travelAlternate;move(task);return;
             }
@@ -429,7 +437,7 @@ public final class TeleportService {
         if(tasks.remove(task.player.getUUID(),task)) {
             release(task);
             if(moved==0 && task.handoffUntil==0)status(task,TeleportStatusPacket.State.CANCELLED,reason);
-            completed(task,reason.equals("cancelled")?TravelResult.CANCELLED:TravelResult.FAILED);
+            completed(task,reason.equals("cancelled")?TravelResult.CANCELLED:reason.equals("error")?TravelResult.ERROR:TravelResult.NO_POSITION);
         }
     }
     public static void cancel(UUID player){Task t=tasks.get(player);if(t!=null)finish(t,"cancelled",0);}

@@ -190,9 +190,13 @@
   "entertainment.aether_biomes_dimension": "Enter the Aether dimension to start this activity.",
   "entertainment.adventuring_time_description": "Visit remaining advancement biomes and return, using your selected landing mode.",
   "entertainment.aether_biomes_description": "Visit every biome in this Aether dimension, including addon biomes, then return.",
-  "entertainment.attempt": "Candidate %s/%s",
+  "entertainment.attempt": "Timeouts: %s/%s",
   "entertainment.no_biomes": "No travel biomes are available in this dimension.",
   "entertainment.search_timeout": "Biome search exceeded 60 seconds. Stopping and attempting to return.",
   "entertainment.phase.waiting_chunks": "Waiting for actual chunks",
-  "entertainment.phase.checking": "Checking landing"
+  "entertainment.phase.checking": "Checking landing",
+  "entertainment.partial": "Returned with unresolved targets; see the list.",
+  "entertainment.timeout_limit": "Five real timeouts for this biome; stopping and returning.",
+  "entertainment.excluded": "Excluded by active generation: %s (%s)",
+  "entertainment.unresolved": "Unresolved: %s (%s)"
 }

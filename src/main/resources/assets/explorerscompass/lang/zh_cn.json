@@ -192,9 +192,13 @@
   "entertainment.aether_biomes_dimension": "请先进入天境维度，才能启动天境群系旅行。",
   "entertainment.adventuring_time_description": "真实到访原版进度缺失的群系，完成后返回。沿用当前传送模式。",
   "entertainment.aether_biomes_description": "真实到访当前天境维度的全部群系，含附属模组群系，完成后返回。",
-  "entertainment.attempt": "候选 %s/%s",
+  "entertainment.attempt": "超时次数：%s/%s",
   "entertainment.no_biomes": "当前维度目录没有可旅行的群系。",
   "entertainment.search_timeout": "本次群系定位超过60秒，已停止并尝试返回。",
   "entertainment.phase.waiting_chunks": "等待实际区块加载",
-  "entertainment.phase.checking": "检查落点"
+  "entertainment.phase.checking": "检查落点",
+  "entertainment.partial": "旅行已返回；仍有目标未确认到访，详见未完成清单。",
+  "entertainment.timeout_limit": "当前群系已达到五次真正超时，已停止并尝试返回。",
+  "entertainment.excluded": "确认未参与当前生成：%s（%s）",
+  "entertainment.unresolved": "未完成：%s（%s）"
 }

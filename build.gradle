@@ -13,6 +13,11 @@ sourceSets {
         runtimeClasspath += output + compileClasspath
     }
     pinyinTools { java.srcDirs = ['tools/pinyin'] }
+    releaseTools {
+        java.srcDirs = ['tools/release']
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += output + compileClasspath
+    }
     smoke {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += output + compileClasspath + sourceSets.main.runtimeClasspath
@@ -77,8 +82,8 @@ tasks.named('compileJava', JavaCompile).configure {
 tasks.named('processResources').configure { dependsOn 'compileJava', 'generatePinyinTable' }
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    // 发布保留源码名，省去行号和局部变量调试表；完整源码随交付提供。
-    options.debugOptions.debugLevel = 'source'
+    // 发布不携带调试属性；完整源码随交付提供，栈仍保留类名和方法名。
+    options.debug = false
 }
 tasks.named('test').configure { useJUnitPlatform(); testLogging { events 'passed', 'failed', 'skipped' } }
 tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
@@ -97,8 +102,14 @@ reobf { smokeJar {} }
 tasks.named('reobfSmokeJar').configure { libraries.from(sourceSets.main.output) }
 // Reobfuscation retains ZIP directory records and uses the default compression.
 // Compact the final unsigned archive without changing any file contents.
+tasks.register('stripReleaseMetadata', JavaExec) {
+    dependsOn 'reobfJar', 'releaseToolsClasses'
+    classpath = sourceSets.releaseTools.runtimeClasspath
+    mainClass = 'StripExternalInnerClasses'
+    args tasks.jar.archiveFile.get().asFile.absolutePath
+}
 tasks.register('compactRelease') {
-    dependsOn 'reobfJar'
+    dependsOn 'stripReleaseMetadata'
     doLast {
         def archive = tasks.jar.archiveFile.get().asFile.toPath()
         def temporary = archive.resolveSibling(archive.fileName.toString() + '.compact')

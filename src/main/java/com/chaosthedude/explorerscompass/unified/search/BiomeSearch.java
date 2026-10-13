@@ -16,14 +16,18 @@ public final class BiomeSearch extends SearchJob {
     private final ResourceLocation target;
     private final List<BlockPos> excluded;
     private final int maxSamples, spacing, vertical, depthInterval;
-    private final boolean async;
+    private final boolean async,exact;
     private boolean cachedOrigin;
     private WorldgenCache context;
     private List<?> memoKey;
     private WorldgenCache.Prefix memo;
     public BiomeSearch(ServerLevel level, BlockPos start, ResourceLocation target, List<BlockPos> excluded,
                        int radius, int maxSamples, int spacing, int vertical, int depthInterval, boolean async) {
-        super(level, start, radius); this.target = target; this.excluded = List.copyOf(excluded);
+        this(level,start,target,excluded,radius,maxSamples,spacing,vertical,depthInterval,async,false);
+    }
+    public BiomeSearch(ServerLevel level,BlockPos start,ResourceLocation target,List<BlockPos> excluded,
+                       int radius,int maxSamples,int spacing,int vertical,int depthInterval,boolean async,boolean exact) {
+        super(level, start, radius); this.target = target; this.excluded = List.copyOf(excluded);this.exact=exact;
         this.maxSamples = maxSamples; this.spacing = spacing; this.vertical = vertical;
         this.depthInterval = depthInterval; this.async = async;
         quotaDisabled = radius > 0 && maxSamples <= 0;
@@ -44,7 +48,7 @@ public final class BiomeSearch extends SearchJob {
         if(background) {
             context=cache;
             // 精确绑定起点 XYZ、采样设置和完整排除快照，不推断相邻起点的最近群系。
-            memoKey=List.of(target,start,spacing,vertical,depthInterval,excluded);
+            memoKey=List.of(target,start,spacing,vertical,depthInterval,exact,excluded);
             var known=cache.prefix(memoKey);
             if(known!=null && known.upper<=(long)radius*radius && known.cost<=maxSamples && budget.take(known.cost)) {
                 memo=known;return List.of();
@@ -52,6 +56,8 @@ public final class BiomeSearch extends SearchJob {
         }
         var ignoredPositions = new com.chaosthedude.explorerscompass.unified.data.ExclusionIndex(excluded.stream()
                 .map(point -> new com.chaosthedude.explorerscompass.unified.data.ExclusionIndex.Point(point.getX(), point.getZ())).toList());
+        var failed=new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+        for(var point:excluded)failed.add(point.asLong());
         ResourceLocation key = target;
         var source = level.getChunkSource().getGenerator().getBiomeSource();
         var noise = level.getChunkSource().randomState().sampler();
@@ -72,7 +78,7 @@ public final class BiomeSearch extends SearchJob {
             var lane=new BiomeColumnLane(geometry, partition, (long)radius * radius, budget,
                     List.copyOf(heights), depthInterval, background, (dx, dz, y) -> {
                 int x = origin.getX() + dx * spacing, z = origin.getZ() + dz * spacing;
-                if (ignoredPositions.excludes(x, z)) return List.of();
+                if (exact?failed.contains(BlockPos.asLong(x,y,z)):ignoredPositions.excludes(x,z)) return List.of();
                 int qx = QuartPos.fromBlock(x), qy = QuartPos.fromBlock(y), qz = QuartPos.fromBlock(z);
                 if ((cache == null ? source.getNoiseBiome(qx,qy,qz,noise).value() : cache.predictBiome(qx,qy,qz)) != biome)
                     return List.of();
@@ -83,7 +89,7 @@ public final class BiomeSearch extends SearchJob {
                 // 仅复用零水平距离列，远处群系继续并行，避免将大范围热扫描搬到主线程。
                 if(dx!=0 || dz!=0)return null;
                 int x=origin.getX()+dx*spacing,z=origin.getZ()+dz*spacing;
-                if(ignoredPositions.excludes(x,z))return List.of();
+                if(exact?failed.contains(BlockPos.asLong(x,y,z)):ignoredPositions.excludes(x,z))return List.of();
                 var known=cache.peekBiome(QuartPos.fromBlock(x),QuartPos.fromBlock(y),QuartPos.fromBlock(z));
                 if(known==null)return null;
                 if(known!=biome)return List.of();
@@ -108,7 +114,8 @@ public final class BiomeSearch extends SearchJob {
     }
     @Override public void prime() {if(memo==null && !cachedOrigin)super.prime();}
     @Override public String mode() {return memo!=null?"async":super.mode();}
-    public SearchJob synchronousFallback() { return new BiomeSearch(level, start, target, excluded, radius, maxSamples, spacing, vertical, depthInterval, false); }
+    public SearchJob synchronousFallback() { return new BiomeSearch(level, start, target, excluded, radius, maxSamples, spacing, vertical, depthInterval, false,exact); }
+    public String samplingPlan(){return "spacing="+spacing+";vertical="+vertical+";depth="+depthInterval+";limit="+maxSamples+";exact="+exact+";excluded="+excluded.size();}
     public boolean biome() { return true; }
     public boolean asynchronous() { return async; }
 }
