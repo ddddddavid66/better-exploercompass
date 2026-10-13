@@ -9,6 +9,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
+/** attempts 沿用 unified-4 布局，1.1.5 起仅表示当前群系真正超时的次数。 */
 public record EntertainmentStatus(UUID task, boolean active, int completed, int total,
                                   ResourceLocation biome, String phase, String detail, long revision,
                                   EntertainmentFeature feature, LandingMode mode, int attempts) {
