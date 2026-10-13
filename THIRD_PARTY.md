@@ -39,3 +39,9 @@ Gradle Wrapper 随源码提供，构建工具许可 Apache-2.0；JUnit Jupiter 5
 ## Xaero 客户端可选联动（1.1.6）
 
 适配 Xaero’s World Map 1.39.2 与 Xaero’s Minimap 25.0.0，作者 xaero96。通过本地已安装模组的公开方法创建及保存路径点；不复制、修改或打包第三方类、资源与文件格式实现。第三方模组遵循其自身许可，不属于本项目CC BY-NC-SA授权内容。官方说明：https://www.curseforge.com/minecraft/mc-mods/xaeros-world-map 。
+
+## 1.2.0生物目录及地图绘制
+
+- 生物格网设计参考Šidlauskas等2009《Trees or Grids? Indexing Moving Objects in Main Memory》，链接见ALGORITHM.md；没有分发论文或第三方算法源码。
+- 用户提供图鉴文字为目录输入，运行时调用现有实体翻译与模型，不复制FoolBook代码、贴图或类。目录不能证明实际刷怪，仍进行注册与实体核对。
+- Xaero WorldMap1.39.2 / Minimap25.0.0仅作可选客户端接口，固定编译期Maven坐标分别为maven.modrinth:NcUtCpym:3Wmpi0tR及maven.modrinth:1bokaNcj:c3BiB41R，不打包其类或资源。地图模组保留各自许可。
