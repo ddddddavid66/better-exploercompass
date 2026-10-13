@@ -13,23 +13,23 @@ class UpgradeAndReceiptTest {
     @TempDir Path directory;
     @Test void configurationMergePreservesPrecedenceAndOriginals() throws Exception {
         Path common=directory.resolve("common.toml"), old=directory.resolve("old.toml");
-        String previous="[General]\nallowTeleport = false\n[Search]\nsearchRadius = 12345\n";
+        String previous="[General]\nallowTeleport = false\n[Search]\nsearchRadius = 123456\n";
         String legacy="asyncStructureSearch = false\nmaxBiomeSamples = 99_000_000 # custom\nsearchRadius = 88888\n";
         Files.writeString(common,previous);Files.writeString(old,legacy);
         assertTrue(ConfigMigration.merge(common,old,ignored->{}));
         String merged=Files.readString(common);
-        assertTrue(merged.contains("searchRadius = 12345"));assertFalse(merged.contains("88888"));
+        assertTrue(merged.contains("searchRadius = 123456"));assertFalse(merged.contains("88888"));
         assertTrue(merged.contains("allowTeleport = false"));assertTrue(merged.contains("maxBiomeSamples = 99_000_000"));
         assertTrue(merged.contains("asyncStructureSearch = false"));assertEquals(legacy,Files.readString(old));
         assertFalse(ConfigMigration.merge(common,old,ignored->{}));
         try(var files=Files.list(directory)){assertTrue(files.anyMatch(file->file.toString().endsWith(".bak")));}
     }
-    @Test void newConfigurationHasFourtyThousandRangeAndQuotaDefaults() throws Exception {
+    @Test void newConfigurationHasEightyThousandRangeAndQuotaDefaults() throws Exception {
         Path common=directory.resolve("new.toml");
         assertTrue(ConfigMigration.merge(common,directory.resolve("missing.toml"),ignored->{}));
         String text=Files.readString(common);
-        assertTrue(text.contains("searchRadius = 40000"));assertTrue(text.contains("maxStructureSamples = 25000000"));
-        assertTrue(text.contains("maxBiomeSamples = 8000000"));
+        assertTrue(text.contains("searchRadius = 80000"));assertTrue(text.contains("maxStructureSamples = 100000000"));
+        assertTrue(text.contains("maxBiomeSamples = 32000000"));
     }
     @Test void staleMarkerIsReplacedAndMissingFieldsAreImported() throws Exception {
         Path common=directory.resolve("partial.toml"), old=directory.resolve("old.toml");
@@ -37,7 +37,7 @@ class UpgradeAndReceiptTest {
         Files.writeString(old,"asyncBiomeSearch = false\n");
         assertTrue(ConfigMigration.merge(common,old,ignored->{}));
         String text=Files.readString(common);
-        assertTrue(text.contains("searchRadius = 55555"));assertTrue(text.contains("asyncBiomeSearch = false"));
+        assertTrue(text.contains("searchRadius = 80000"));assertTrue(text.contains("asyncBiomeSearch = false"));
         assertEquals(1,text.lines().filter(line->line.stripLeading().startsWith("configVersion")).count());
         assertFalse(text.contains("configVersion = 0"));
         Files.writeString(common,"[Search]\nconfigVersion = 1\nsearchRadius = 55555\n");

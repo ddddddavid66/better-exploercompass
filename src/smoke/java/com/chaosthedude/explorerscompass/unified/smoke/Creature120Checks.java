@@ -103,8 +103,9 @@ public final class Creature120Checks {
                     var p=server.getPlayerList().getPlayer(id);var choices=CreatureCatalog.all(server).stream().filter(e->e.dimensions().contains(Level.OVERWORLD.location()) && !e.biomes().isEmpty() && e.entity().getNamespace().equals("alexsmobs"))
                         .filter(e->List.of("grizzly_bear","raccoon","bison","roadrunner","gazelle","capuchin_monkey").contains(e.entity().getPath()))
                         .filter(e->CreatureIndex.entities(p.serverLevel(),e.entity()).isEmpty()).sorted(Comparator.comparingInt(e->e.entity().getPath().equals("grizzly_bear")?0:1)).toList();
-                    check(!choices.isEmpty(),"an absent loaded target for neighbor path");var e=choices.get(0);fallbackType=e.entity();fallbackBiome=e.biomes().get(0);prepared=false;notes.add("Neighbor real search="+fallbackType+" biome="+fallbackBiome);
+                    check(!choices.isEmpty(),"an absent loaded target for neighbor path");var e=choices.get(0);fallbackType=e.entity();fallbackBiome=e.biomes().get(0);prepared=false;
                     if(e.biomes().contains(new ResourceLocation("minecraft:forest")))fallbackBiome=new ResourceLocation("minecraft:forest");
+                    notes.add("Neighbor real search="+fallbackType+" biome="+fallbackBiome);
                 }));phase=10;wait=ticks+10;return;
             }
             if(phase==10){if(fallbackType==null)return;CreatureClient.search(fallbackType,Level.OVERWORLD.location(),fallbackBiome);phase=11;return;}
