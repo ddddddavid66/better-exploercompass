@@ -31,6 +31,13 @@ public final class AdventureRequirements {
         }
         return List.copyOf(visits);
     }
+    public static Map<ResourceLocation,String> exclusions(net.minecraft.server.level.ServerLevel level,Collection<ResourceLocation> targets) {
+        var possible=new HashSet<ResourceLocation>();
+        level.getChunkSource().getGenerator().getBiomeSource().possibleBiomes().forEach(h->h.unwrapKey().ifPresent(k->possible.add(k.location())));
+        var result=new LinkedHashMap<ResourceLocation,String>();
+        for(var key:targets)if(!possible.contains(key))result.put(key,"effective_source_excludes");
+        return result;
+    }
     private static void findBiomes(JsonElement element, Set<ResourceLocation> result) {
         if (element == null) return;
         if (element.isJsonArray()) { for (var child : element.getAsJsonArray()) findBiomes(child, result); return; }

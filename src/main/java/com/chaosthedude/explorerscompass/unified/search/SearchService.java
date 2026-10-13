@@ -400,6 +400,9 @@ public final class SearchService {
         data.put("targets",targets);data.putString("mode",session.job.mode());
         if(terminal) {
             session.terminalSent=true;data.putString("result",result);data.putString("foundId",found);
+            if (session.job.result()!=null) {
+                var p=session.job.result().position();data.putIntArray("foundPos",new int[]{p.getX(),p.getY(),p.getZ()});
+            }
             data.putLong("durationNanos",Math.max(0,System.nanoTime()-session.startedNanos));
             data.putLong("samples",session.priorSamples+session.job.samples());data.putLong("candidates",session.priorCandidates+session.job.candidates());
             data.putLong("mainNanos",session.priorMain+session.job.mainNanos);

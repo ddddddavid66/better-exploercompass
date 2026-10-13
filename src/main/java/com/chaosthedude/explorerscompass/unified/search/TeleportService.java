@@ -404,6 +404,7 @@ public final class TeleportService {
     }
     private static void move(Task task) {
         if(!task.valid() || task.player.connection==null){finish(task,"cancelled",0);return;}
+        LandingSafety.invalidate(task.level);
         if(!recheck(task,task.landing,task.fallback)){task.landing=null;return;}
         Vec3 point=task.landing;task.player.stopRiding();task.player.connection.teleport(point.x,point.y,point.z,task.returning?task.returnYaw:task.player.getYRot(),task.returning?task.returnPitch:task.player.getXRot());
         task.player.setDeltaMovement(0,0,0);task.player.fallDistance=0;

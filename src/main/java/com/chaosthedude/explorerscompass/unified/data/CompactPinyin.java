@@ -12,15 +12,17 @@ public final class CompactPinyin {
         try (var input = CompactPinyin.class.getResourceAsStream("/assets/explorerscompass/pinyin.bin")) {
             if (input == null) throw new IOException("Missing pinyin table");
             var stream = new DataInputStream(input);
-            if (stream.readInt() != 0x50494E31) throw new IOException("Invalid pinyin table");
+            if (stream.readInt() != 0x50494E32) throw new IOException("Invalid pinyin table");
             MINIMUM = stream.readInt(); int maximum = stream.readInt(); int size = stream.readInt();
-            if (MINIMUM < 0 || maximum > 65535 || maximum < MINIMUM || size < 1 || size > 65535)
+            if (MINIMUM < 0 || maximum > 65535 || maximum < MINIMUM || size < 1 || size > 512)
                 throw new IOException("Invalid pinyin table bounds");
             SYLLABLES = new String[size];
             for (int i = 0; i < size; i++) SYLLABLES[i] = stream.readUTF();
             INDEX = new char[maximum - MINIMUM + 1];
+            int word=0,bits=0;
             for (int i = 0; i < INDEX.length; i++) {
-                INDEX[i] = stream.readChar();
+                while(bits<9){word=(word<<8)|stream.readUnsignedByte();bits+=8;}
+                bits-=9;INDEX[i]=(char)((word>>>bits)&511);
                 if (INDEX[i] >= size) throw new IOException("Invalid syllable index");
             }
             if (stream.read() != -1) throw new IOException("Unexpected pinyin table data");

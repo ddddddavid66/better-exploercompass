@@ -19,7 +19,10 @@ public record SearchLifecyclePacket(UUID token, boolean terminal, CompoundTag da
     public static void handle(SearchLifecyclePacket p, Supplier<NetworkEvent.Context> ctx) {
         var connection = ctx.get().getNetworkManager();
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> com.chaosthedude.explorerscompass.unified.client.SearchLogClient.accept(connection, p)));
+                () -> () -> {
+                    com.chaosthedude.explorerscompass.unified.client.SearchLogClient.accept(connection,p);
+                    com.chaosthedude.explorerscompass.unified.client.XaeroWaypoints.accept(connection,p);
+                }));
         ctx.get().setPacketHandled(true);
     }
 }

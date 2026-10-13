@@ -26,7 +26,7 @@ public final class AdventureTravel {
         final Advancement advancement;
         final EntertainmentFeature feature;
         final List<AdventureRequirements.Visit> visits;
-        final Set<ResourceLocation> observed=new HashSet<>(),deferred=new LinkedHashSet<>(),retried=new HashSet<>();
+        final Set<ResourceLocation> deferred=new LinkedHashSet<>(),retried=new HashSet<>();
         final Map<ResourceLocation,String> excluded=new LinkedHashMap<>(),unresolved=new LinkedHashMap<>();
         final Map<ResourceLocation,Integer> timeouts=new HashMap<>();
         final Map<ResourceLocation,BlockPos> deferredStarts=new HashMap<>();
@@ -47,13 +47,13 @@ public final class AdventureTravel {
         Task(ServerPlayer player,ItemStack stack,Advancement advancement,List<AdventureRequirements.Visit> visits,EntertainmentFeature feature) {
             this.player=player;this.stack=stack;this.advancement=advancement;this.visits=visits;this.feature=feature;
             origin=player.position();yaw=player.getYRot();pitch=player.getXRot();observe();
-            excluded.putAll(BiomeAvailability.exclusions(player.serverLevel(),visits.stream().map(AdventureRequirements.Visit::biome).toList()));
+            excluded.putAll(AdventureRequirements.exclusions(player.serverLevel(),visits.stream().map(AdventureRequirements.Visit::biome).toList()));
         }
         boolean valid(){return player.serverLevel().dimension().location().equals(feature.dimension()) && TeleportService.allowedTravel(player,stack);}
-        void observe(){actual=TeleportService.loadedBiome(player);if(actual!=null && advancement==null)observed.add(actual);}
-        boolean visited(AdventureRequirements.Visit visit){return advancement==null?observed.contains(visit.biome()):AdventureRequirements.visited(player,advancement,visit);}
+        void observe(){actual=TeleportService.loadedBiome(player);}
+        boolean visited(AdventureRequirements.Visit visit){return AdventureRequirements.visited(player,advancement,visit);}
         int count(){return (int)visits.stream().filter(this::visited).count();}
-        int total(){return (int)visits.stream().filter(v->!excluded.containsKey(v.biome())).count();}
+        int total(){return visits.size();}
         int timeoutCount(){return current==null?0:timeouts.getOrDefault(current.biome(),0);}
     }
     private AdventureTravel() {}
@@ -66,23 +66,15 @@ public final class AdventureTravel {
             message(player,!player.serverLevel().dimension().location().equals(feature.dimension())?feature.unavailableKey():"entertainment.unavailable");return;
         }
         try {
-            Advancement advancement=feature==EntertainmentFeature.ADVENTURING_TIME?AdventureRequirements.advancement(player):null;
-            if(feature==EntertainmentFeature.ADVENTURING_TIME && advancement==null)throw new IllegalArgumentException("entertainment.missing_advancement");
-            var visits=advancement!=null?AdventureRequirements.read(advancement):aetherVisits(player);
-            if(advancement!=null && player.getAdvancements().getOrStartProgress(advancement).isDone()){message(player,"entertainment.already_done");return;}
+            Advancement advancement=player.getServer().getAdvancements().getAdvancement(feature.advancement());
+            if(advancement==null)throw new IllegalArgumentException("entertainment.missing_advancement");
+            var visits=AdventureRequirements.read(advancement);
+            if(player.getAdvancements().getOrStartProgress(advancement).isDone()){message(player,"entertainment.already_done");return;}
             if(visits.isEmpty()){message(player,"entertainment.no_biomes");return;}
             SearchService.cancel(player,true);Task task=new Task(player,stack,advancement,visits,feature);
             tasks.put(player.getUUID(),task);
-            if(feature==EntertainmentFeature.AETHER_BIOMES)for(String line:BiomeAvailability.describe(player.serverLevel()))ExplorersCompass.LOGGER.info("Aether availability {}",line);
             publish(task,true);
         }catch(IllegalArgumentException error){message(player,error.getMessage());}
-    }
-    private static List<AdventureRequirements.Visit> aetherVisits(ServerPlayer player) {
-        var current=TeleportService.loadedBiome(player);
-        return CatalogService.snapshot(player.serverLevel(),UUID.randomUUID()).dimensionBiomes()
-                .getOrDefault(EntertainmentFeature.AETHER_BIOMES.dimension(),Set.of()).stream()
-                .sorted(Comparator.<ResourceLocation,Boolean>comparing(key->!key.equals(current)).thenComparing(Comparator.naturalOrder()))
-                .map(key->new AdventureRequirements.Visit(key.toString(),key)).toList();
     }
     public static void stop(ServerPlayer player,UUID id) {
         Task task=tasks.get(player.getUUID());
@@ -137,7 +129,7 @@ public final class AdventureTravel {
                     .findFirst().orElse(null);
             if(task.current==null && !task.finalPass){task.finalPass=true;next(task);return;}
             if(task.current==null) {
-                task.completed=task.count()==task.total();returnHome(task,task.completed?"entertainment.completed":"entertainment.partial");return;
+                task.completed=task.player.getAdvancements().getOrStartProgress(task.advancement).isDone();returnHome(task,task.completed?"entertainment.completed":"entertainment.partial");return;
             }
             if(task.finalPass) {
                 var key=task.current.biome();task.retried.add(key);

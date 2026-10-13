@@ -12,12 +12,12 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void disconnect(ClientPlayerNetworkEvent.LoggingOut event) {
-        SearchLogClient.disconnect();
+        SearchLogClient.disconnect(); XaeroWaypoints.clear();
         com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentClient.clear();
         ClientSession.clear();
         SearchClientState.clear(); LandingClientState.clear();
     }
     @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent event) {
-        if (event.phase == net.minecraftforge.event.TickEvent.Phase.END) { SearchClientState.tick(); ClientSession.tick(); TeleportClientState.tick(); LandingClientState.tick(); }
+        if (event.phase == net.minecraftforge.event.TickEvent.Phase.END) { SearchClientState.tick(); XaeroWaypoints.tick(); ClientSession.tick(); TeleportClientState.tick(); LandingClientState.tick(); }
     }
 }

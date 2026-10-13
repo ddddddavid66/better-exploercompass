@@ -13,6 +13,9 @@ public enum EntertainmentFeature {
         this.name = name;
         this.dimension = new ResourceLocation(dimension);
     }
+    public ResourceLocation advancement() {
+        return new ResourceLocation(this == ADVENTURING_TIME ? "minecraft:adventure/adventuring_time" : "ancient_aether:aether_biomes");
+    }
     public String key() { return "entertainment." + name; }
     public ResourceLocation dimension() { return dimension; }
     public String unavailableKey() { return key() + "_dimension"; }

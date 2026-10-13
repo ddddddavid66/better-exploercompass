@@ -55,7 +55,8 @@ final class LandingChecks {
         if(!level.getFluidState(BlockPos.containing(landing.x,box.maxY-.05,landing.z)).isEmpty()) return false;
         if(!relaxed && SearchService.isBiome(stack) && !level.getBiome(point).unwrapKey().map(key->key.location().toString().equals(stack.getTag().getString(SearchService.BIOME_KEY))).orElse(false)) return false;
         var vehicle=player.getRootVehicle();
-        return (vehicle==player || !vehicle.getBoundingBox().intersects(box)) && level.noCollision(player,box);
+        return (vehicle==player || !vehicle.getBoundingBox().intersects(box)) && level.noCollision(player,box)
+                && LandingSafety.allowed(level,landing,level.getFluidState(point).is(FluidTags.WATER));
     }
     static boolean standing(ServerPlayer player,ServerLevel level,ItemStack stack,Vec3 landing,boolean relaxed) {
         if(!valid(player,level,stack,landing,relaxed))return false;

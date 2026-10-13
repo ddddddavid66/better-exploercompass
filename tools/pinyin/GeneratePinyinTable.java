@@ -17,11 +17,17 @@ public final class GeneratePinyinTable {
         }
         Path output = Path.of(args[0]); Files.createDirectories(output.getParent());
         try (var stream = new DataOutputStream(Files.newOutputStream(output))) {
-            stream.writeInt(0x50494E31); stream.writeInt(minimum); stream.writeInt(maximum);
+            stream.writeInt(0x50494E32); stream.writeInt(minimum); stream.writeInt(maximum);
             stream.writeInt(syllables.size());
             for (String syllable : syllables.keySet()) stream.writeUTF(syllable);
-            for (int code = minimum; code <= maximum; code++)
-                stream.writeShort(Pinyin.isChinese((char) code) ? syllables.get(Pinyin.toPinyin((char) code)) : 0);
+            if(syllables.size()>512)throw new IllegalStateException("Pinyin index exceeds nine bits");
+            // 408 个音节只需 9 位；值不变，减少发布资源占用。
+            int word=0,bits=0;
+            for(int code=minimum;code<=maximum;code++) {
+                word=(word<<9)|(Pinyin.isChinese((char)code)?syllables.get(Pinyin.toPinyin((char)code)):0);bits+=9;
+                while(bits>=8){bits-=8;stream.writeByte(word>>>bits);}
+            }
+            if(bits>0)stream.writeByte(word<<(8-bits));
         }
         System.out.println("Pinyin table: " + syllables.size() + " syllables, " + Files.size(output) + " bytes");
     }
