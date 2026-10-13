@@ -306,7 +306,7 @@ public final class Entertainment115Checks {
         Files.writeString(Path.of("entertainment115-comparison.json"),result.toString());
         check(normal.state()==automatic.state(),"normal and travel terminal agree");
         check(Objects.equals(normal.candidate()==null?null:normal.candidate().position(),automatic.candidate()==null?null:automatic.candidate().position()),"normal and travel result agree");
-        Files.writeString(Path.of("entertainment115-availability.txt"),String.join("\n",com.chaosthedude.explorerscompass.unified.search.BiomeAvailability.describe(player.serverLevel())));
+        Files.writeString(Path.of("entertainment115-availability.txt"),String.join("\n",BiomeAvailability.describe(player.serverLevel())));
         com.chaosthedude.explorerscompass.unified.search.SearchService.cancel(player,true);
         notes.add("PASS same-XYZ normal/travel comparison; true 40s boundary; old cancellation ownership");comparisonDone=true;
     }
