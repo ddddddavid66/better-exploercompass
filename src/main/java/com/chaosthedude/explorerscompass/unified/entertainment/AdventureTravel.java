@@ -39,6 +39,7 @@ public final class AdventureTravel {
         SearchService.BiomeRequest request;
         SearchCandidate candidate;
         BlockPos anchor;
+        BiomeQueryFactory.Plan queryPlan;
         ResourceLocation actual;
         long epoch,visitDeadline;
         int visitTicks,requests,expansion;
@@ -147,7 +148,8 @@ public final class AdventureTravel {
                 task.failed.getOrDefault(task.current.biome(),Set.of()),task.anchor,
                 new SearchService.SearchWindow(TravelExpansion.radius(SearchConfig.RADIUS.get(),task.expansion),
                     task.expansion==0?-1:TravelExpansion.radius(SearchConfig.RADIUS.get(),task.expansion-1),
-                    Math.max(0,TravelExpansion.quota(SearchConfig.BIOME_SAMPLES.get(),task.expansion)-task.coveredSamples)));
+                    Math.max(0,TravelExpansion.quota(SearchConfig.BIOME_SAMPLES.get(),task.expansion)-task.coveredSamples),task.queryPlan));
+        task.queryPlan=task.request.queryPlan();
         ExplorersCompass.LOGGER.info("TRAVEL {} search_start biome={} request={} timeout={}/5 token={} final={} plan={}",
                 task.id,task.current.biome(),task.requests,task.timeoutCount(),task.request.token(),task.finalPass,task.request.plan());
     }
@@ -213,13 +215,13 @@ public final class AdventureTravel {
         task.unresolved.put(key,reason);
         if(task.request!=null && task.request.reason().equals("source_absent")){task.excluded.put(key,"effective_source_excludes");task.unresolved.remove(key);}
         ExplorersCompass.LOGGER.info("TRAVEL {} deferred biome={} reason={} final={} timeout={}",task.id,key,reason,task.finalPass,task.timeoutCount());
-        task.epoch++;task.current=null;task.candidate=null;task.request=null;task.awaited=false;task.phase=Phase.NEXT;
+        task.epoch++;task.current=null;task.candidate=null;task.request=null;task.queryPlan=null;task.awaited=false;task.phase=Phase.NEXT;
         SearchService.cancel(task.player,true);
     }
     private static boolean advanceVisited(Task task) {
         if(task.current==null || task.phase==Phase.RETURN || task.phase==Phase.RETURNING || !task.visited(task.current))return false;
         ExplorersCompass.LOGGER.info("TRAVEL {} visited biome={} actual={} timeout={}",task.id,task.current.biome(),task.actual,task.timeoutCount());
-        task.unresolved.remove(task.current.biome());task.expansion=0;task.coveredSamples=0;task.epoch++;task.current=null;task.candidate=null;task.request=null;
+        task.unresolved.remove(task.current.biome());task.expansion=0;task.coveredSamples=0;task.epoch++;task.current=null;task.candidate=null;task.request=null;task.queryPlan=null;
         task.awaited=false;task.detail="";task.phase=Phase.NEXT;SearchService.cancel(task.player,true);publish(task,true);return true;
     }
     private static boolean owns(Task task,Phase phase,long epoch){return tasks.get(task.player.getUUID())==task && task.phase==phase && task.epoch==epoch;}

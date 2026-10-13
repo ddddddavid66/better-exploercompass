@@ -45,6 +45,7 @@ public final class SearchService {
         final UUID token = UUID.randomUUID();
         final ResourceLocation category;
         SearchJob job;
+        BiomeQueryFactory.Plan queryPlan;
         List<ResourceLocation> requested;
         long startedAt=System.currentTimeMillis(),startedNanos=System.nanoTime();
         long priorSamples,priorCandidates,priorMain,priorWorker,priorPreparation,priorConfirmation,priorWaiting;int priorChecks,priorChunks;
@@ -172,7 +173,9 @@ public final class SearchService {
                                                java.util.Collection<BlockPos> failed,BlockPos origin) {
         return startTravelBiome(player,stack,key,failed,origin,new SearchWindow(SearchConfig.RADIUS.get(),-1,SearchConfig.BIOME_SAMPLES.get()));
     }
-    public record SearchWindow(int radius,int innerRadius,long quota) {}
+    public record SearchWindow(int radius,int innerRadius,long quota,BiomeQueryFactory.Plan plan) {
+        public SearchWindow(int radius,int innerRadius,long quota){this(radius,innerRadius,quota,null);}
+    }
     public static BiomeRequest startTravelBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,
                                                java.util.Collection<BlockPos> failed,BlockPos origin,SearchWindow window) {
         BiomeRequest request=new BiomeRequest();
@@ -212,15 +215,12 @@ public final class SearchService {
         if(request==null)com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.replaced");
         cancel(player,true);
         List<BlockPos> previous=request==null?biomeHistory.getOrDefault(new CacheKey(player.getUUID(),player.level().dimension().location(),key),List.of()):failed;
-        SearchJob job;
-        if(AlexCavesAdapter.target(key)) {
-            var adapter=AlexCavesAdapter.prepare(player.serverLevel(),key);
-            job=new AlexCavesSearch(player.serverLevel(),origin,key,previous,window.radius(),
-                    Math.max(0,sampleLimit),SearchConfig.SPACING.get(),SearchConfig.ASYNC_BIOMES.get(),adapter);
-        } else job=new BiomeSearch(player.serverLevel(),origin,key,previous,window.radius(),
-                Math.max(0,sampleLimit),SearchConfig.SPACING.get(),SearchConfig.VERTICAL.get(),SearchConfig.DEPTH_INTERVAL.get(),
+        var plan=window.plan()==null?BiomeQueryFactory.prepare(player.serverLevel(),origin,key):window.plan();
+        if(!plan.origin().equals(origin) || !plan.target().equals(key))throw new IllegalArgumentException("群系计划与本请求不匹配");
+        SearchJob job=BiomeQueryFactory.create(plan,previous,window.radius(),Math.max(0,sampleLimit),
                 SearchConfig.ASYNC_BIOMES.get(),request!=null,window.innerRadius());
-        Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;
+        if(request!=null)request.queryPlan=plan;
+        Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;session.queryPlan=plan;
         session.request=request;session.travel=request!=null;if(request!=null)request.attach(session);begin(session);
         long used=System.nanoTime()-before;job.mainNanos+=used;pendingPreparationNanos+=used;
         return true;
@@ -232,8 +232,9 @@ public final class SearchService {
         private State state=State.REJECTED;
         private String reason="rejected";
         private SearchCandidate candidate;
+        private BiomeQueryFactory.Plan queryPlan;
         private final ProgressWatchdog watchdog=new ProgressWatchdog(System.nanoTime());
-        private void attach(Session value){session=value;state=State.RUNNING;reason="";}
+        private void attach(Session value){session=value;queryPlan=value.queryPlan;state=State.RUNNING;reason="";}
         public UUID token(){return session==null?null:session.token;}
         public State state(){
             // 先消费已经完成的结果，不能把恰好越过40秒的终态当作运行超时。
@@ -241,6 +242,7 @@ public final class SearchService {
             return state;
         }
         public SearchCandidate candidate(){return candidate;}
+        public BiomeQueryFactory.Plan queryPlan(){return queryPlan;}
         public String reason(){return reason;}
         public boolean stalled(){
             if(state()!=State.RUNNING)return false;

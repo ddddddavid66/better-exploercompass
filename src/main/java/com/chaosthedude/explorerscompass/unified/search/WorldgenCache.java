@@ -128,6 +128,13 @@ final class WorldgenCache {
         long key = net.minecraft.core.BlockPos.asLong(x, y, z);
         return biomePredictions.get(key, ignored -> biomeSource.getNoiseBiome(x, y, z, noise).value());
     }
+    final class BiomeColumn {
+        private final int x,z;
+        private final ColumnClimate.Column climate;
+        private BiomeColumn(int x,int z){this.x=x;this.z=z;climate=columns==null?null:columns.column(x,z);}
+        Biome predict(int y){return climate==null?predictBiome(x,y,z):columns.with(climate,()->predictBiome(x,y,z));}
+    }
+    BiomeColumn biomeColumn(int x,int z){return new BiomeColumn(x,z);}
     <T> T inColumn(int x,int z,java.util.function.Supplier<T> action) {return columns==null?action.get():columns.with(x,z,action);}
     boolean allowedBiome(int x,int y,int z,Predicate<Holder<Biome>> allowed) {
         long key=net.minecraft.core.BlockPos.asLong(x,y,z);

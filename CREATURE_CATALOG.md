@@ -1,31 +1,44 @@
-# 生物目录补充格式
+# 生物目录 v2（统一版 1.2.1）
 
-Forge1.20.1数据包的pack_format为15。放置 `data/<你的命名空间>/creature_catalog/<名字>.json`，内容为数组：
+数据包格式：Minecraft 1.20.1 的 `pack_format: 15`；资源位于 `data/<命名空间>/creature_catalog/<文件>.json`，顶层为数组。完整约束见 `tools/catalog/catalog-v2.schema.json`。旧七字段目录仍可读取，但其独立维度/群系集合不代表核实过的逐维度配对。
+
+每条 v2 记录含 `schema_version: 2`、`entity`、`name`、`english`、`aliases`、`dimensions`、`biomes`、`note`、`appearances`。entity 必须是真实注册ID，名称和别名支持搜索；拼音由模组计算，模型来自游戏，不填写图片。
 
 ```json
 [
   {
-    "entity": "minecraft:cow",
-    "name": "牛",
-    "english": "Cow",
-    "aliases": ["奶牛"],
-    "dimensions": ["minecraft:overworld"],
-    "biomes": ["minecraft:plains"],
-    "note": "来源：实际生成配置或人工核对。"
+    "schema_version": 2,
+    "entity": "aether:aechor_plant",
+    "name": "箭毒花",
+    "english": "Aechor Plant",
+    "aliases": [],
+    "dimensions": ["aether:the_aether"],
+    "biomes": ["aether:skyroot_forest"],
+    "note": "示例只列一个已核对的群系，不表示完整范围。",
+    "appearances": [
+      {
+        "kind": "natural_spawn",
+        "dimension": "aether:the_aether",
+        "biomes": ["aether:skyroot_forest"],
+        "description": "自然生成，实际出现还受地形与刷怪条件影响。",
+        "verification": "verified",
+        "sources": ["aether-1.4.2-skyroot-spawn-table"]
+      }
+    ]
   }
 ]
 ```
 
-entity须真实注册，玩家不能作为目标。重复ID整条覆盖，不合并字段。相同资源路径依数据包优先级覆盖；不同资源ID依字典序加载，后者覆盖。可覆盖内置 `data/explorerscompass/creature_catalog/user-book.json`，或采用字典序靠后的独立资源ID。
+每条 appearance 仅对应一个维度、一种出现方式。kind支持 `natural_spawn/structure/spawner/summoned/conversion/breeding/event/unknown`；核实状态为 `verified/partial/unverified`。未知维度使用 `null`，未知群系使用 `[]`，不表示任意维度或群系。unverified只能保留未知范围，不把猜测交给筛选器。verified须有来源，来源索引独立保存；发布生成文件可移除来源全文及编号。
 
-缺少群系填 `biomes: []`：仅群系默认时显示，不代表所有群系。缺少维度填 `dimensions: []`，运行时只从生效出生表或已明确群系的维度关系补充，仍无法确认则暂缓，不凭模组名猜。
+新版筛选必须在同一条有效 appearance 内匹配维度与群系，顶层 dimensions/biomes只是兼容镜像。缺少可靠维度暂缓启用；未知群系只在群系默认时显示。运行时只用实际生效出生表补缺失维度，不根据模组名推断。表中可参与生成不保证搜索范围内一定有实体；搜索和传送仍须复核真实UUID。
 
-name、english、aliases用于搜索，ID始终可搜。模型来自游戏实体，不填写图片；note是说明，不执行脚本。修改后重新加载数据并重开指南针。目录控制筛选和选区，搜索与传送必须有真实实体。
+重复ID整条覆盖、不合并字段。同资源路径遵循数据包优先级；不同资源ID按字典序加载，后者覆盖。默认目录保持 `explorerscompass:creature_catalog/user-book.json` 路径以兼容既有覆盖。更改后重新加载数据并重开指南针。
 
-文字导入：
+研究以完整注册表为底册，包含Boss/NPC/召唤物，排除玩家、展示、投射物、载具、掉落物及部件；旧图鉴和翻译键仅作为线索。注册分类、生成规则核实和实际搜索结果分别统计。
 
 ```powershell
-python tools/catalog/import_catalog.py "图鉴.txt路径" "游戏实例路径" "输出目录"
+python tools/catalog/validate_catalog.py collected-v2.json --registry registry-snapshot.json --evidence evidence-index.json --audit registry-audit.json
 ```
 
-翻译匹配不等于注册确认。歧义、数字变体和无法匹配的条目保留待补，后续须核对注册表和维度；交付包附本轮导入及运行时待补清单。
+原图鉴名称导入工具仍保留 `tools/catalog/import_catalog.py`，其输出只是翻译候选，不是完整注册表或已核实生成证明。

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Explorer's Compass Unified creature catalog v2",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["schema_version", "entity", "name", "english", "aliases", "dimensions", "biomes", "note", "appearances"],
+    "additionalProperties": false,
+    "properties": {
+      "schema_version": {"const": 2},
+      "entity": {"$ref": "#/$defs/id"},
+      "name": {"type": "string", "minLength": 1},
+      "english": {"type": "string"},
+      "aliases": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+      "dimensions": {"$ref": "#/$defs/ids"},
+      "biomes": {"$ref": "#/$defs/ids"},
+      "note": {"type": "string"},
+      "appearances": {"type": "array", "items": {"$ref": "#/$defs/appearance"}}
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"},
+    "ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "appearance": {
+      "type": "object",
+      "required": ["kind", "dimension", "biomes", "description", "verification", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["natural_spawn", "structure", "spawner", "summoned", "conversion", "breeding", "event", "unknown"]},
+        "dimension": {"anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+        "biomes": {"$ref": "#/$defs/ids"},
+        "description": {"type": "string"},
+        "verification": {"enum": ["verified", "partial", "unverified"]},
+        "sources": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

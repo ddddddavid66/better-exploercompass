@@ -201,5 +201,8 @@
   "entertainment.unresolved": "Unresolved: %s (%s)",
   "item.explorerscompass.creature_compass": "Creature Locator Compass",
   "entertainment.range_failed": "Biome not found within the fourfold radius. Travel stopped.",
-  "entertainment.search_failed": "Biome search stopped. See the incomplete target and reason."
+  "entertainment.search_failed": "Biome search stopped. See the incomplete target and reason.",
+  "filters.teleport_reason_height_probe": "Checking target biome height",
+  "filters.teleport_reason_biome_mismatch": "Checking actual biome height",
+  "entertainment.phase.height_probe": "Checking biome height"
 }

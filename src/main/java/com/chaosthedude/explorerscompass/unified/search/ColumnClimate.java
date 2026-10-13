@@ -86,12 +86,23 @@ public final class ColumnClimate {
         return true;
     }
     <T> T with(int quartX,int quartZ,java.util.function.Supplier<T> action) {
+        return with(column(quartX,quartZ),action);
+    }
+    /** 同列多个quart-Y复用五项固定气候；Scope不可变，具体绑定仍为线程局部。 */
+    static final class Column {
+        private final Scope scope;
+        private Column(Scope scope){this.scope=scope;}
+    }
+    Column column(int quartX,int quartZ) {
         var point=new DensityFunction.SinglePointContext(QuartPos.toBlock(quartX),0,QuartPos.toBlock(quartZ));
-        Scope old=CURRENT.get();
-        CURRENT.set(new Scope(original,quartX,quartZ,(float)original.temperature().compute(point),
+        return new Column(new Scope(original,quartX,quartZ,(float)original.temperature().compute(point),
                 (float)original.humidity().compute(point),(float)original.continentalness().compute(point),
                 (float)original.erosion().compute(point),(float)original.weirdness().compute(point),variableDepth,
                 fixedDepth==null?0:fixedDepth.compute(point),fixedFirst));
+    }
+    <T> T with(Column column,java.util.function.Supplier<T> action) {
+        Scope old=CURRENT.get();
+        CURRENT.set(column.scope);
         try{return action.get();}finally{if(old==null)CURRENT.remove();else CURRENT.set(old);}
     }
     public static Climate.TargetPoint sample(Climate.Sampler sampler,int x,int y,int z) {

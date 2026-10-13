@@ -12,9 +12,14 @@ final class BiomeColumnLane implements ScanCoordinator.Lane<SearchCandidate> {
     private final int interval;
     private final boolean background;
     private final Sampler sampler;
+    private int primaryHeights=1;
     private Sampler cachedSampler;
     private java.util.function.BiPredicate<Integer,Integer> columnGate;
     BiomeColumnLane withColumnGate(java.util.function.BiPredicate<Integer,Integer> gate){columnGate=gate;return this;}
+    BiomeColumnLane withPrimaryHeights(int count) {
+        if(count<1 || count>heights.size())throw new IllegalArgumentException("Invalid primary heights");
+        primaryHeights=count;return this;
+    }
     private int x, z, height;
     private boolean column;
     BiomeColumnLane(RectFrontier.Geometry geometry, RectFrontier.Rect domain, long maximum, SamplingBudget budget,
@@ -59,7 +64,7 @@ final class BiomeColumnLane implements ScanCoordinator.Lane<SearchCandidate> {
         if (!budget.take()) return List.of();
         if(!cached)values=sampler.sample(x,z,heights.get(height));
         height++;
-        if (height == heights.size() || Math.floorMod(x, interval) != 0 || Math.floorMod(z, interval) != 0) column = false;
+        if (height == heights.size() || height>=primaryHeights && (Math.floorMod(x, interval) != 0 || Math.floorMod(z, interval) != 0)) column = false;
         return values;
     }
 }

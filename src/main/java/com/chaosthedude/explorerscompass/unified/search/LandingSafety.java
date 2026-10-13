@@ -25,6 +25,8 @@ final class LandingSafety {
             if(point.y>=roof || level.getBlockState(BlockPos.containing(point.x,point.y-.01,point.z)).is(Blocks.BEDROCK))return false;
         }
         if(!level.dimension().location().toString().equals("aether:the_aether"))return true;
+        // Aether在最小建造高度触发返回主世界；最多三格短落差后也必须高于阈值。
+        if(point.y<level.getMinBuildHeight()+4)return false;
         int x=(int)Math.floor(point.x),z=(int)Math.floor(point.z),y=(int)Math.floor(point.y);
         // 邻列地面可以略低，但不能把水柱或岛屿边缘当作可落脚的平台。
         for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++) {

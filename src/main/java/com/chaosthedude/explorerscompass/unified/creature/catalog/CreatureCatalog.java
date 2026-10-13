@@ -58,9 +58,27 @@ public final class CreatureCatalog {
                 for(var biome:biomes)dimensions.addAll(biomeDimensions.getOrDefault(biome,Set.of()));
             }
             dimensions.removeIf(d->server.levelKeys().stream().noneMatch(k->k.location().equals(d)));
-            if(dimensions.isEmpty()){deferred.put(id,text(o,"name")+"：没有明确维度或生效自然出生规则");return;}
             List<String> aliases=new ArrayList<>();if(o.has("aliases"))for(var a:o.getAsJsonArray("aliases"))aliases.add(a.getAsString());
-            result.put(id,new CreatureEntry(id,text(o,"name"),text(o,"english"),List.copyOf(aliases),List.copyOf(dimensions),biomes,text(o,"note")));
+            boolean paired=o.has("appearances");
+            List<CreatureAppearance> appearances=new ArrayList<>();
+            if(paired) {
+                for(var value:o.getAsJsonArray("appearances")) {
+                    var a=value.getAsJsonObject();ResourceLocation dim=a.has("dimension") && !a.get("dimension").isJsonNull()?ResourceLocation.tryParse(text(a,"dimension")):null;
+                    if(dim!=null && server.levelKeys().stream().noneMatch(k->k.location().equals(dim)))continue;
+                    var knownBiomes=ids(a,"biomes").stream().filter(b->server.registryAccess().registryOrThrow(Registries.BIOME).containsKey(b)).toList();
+                    appearances.add(new CreatureAppearance(text(a,"kind"),dim,knownBiomes,text(a,"description"),text(a,"verification")));
+                }
+                // 旧的平铺镜像不参与v2筛选；没有可靠维度时只补运行时真实出生表中的维度。
+                if(appearances.stream().noneMatch(a->a.supported() && a.dimension()!=null)) {
+                    for(var dim:spawnDimensions.getOrDefault(id,Set.of()))appearances.add(new CreatureAppearance("natural_spawn",dim,List.of(),"生效出生表包含此生物；详细群系条件待补充。","partial"));
+                }
+                dimensions.clear();var pairedBiomes=new LinkedHashSet<ResourceLocation>();
+                for(var a:appearances)if(a.supported()){if(a.dimension()!=null)dimensions.add(a.dimension());pairedBiomes.addAll(a.biomes());}
+                biomes=List.copyOf(pairedBiomes);
+                if(dimensions.isEmpty()){deferred.put(id,text(o,"name")+"：没有核实的出现维度，v2不采用平铺字段猜测");return;}
+            }
+            if(dimensions.isEmpty()){deferred.put(id,text(o,"name")+"：没有明确维度或生效自然出生规则");return;}
+            result.put(id,new CreatureEntry(id,text(o,"name"),text(o,"english"),List.copyOf(aliases),List.copyOf(dimensions),biomes,text(o,"note"),List.copyOf(appearances),paired));
         });
         entries=Collections.unmodifiableMap(result);
         pending=Collections.unmodifiableMap(deferred);
@@ -68,12 +86,15 @@ public final class CreatureCatalog {
     }
     public static net.minecraft.nbt.CompoundTag encode(CreatureEntry e) {
         var n=new net.minecraft.nbt.CompoundTag();n.putString("id",e.entity().toString());n.putString("name",e.name());n.putString("english",e.english());n.putString("note",e.note());
-        n.put("aliases",strings(e.aliases()));n.put("dimensions",strings(e.dimensions().stream().map(Object::toString).toList()));n.put("biomes",strings(e.biomes().stream().map(Object::toString).toList()));return n;
+        n.put("aliases",strings(e.aliases()));n.put("dimensions",strings(e.dimensions().stream().map(Object::toString).toList()));n.put("biomes",strings(e.biomes().stream().map(Object::toString).toList()));
+        n.putBoolean("paired",e.paired());var appearances=new net.minecraft.nbt.ListTag();
+        for(var a:e.appearances()){var v=new net.minecraft.nbt.CompoundTag();v.putString("kind",a.kind());if(a.dimension()!=null)v.putString("dimension",a.dimension().toString());v.put("biomes",strings(a.biomes().stream().map(Object::toString).toList()));v.putString("description",a.description());v.putString("verification",a.verification());appearances.add(v);}n.put("appearances",appearances);return n;
     }
     private static net.minecraft.nbt.ListTag strings(List<String> values){var n=new net.minecraft.nbt.ListTag();values.forEach(v->n.add(net.minecraft.nbt.StringTag.valueOf(v)));return n;}
     public static CreatureEntry decode(net.minecraft.nbt.CompoundTag n) {
+        var appearances=new ArrayList<CreatureAppearance>();for(var value:n.getList("appearances",10)){var a=(net.minecraft.nbt.CompoundTag)value;var dim=a.getString("dimension");appearances.add(new CreatureAppearance(a.getString("kind"),dim.isEmpty()?null:new ResourceLocation(dim),strings(a,"biomes").stream().map(ResourceLocation::new).toList(),a.getString("description"),a.getString("verification")));}
         return new CreatureEntry(new ResourceLocation(n.getString("id")),n.getString("name"),n.getString("english"),strings(n,"aliases"),
-                strings(n,"dimensions").stream().map(ResourceLocation::new).toList(),strings(n,"biomes").stream().map(ResourceLocation::new).toList(),n.getString("note"));
+                strings(n,"dimensions").stream().map(ResourceLocation::new).toList(),strings(n,"biomes").stream().map(ResourceLocation::new).toList(),n.getString("note"),List.copyOf(appearances),n.getBoolean("paired"));
     }
     private static List<String> strings(net.minecraft.nbt.CompoundTag n,String key){return n.getList(key,8).stream().map(net.minecraft.nbt.Tag::getAsString).toList();}
 }

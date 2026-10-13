@@ -67,7 +67,12 @@ final class BiomeSourceSafety {
         try {
             if (source.getClass() == FixedBiomeSource.class) { source.possibleBiomes(); return; }
             if (source.getClass() == MultiNoiseBiomeSource.class) {
-                if(ModList.get().isLoaded("alexscaves"))reject("Alex 洞穴使用共享可变 Voronoi 状态，仅专用快照预测可后台运行");
+                if(ModList.get().isLoaded("alexscaves")) {
+                    requireVersion("alexscaves","2.0.2");
+                    // 2.0.2坐标注入先调用全局Voronoi.setSeed/get2，之后才判断维度；禁用当前维度也不安全。
+                    reject("Alex 洞穴 2.0.2 在维度过滤之前访问全局可变 Voronoi；当前维度 "
+                            +level.dimension().location()+" 即使未启用洞穴替换也不能后台调用完整来源，仅专用快照预测可后台运行");
+                }
                 prepareTerraBlender(source); source.possibleBiomes(); return; }
             if (source.getClass() == TheEndBiomeSource.class) { prepareEnd(source); return; }
             if (!source.getClass().getName().equals(BLUEPRINT)) reject("未经核对的群系来源 " + source.getClass().getName());

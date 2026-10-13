@@ -203,5 +203,8 @@
   "entertainment.unresolved": "未完成：%s（%s）",
   "item.explorerscompass.creature_compass": "生物定位指南针",
   "entertainment.range_failed": "扩大到四倍范围仍未找到群系，旅行结束。",
-  "entertainment.search_failed": "群系定位未完成，旅行结束；详见未完成目标和原因。"
+  "entertainment.search_failed": "群系定位未完成，旅行结束；详见未完成目标和原因。",
+  "filters.teleport_reason_height_probe": "正在核对目标群系高度",
+  "filters.teleport_reason_biome_mismatch": "实际落点群系不符，正在复核高度",
+  "entertainment.phase.height_probe": "核对目标群系高度"
 }

@@ -44,6 +44,7 @@ public final class TeleportService {
         boolean travel, returning; float returnYaw, returnPitch;
         java.util.function.Consumer<TravelResult> completion;
         LocatorTarget external;
+        AetherHeightProbe heightProbe;
         Task(ServerPlayer player,ItemStack stack,UUID token) { this(player,stack,token,null); }
         Task(ServerPlayer player,ItemStack stack,UUID token,BlockPos returnPoint) {
             returning=returnPoint!=null;
@@ -222,9 +223,11 @@ public final class TeleportService {
         return level.getBiome(pos).unwrapKey().map(key->key.location()).orElse(null);
     }
     public static String travelPhase(UUID player) {
-        Task task=tasks.get(player);return task==null?"landing":task.phase.equals("checking")?"checking":"waiting_chunks";
+        Task task=tasks.get(player);return task==null?"landing":task.phase.equals("checking")?"checking":task.phase.equals("height_probe")?"height_probe":"waiting_chunks";
     }
+    private static boolean aetherBiome(Task task){return task.biome && task.level.dimension().location().toString().equals("aether:the_aether");}
     private static boolean travelBiome(Task task,Vec3 point) {
+        if(aetherBiome(task))return task.level.getBiome(BlockPos.containing(point)).unwrapKey().map(key->key.location().equals(task.key)).orElse(false);
         return !task.travel || !task.biome || task.fallback || task.level.getBiome(BlockPos.containing(point)).unwrapKey()
                 .map(key->key.location().equals(task.key)).orElse(false);
     }
@@ -301,6 +304,22 @@ public final class TeleportService {
                 var chunk=task.level.getChunkSource().getChunkNow(task.x>>4,task.z>>4);
                 if(chunk==null)return false;
                 task.origin=task.origin.atY(chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,task.x&15,task.z&15)+1);task.heightResolved=true;
+            }
+            if(aetherBiome(task)) {
+                if(task.heightProbe==null)task.heightProbe=new AetherHeightProbe(task.player,task.stack,task.key,task.origin,task.fallback);
+                if(task.heightProbe.pending(task.fallback)) {
+                    phase(task,"height_probe");long before=System.nanoTime();
+                    Vec3 found=task.heightProbe.step(quantum,task.fallback);task.checkNanos+=System.nanoTime()-before;
+                    if(found!=null){task.landing=found;if(task.clicked)move(task);return true;}
+                    if(task.heightProbe.waiting!=null) {
+                        ChunkPos needed=new ChunkPos(task.heightProbe.waiting);
+                        if(!needed.equals(task.center) && task.lastCenterTick!=task.player.getServer().getTickCount())acquire(task,needed);
+                        return false;
+                    }
+                    if(!task.heightProbe.exhausted() && (!task.clicked || task.checkNanos<(task.fallback?40_000_000L:80_000_000L)))return true;
+                    if(task.clicked && task.checkNanos>=(task.fallback?40_000_000L:80_000_000L)){failed(task,"scan_budget");return true;}
+                    phase(task,"checking");
+                }
             }
             if(task.landing!=null) {
                 if(recheck(task,task.landing,task.fallback) && preferredTravelLanding(task,task.landing)){if(task.clicked)move(task);return false;}
@@ -431,6 +450,11 @@ public final class TeleportService {
         if(!recheck(task,task.landing,task.fallback)){task.landing=null;return;}
         Vec3 point=task.landing;task.player.stopRiding();task.player.connection.teleport(point.x,point.y,point.z,task.returning?task.returnYaw:task.player.getYRot(),task.returning?task.returnPitch:task.player.getXRot());
         task.player.setDeltaMovement(0,0,0);task.player.fallDistance=0;
+        if(aetherBiome(task) && !task.key.equals(loadedBiome(task.player))) {
+            // 其它模组可能改写实际落点。先保留同一逻辑请求做高度复核，不发成功计数或旧回调。
+            task.origin=task.player.blockPosition().immutable();task.heightProbe=new AetherHeightProbe(task.player,task.stack,task.key,task.origin,task.fallback);task.landing=null;
+            phase(task,"height_probe");return;
+        }
         task.level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT,new ChunkPos(BlockPos.containing(point)),1,task.player.getId());
         if(!task.returning)TeleportEvents.succeeded(task.player,task.biome?TeleportSucceededPacket.Kind.BIOME:TeleportSucceededPacket.Kind.STRUCTURE,task.key,task.level.dimension().location(),point.x,point.y,point.z);
         if(task.external!=null)task.external.moved();
@@ -438,6 +462,7 @@ public final class TeleportService {
         if(water)message(task.player,"filters.teleport_water_surface");
         status(task,TeleportStatusPacket.State.SUCCEEDED,water?"water_moved":task.fallback?"fallback_moved":"moved");
         summary(task,water?"water_moved":"moved");
+        if(task.heightProbe!=null)ExplorersCompass.LOGGER.info("天境高度复核 {} biome={} {}",task.token,task.key,task.heightProbe.summary());
         task.clicked=false;task.waiting=true;task.handoffUntil=task.player.getServer().getTickCount()+40;
         completed(task,TravelResult.MOVED);
     }
