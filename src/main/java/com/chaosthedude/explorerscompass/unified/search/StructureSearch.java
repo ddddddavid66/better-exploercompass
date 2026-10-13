@@ -102,6 +102,7 @@ public final class StructureSearch extends SearchJob {
                             grouped.computeIfAbsent(placement,ignored->new ArrayList<>()).add(new Target(key,holder.value(),
                                     cached.biomeRule(holder.value()),!compatiblePrediction && (placement.getClass().getName().equals(GelGridPlacement.TYPE)
                                     || holder.value().getClass()==net.minecraft.world.level.levelgen.structure.structures.JigsawStructure.class
+                                    || holder.value().getClass()==net.minecraft.world.level.levelgen.structure.structures.RuinedPortalStructure.class
                                     || holder.value().getClass().getName().equals("com.yungnickyoung.minecraft.yungsapi.world.structure.YungJigsawStructure"))
                                             ?cached.dungeons(level,key,holder.value()):null))));
             return grouped.entrySet().stream().map(entry->new Group(entry.getKey(),List.copyOf(entry.getValue()))).toList();
@@ -137,7 +138,7 @@ public final class StructureSearch extends SearchJob {
             Set<Long> visited = gel==null?null:java.util.concurrent.ConcurrentHashMap.newKeySet();
             var generator = level.getChunkSource().getGenerator();
             boolean supported = PlacementSafety.supported(level,placement);
-            boolean predict = !compatiblePrediction && supported && sourceSafe;
+            boolean predict = async && !compatiblePrediction && supported && sourceSafe;
             SamplingBudget budget=outerReady?budgets.get(0):new SamplingBudget(maximumSamples);
             if(!outerReady)budgets.add(budget);
             // 闭包只引用不可变快照；未知规则的闭包始终在主线程采样。

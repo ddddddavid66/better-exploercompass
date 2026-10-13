@@ -89,7 +89,7 @@ public final class XaeroWaypoints {
         }catch(ReflectiveOperationException|RuntimeException error){error(error);}
     }
     private static void flush()throws ReflectiveOperationException {
-        if(session==null)return;
+        if(session==null || dirty.isEmpty())return;
         Object manager=call(session,"getWaypointsManager"),io=call(manager,"getWorldManagerIO");
         Class<?> worldClass=Class.forName("xaero.hud.minimap.world.MinimapWorld");
         for(Object world:dirty)call(io,"saveWorld",new Class<?>[]{worldClass},world);

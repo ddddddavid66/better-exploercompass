@@ -47,6 +47,12 @@ final class StartPrediction {
     private void inspect(Structure structure) throws ReflectiveOperationException {
         var source = BiomeSourceSafety.prepare(level);
         if (!source.allowed()) { reject(source.reason()); return; }
+        // 原版废弃传送门也会读取模板；只在主线程准备13种模板的几何快照。
+        if(structure.getClass()==net.minecraft.world.level.levelgen.structure.structures.RuinedPortalStructure.class) {
+            for(int i=1;i<=10;i++)pending.add(new ResourceLocation("minecraft:ruined_portal/portal_"+i));
+            for(int i=1;i<=3;i++)pending.add(new ResourceLocation("minecraft:ruined_portal/giant_portal_"+i));
+            return;
+        }
         boolean vanilla=structure.getClass()==net.minecraft.world.level.levelgen.structure.structures.JigsawStructure.class;
         boolean yung=structure.getClass().getName().equals("com.yungnickyoung.minecraft.yungsapi.world.structure.YungJigsawStructure")
                 && version("yungsapi","1.20-Forge-4.0.5")
