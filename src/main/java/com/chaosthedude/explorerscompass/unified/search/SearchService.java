@@ -130,7 +130,7 @@ public final class SearchService {
             var point = (CompoundTag) value;
             previous.add(new ChunkPos(new BlockPos(point.getInt("X"), point.getInt("Y"), point.getInt("Z"))).toLong());
         }
-        int radius = SearchConfig.RADIUS.get(), samples = SearchConfig.STRUCTURE_SAMPLES.get();
+        int radius = SearchConfig.RADIUS.get(); long samples = SearchConfig.STRUCTURE_SAMPLES.get();
         boolean feature = keys.size() == 1 && EndDungeonAdapter.special(player.serverLevel(), keys.get(0));
         if (feature && !player.serverLevel().dimension().equals(net.minecraft.world.level.Level.END)) return false;
         SearchJob job;
@@ -160,7 +160,7 @@ public final class SearchService {
         return startBiome(player, stack, key, SearchConfig.BIOME_SAMPLES.get());
     }
     /** 服务端调用方提供本次额度快照；测试无需修改持久化 Forge 配置。 */
-    public static boolean startBiome(ServerPlayer player, ItemStack stack, ResourceLocation key, int sampleLimit) {
+    public static boolean startBiome(ServerPlayer player, ItemStack stack, ResourceLocation key, long sampleLimit) {
         return startBiome(player, stack, key, sampleLimit, null);
     }
     /** 普通与娱乐请求共用参数和生成引擎；娱乐仅使用任务内的精确失败坐标。 */
@@ -170,8 +170,13 @@ public final class SearchService {
     }
     public static BiomeRequest startTravelBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,
                                                java.util.Collection<BlockPos> failed,BlockPos origin) {
+        return startTravelBiome(player,stack,key,failed,origin,new SearchWindow(SearchConfig.RADIUS.get(),-1,SearchConfig.BIOME_SAMPLES.get()));
+    }
+    public record SearchWindow(int radius,int innerRadius,long quota) {}
+    public static BiomeRequest startTravelBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,
+                                               java.util.Collection<BlockPos> failed,BlockPos origin,SearchWindow window) {
         BiomeRequest request=new BiomeRequest();
-        try { startBiome(player,stack,key,SearchConfig.BIOME_SAMPLES.get(),request,List.copyOf(failed),origin.immutable()); }
+        try { startBiome(player,stack,key,window.quota(),request,List.copyOf(failed),origin.immutable(),window); }
         catch(RuntimeException error) {
             if(request.session!=null && sessions.get(player.getUUID())==request.session)cancel(player,true,"error");
             request.state=BiomeRequest.State.ERROR;request.reason=error.toString();
@@ -185,12 +190,16 @@ public final class SearchService {
         if(session.request==null) {session.request=new BiomeRequest();session.request.attach(session);}
         return session.request;
     }
-    private static boolean startBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,int sampleLimit,
+    private static boolean startBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,long sampleLimit,
                                       BiomeRequest request) {
         return startBiome(player,stack,key,sampleLimit,request,List.of(),player.blockPosition());
     }
-    private static boolean startBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,int sampleLimit,
+    private static boolean startBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,long sampleLimit,
                                       BiomeRequest request,List<BlockPos> failed,BlockPos origin) {
+        return startBiome(player,stack,key,sampleLimit,request,failed,origin,new SearchWindow(SearchConfig.RADIUS.get(),-1,sampleLimit));
+    }
+    private static boolean startBiome(ServerPlayer player,ItemStack stack,ResourceLocation key,long sampleLimit,
+                                      BiomeRequest request,List<BlockPos> failed,BlockPos origin,SearchWindow window) {
         long before=System.nanoTime(),beforeMillis=System.currentTimeMillis();
         if(!held(player,stack) || SearchRules.broken(stack))return false;
         var source=player.serverLevel().getChunkSource().getGenerator().getBiomeSource();
@@ -206,11 +215,11 @@ public final class SearchService {
         SearchJob job;
         if(AlexCavesAdapter.target(key)) {
             var adapter=AlexCavesAdapter.prepare(player.serverLevel(),key);
-            job=new AlexCavesSearch(player.serverLevel(),origin,key,previous,SearchConfig.RADIUS.get(),
+            job=new AlexCavesSearch(player.serverLevel(),origin,key,previous,window.radius(),
                     Math.max(0,sampleLimit),SearchConfig.SPACING.get(),SearchConfig.ASYNC_BIOMES.get(),adapter);
-        } else job=new BiomeSearch(player.serverLevel(),origin,key,previous,SearchConfig.RADIUS.get(),
+        } else job=new BiomeSearch(player.serverLevel(),origin,key,previous,window.radius(),
                 Math.max(0,sampleLimit),SearchConfig.SPACING.get(),SearchConfig.VERTICAL.get(),SearchConfig.DEPTH_INTERVAL.get(),
-                SearchConfig.ASYNC_BIOMES.get(),request!=null);
+                SearchConfig.ASYNC_BIOMES.get(),request!=null,window.innerRadius());
         Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;
         session.request=request;session.travel=request!=null;if(request!=null)request.attach(session);begin(session);
         long used=System.nanoTime()-before;job.mainNanos+=used;pendingPreparationNanos+=used;
@@ -223,6 +232,7 @@ public final class SearchService {
         private State state=State.REJECTED;
         private String reason="rejected";
         private SearchCandidate candidate;
+        private final ProgressWatchdog watchdog=new ProgressWatchdog(System.nanoTime());
         private void attach(Session value){session=value;state=State.RUNNING;reason="";}
         public UUID token(){return session==null?null:session.token;}
         public State state(){
@@ -232,6 +242,10 @@ public final class SearchService {
         }
         public SearchCandidate candidate(){return candidate;}
         public String reason(){return reason;}
+        public boolean stalled(){
+            if(state()!=State.RUNNING)return false;
+            return watchdog.stalled(samples(),session.job.confirmations+session.job.chunkLoads,System.nanoTime());
+        }
         public long elapsed(){return session==null?0:System.nanoTime()-session.startedNanos;}
         public long samples(){return session==null?0:session.priorSamples+session.job.samples();}
         public BlockPos origin(){return session==null?null:session.job.start;}
@@ -245,6 +259,7 @@ public final class SearchService {
                 && (player.getMainHandItem() == stack || player.getOffhandItem() == stack);
     }
     private static void begin(Session session) {
+        com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(session.player.getUUID());
         CompoundTag tag = session.stack.getOrCreateTag();
         tag.remove(KIND); tag.remove(BIOME_KEY); tag.remove(FOUND_Y); tag.remove(TARGET_DIMENSION); tag.remove("ECUnifiedFeatureExpanded");
         if (session.job instanceof EndDungeonSearch) tag.putString(KIND,"feature");
@@ -276,6 +291,9 @@ public final class SearchService {
         long deadline=System.nanoTime()+Math.max(0,budget-preparation);
         TeleportService.maintain();
         EndDungeonIndex.maintain(Math.min(deadline, System.nanoTime() + 250_000L));
+        com.chaosthedude.explorerscompass.unified.creature.search.CreatureIndex.drain(Math.min(deadline,System.nanoTime()+100_000L));
+        if(System.nanoTime()<deadline && com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.active())
+            com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.step();
         if (sessions.isEmpty() && !TeleportService.active()) return;
         
         List<Session> round = new ArrayList<>();

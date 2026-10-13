@@ -43,7 +43,7 @@ public final class StructureSearch extends SearchJob {
     }
     private final List<ResourceLocation> keys;
     private final Set<Long> excluded;
-    private final int maximumSamples;
+    private final long maximumSamples;
     private final boolean async;
     private final boolean compatiblePrediction;
     private final StructureVerification verification;
@@ -62,11 +62,11 @@ public final class StructureSearch extends SearchJob {
     private boolean prefixEligible,outerReady;
     private volatile boolean prefixStored;
     public StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
-                           Set<Long> excluded, int radius, int maximumSamples, boolean async) {
+                           Set<Long> excluded, int radius, long maximumSamples, boolean async) {
         this(level, start, keys, excluded, radius, maximumSamples, async, false);
     }
     private StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
-                           Set<Long> excluded, int radius, int maximumSamples, boolean async, boolean compatiblePrediction) {
+                           Set<Long> excluded, int radius, long maximumSamples, boolean async, boolean compatiblePrediction) {
         super(level, start, radius); this.keys = List.copyOf(keys); this.excluded = Set.copyOf(excluded);
         this.maximumSamples = maximumSamples; this.async = async;
         this.compatiblePrediction = compatiblePrediction;

@@ -7,12 +7,12 @@ import net.minecraft.world.level.ChunkPos;
 
 /** 地物搜索与结构共用分片、预算、最近距离确认和任务生命周期。 */
 public final class EndDungeonSearch extends SearchJob {
-    private final Set<Long> excluded;private final int maximum;private final boolean async;
+    private final Set<Long> excluded;private final long maximum;private final boolean async;
     private final EndDungeonAdapter.Snapshot rules;
     private final EndDungeonVerification verification;
     private final Map<SearchCandidate,SearchCandidate> verified=new HashMap<>();
     private final Map<SearchCandidate,Boolean> expanded=new HashMap<>();
-    public EndDungeonSearch(ServerLevel level,BlockPos start,Set<Long> excluded,int radius,int maximum,boolean async) {
+    public EndDungeonSearch(ServerLevel level,BlockPos start,Set<Long> excluded,int radius,long maximum,boolean async) {
         super(level,start,radius);this.excluded=Set.copyOf(excluded);this.maximum=maximum;this.async=async;
         rules=EndDungeonAdapter.snapshot(level);verification=new EndDungeonVerification(level,rules);
         quotaDisabled=maximum<=0;

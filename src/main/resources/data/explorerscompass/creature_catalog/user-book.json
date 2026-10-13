@@ -1,0 +1,6914 @@
+[
+  {
+    "entity": "minecraft:allay",
+    "name": "悦灵",
+    "english": "Allay",
+    "aliases": [
+      "悦灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:axolotl",
+    "name": "美西螈",
+    "english": "Axolotl",
+    "aliases": [
+      "美西螈"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:bat",
+    "name": "蝙蝠",
+    "english": "Bat",
+    "aliases": [
+      "蝙蝠"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:bee",
+    "name": "蜜蜂",
+    "english": "Bee",
+    "aliases": [
+      "蜜蜂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:blaze",
+    "name": "烈焰人",
+    "english": "Blaze",
+    "aliases": [
+      "烈焰人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:camel",
+    "name": "骆驼",
+    "english": "Camel",
+    "aliases": [
+      "骆驼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:desert"
+    ],
+    "note": "在沙漠生物群系和沙漠村庄中心生成，且每个村庄只会生成 1 匹"
+  },
+  {
+    "entity": "minecraft:cat",
+    "name": "猫",
+    "english": "Cat",
+    "aliases": [
+      "猫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:cave_spider",
+    "name": "洞穴蜘蛛",
+    "english": "Cave Spider",
+    "aliases": [
+      "洞穴蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:chicken",
+    "name": "鸡",
+    "english": "Chicken",
+    "aliases": [
+      "鸡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:cod",
+    "name": "鳕鱼",
+    "english": "Cod",
+    "aliases": [
+      "鳕鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:cow",
+    "name": "牛",
+    "english": "Cow",
+    "aliases": [
+      "牛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:creeper",
+    "name": "苦力怕",
+    "english": "Creeper",
+    "aliases": [
+      "苦力怕"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:dolphin",
+    "name": "海豚",
+    "english": "Dolphin",
+    "aliases": [
+      "海豚"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "幽灵海盗船结构有刷怪笼"
+  },
+  {
+    "entity": "minecraft:donkey",
+    "name": "驴",
+    "english": "Donkey",
+    "aliases": [
+      "驴"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:drowned",
+    "name": "溺尸",
+    "english": "Drowned",
+    "aliases": [
+      "溺尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:elder_guardian",
+    "name": "远古守卫者",
+    "english": "Elder Guardian",
+    "aliases": [
+      "远古守卫者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:ender_dragon",
+    "name": "末影龙",
+    "english": "Ender Dragon",
+    "aliases": [
+      "末影龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "minecraft:enderman",
+    "name": "末影人",
+    "english": "Enderman",
+    "aliases": [
+      "末影人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:endermite",
+    "name": "末影螨",
+    "english": "Endermite",
+    "aliases": [
+      "末影螨"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:evoker",
+    "name": "唤魔者",
+    "english": "Evoker",
+    "aliases": [
+      "唤魔者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:fox",
+    "name": "狐狸",
+    "english": "Fox",
+    "aliases": [
+      "狐狸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:frog",
+    "name": "青蛙",
+    "english": "Frog",
+    "aliases": [
+      "青蛙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:ghast",
+    "name": "恶魂",
+    "english": "Ghast",
+    "aliases": [
+      "恶魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:giant",
+    "name": "巨人",
+    "english": "Giant",
+    "aliases": [
+      "巨人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "minecraft:glow_squid",
+    "name": "发光鱿鱼",
+    "english": "Glow Squid",
+    "aliases": [
+      "发光鱿鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:goat",
+    "name": "山羊",
+    "english": "Goat",
+    "aliases": [
+      "山羊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:guardian",
+    "name": "守卫者",
+    "english": "Guardian",
+    "aliases": [
+      "守卫者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:hoglin",
+    "name": "疣猪兽",
+    "english": "Hoglin",
+    "aliases": [
+      "疣猪兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:horse",
+    "name": "马",
+    "english": "Horse",
+    "aliases": [
+      "马"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:husk",
+    "name": "尸壳",
+    "english": "Husk",
+    "aliases": [
+      "尸壳"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:illusioner",
+    "name": "幻术师",
+    "english": "Illusioner",
+    "aliases": [
+      "幻术师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "结构灾厄要塞刷新"
+  },
+  {
+    "entity": "minecraft:iron_golem",
+    "name": "铁傀儡",
+    "english": "Iron Golem",
+    "aliases": [
+      "铁傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:llama",
+    "name": "羊驼",
+    "english": "Llama",
+    "aliases": [
+      "羊驼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:magma_cube",
+    "name": "岩浆怪",
+    "english": "Magma Cube",
+    "aliases": [
+      "岩浆怪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:mooshroom",
+    "name": "哞菇",
+    "english": "Mooshroom",
+    "aliases": [
+      "哞菇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:mule",
+    "name": "骡",
+    "english": "Mule",
+    "aliases": [
+      "骡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:ocelot",
+    "name": "豹猫",
+    "english": "Ocelot",
+    "aliases": [
+      "豹猫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:panda",
+    "name": "熊猫",
+    "english": "Panda",
+    "aliases": [
+      "熊猫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:parrot",
+    "name": "鹦鹉",
+    "english": "Parrot",
+    "aliases": [
+      "鹦鹉"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:phantom",
+    "name": "幻翼",
+    "english": "Phantom",
+    "aliases": [
+      "幻翼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:pig",
+    "name": "猪",
+    "english": "Pig",
+    "aliases": [
+      "猪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:piglin",
+    "name": "猪灵",
+    "english": "Piglin",
+    "aliases": [
+      "猪灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:piglin_brute",
+    "name": "猪灵蛮兵",
+    "english": "Piglin Brute",
+    "aliases": [
+      "猪灵蛮兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:pillager",
+    "name": "掠夺者",
+    "english": "Pillager",
+    "aliases": [
+      "掠夺者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:polar_bear",
+    "name": "北极熊",
+    "english": "Polar Bear",
+    "aliases": [
+      "北极熊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:pufferfish",
+    "name": "河豚",
+    "english": "Pufferfish",
+    "aliases": [
+      "河豚"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:rabbit",
+    "name": "兔子",
+    "english": "Rabbit",
+    "aliases": [
+      "兔子"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:ravager",
+    "name": "劫掠兽",
+    "english": "Ravager",
+    "aliases": [
+      "劫掠兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:salmon",
+    "name": "鲑鱼",
+    "english": "Salmon",
+    "aliases": [
+      "鲑鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:sheep",
+    "name": "绵羊",
+    "english": "Sheep",
+    "aliases": [
+      "绵羊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:shulker",
+    "name": "潜影贝",
+    "english": "Shulker",
+    "aliases": [
+      "潜影贝"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:silverfish",
+    "name": "蠹虫",
+    "english": "Silverfish",
+    "aliases": [
+      "蠹虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:skeleton",
+    "name": "骷髅",
+    "english": "Skeleton",
+    "aliases": [
+      "骷髅"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:skeleton_horse",
+    "name": "骷髅马",
+    "english": "Skeleton Horse",
+    "aliases": [
+      "骷髅马"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "仪式转化"
+  },
+  {
+    "entity": "minecraft:slime",
+    "name": "史莱姆",
+    "english": "Slime",
+    "aliases": [
+      "史莱姆"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:sniffer",
+    "name": "嗅探兽",
+    "english": "Sniffer",
+    "aliases": [
+      "嗅探兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:snow_golem",
+    "name": "雪傀儡",
+    "english": "Snow Golem",
+    "aliases": [
+      "雪傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:spider",
+    "name": "蜘蛛",
+    "english": "Spider",
+    "aliases": [
+      "蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:squid",
+    "name": "鱿鱼",
+    "english": "Squid",
+    "aliases": [
+      "鱿鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:stray",
+    "name": "流浪者",
+    "english": "Stray",
+    "aliases": [
+      "流浪者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:strider",
+    "name": "炽足兽",
+    "english": "Strider",
+    "aliases": [
+      "炽足兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:tadpole",
+    "name": "蝌蚪",
+    "english": "Tadpole",
+    "aliases": [
+      "蝌蚪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:trader_llama",
+    "name": "行商羊驼",
+    "english": "Trader Llama",
+    "aliases": [
+      "行商羊驼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:tropical_fish",
+    "name": "热带鱼",
+    "english": "Tropical Fish",
+    "aliases": [
+      "热带鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:turtle",
+    "name": "海龟",
+    "english": "Turtle",
+    "aliases": [
+      "海龟"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:vex",
+    "name": "恼鬼",
+    "english": "Vex",
+    "aliases": [
+      "恼鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:vindicator",
+    "name": "卫道士",
+    "english": "Vindicator",
+    "aliases": [
+      "卫道士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:wandering_trader",
+    "name": "流浪商人",
+    "english": "Wandering Trader",
+    "aliases": [
+      "流浪商人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:warden",
+    "name": "监守者",
+    "english": "Warden",
+    "aliases": [
+      "监守者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:wither",
+    "name": "凋灵",
+    "english": "Wither",
+    "aliases": [
+      "凋灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:wither_skeleton",
+    "name": "凋灵骷髅",
+    "english": "Wither Skeleton",
+    "aliases": [
+      "凋灵骷髅"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:wolf",
+    "name": "狼",
+    "english": "Wolf",
+    "aliases": [
+      "狼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:zoglin",
+    "name": "僵尸疣猪兽",
+    "english": "Zoglin",
+    "aliases": [
+      "僵尸疣猪兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:zombie",
+    "name": "僵尸",
+    "english": "Zombie",
+    "aliases": [
+      "僵尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:zombie_horse",
+    "name": "僵尸马",
+    "english": "Zombie Horse",
+    "aliases": [
+      "僵尸马"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "仪式转化"
+  },
+  {
+    "entity": "minecraft:zombie_villager",
+    "name": "僵尸村民",
+    "english": "Zombie Villager",
+    "aliases": [
+      "僵尸村民"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "minecraft:zombified_piglin",
+    "name": "僵尸猪灵",
+    "english": "Zombified Piglin",
+    "aliases": [
+      "僵尸猪灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:phyg",
+    "name": "飞天猪",
+    "english": "Phyg",
+    "aliases": [
+      "飞天猪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:flying_cow",
+    "name": "天翼牛",
+    "english": "Flying Cow",
+    "aliases": [
+      "天翼牛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:sheepuff",
+    "name": "云跳羊",
+    "english": "Sheepuff",
+    "aliases": [
+      "云跳羊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:aerbunny",
+    "name": "天跃兔",
+    "english": "Aerbunny",
+    "aliases": [
+      "天跃兔"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:aerwhale",
+    "name": "云鲸",
+    "english": "Aerwhale",
+    "aliases": [
+      "云鲸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:blue_swet",
+    "name": "天蓝史维特",
+    "english": "Blue Swet",
+    "aliases": [
+      "天蓝史维特"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:golden_swet",
+    "name": "金黄史维特",
+    "english": "Golden Swet",
+    "aliases": [
+      "金黄史维特"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:whirlwind",
+    "name": "机遇旋风",
+    "english": "Whirlwind",
+    "aliases": [
+      "机遇旋风"
+    ],
+    "dimensions": [
+      "aether:the_aether"
+    ],
+    "biomes": [],
+    "note": "生成于天境地表的一种数据实体 白色旋转烟雾"
+  },
+  {
+    "entity": "aether:evil_whirlwind",
+    "name": "灾厄旋风",
+    "english": "Evil Whirlwind",
+    "aliases": [
+      "灾厄旋风"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "机遇旋风变体，黑色旋转烟雾"
+  },
+  {
+    "entity": "aether:aechor_plant",
+    "name": "箭毒花",
+    "english": "Aechor Plant",
+    "aliases": [
+      "箭毒花"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:cockatrice",
+    "name": "鸡蛇",
+    "english": "Cockatrice",
+    "aliases": [
+      "鸡蛇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:zephyr",
+    "name": "西风啸云",
+    "english": "Zephyr",
+    "aliases": [
+      "西风啸云"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:mimic",
+    "name": "拟箱怪",
+    "english": "Mimic",
+    "aliases": [
+      "拟箱怪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "aether:sentry",
+    "name": "爆破哨石",
+    "english": "Sentry",
+    "aliases": [
+      "爆破哨石"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "青铜地牢触发陷阱生成"
+  },
+  {
+    "entity": "aether:slider",
+    "name": "滑行魔石",
+    "english": "Slider",
+    "aliases": [
+      "滑行魔石"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "青铜地牢生成"
+  },
+  {
+    "entity": "aether:valkyrie",
+    "name": "女武神",
+    "english": "Valkyrie",
+    "aliases": [
+      "女武神"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "白银地牢触发陷阱生成"
+  },
+  {
+    "entity": "aether:valkyrie_queen",
+    "name": "武神女王",
+    "english": "Valkyrie Queen",
+    "aliases": [
+      "武神女王"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "白银地牢生成"
+  },
+  {
+    "entity": "aether:sun_spirit",
+    "name": "烈阳巨灵",
+    "english": "Sun Spirit",
+    "aliases": [
+      "烈阳巨灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黄金地牢生成"
+  },
+  {
+    "entity": "aether:cloud_minion",
+    "name": "迷你云护卫",
+    "english": "Cloud Minion",
+    "aliases": [
+      "迷你云护卫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用境云权杖召唤"
+  },
+  {
+    "entity": "goety:obsidian_monolith",
+    "name": "黑曜石巨柱",
+    "english": "Obsidian Monolith",
+    "aliases": [
+      "黑曜石巨柱"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "结构黑暗集生成"
+  },
+  {
+    "entity": "goety:totemic_wall",
+    "name": "图腾墙",
+    "english": "Totemic Wall",
+    "aliases": [
+      "图腾墙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用障碍聚晶召唤"
+  },
+  {
+    "entity": "goety:totemic_bomb",
+    "name": "图腾炸弹",
+    "english": "Totemic Bomb",
+    "aliases": [
+      "图腾炸弹"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "潜行时使用障碍聚晶召唤"
+  },
+  {
+    "entity": "goety:glacial_wall",
+    "name": "冰川墙",
+    "english": "Glacial Wall",
+    "aliases": [
+      "冰川墙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "霜冻魔杖使用障碍聚晶召唤"
+  },
+  {
+    "entity": "goety:quick_growing_vine",
+    "name": "速生藤蔓",
+    "english": "Quick Growing Vine",
+    "aliases": [
+      "速生藤蔓"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用增生聚晶召唤"
+  },
+  {
+    "entity": "goety:quick_growing_kelp",
+    "name": "速生海带",
+    "english": "Quick Growing Kelp",
+    "aliases": [
+      "速生海带"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "在水下使用增生聚晶召唤"
+  },
+  {
+    "entity": "goety:poison_quill_vine",
+    "name": "毒刺藤",
+    "english": "Poison-Quill Vine",
+    "aliases": [
+      "毒刺藤"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "潜行时使用增生聚晶召唤"
+  },
+  {
+    "entity": "goety:poison_anemone",
+    "name": "毒海葵",
+    "english": "Poison Anemone",
+    "aliases": [
+      "毒海葵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "在水下潜行使用增生聚晶召唤"
+  },
+  {
+    "entity": "goety:spider_egg",
+    "name": "蜘蛛卵",
+    "english": "Spider Egg",
+    "aliases": [
+      "蜘蛛卵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "育母蜘蛛召唤"
+  },
+  {
+    "entity": "goety:insect_swarm",
+    "name": "虫群",
+    "english": "Insect Swarm",
+    "aliases": [
+      "虫群"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "goety:beast_head",
+    "name": "暗兽飞颅",
+    "english": "Beast Head",
+    "aliases": [
+      "暗兽飞颅"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "暗兽召唤"
+  },
+  {
+    "entity": "goety:volcano",
+    "name": "火山",
+    "english": "Volcano",
+    "aliases": [
+      "火山"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用爆发聚晶召唤"
+  },
+  {
+    "entity": "goety:haunted_armor_stand",
+    "name": "缠魂盔甲架",
+    "english": "Haunted Armor Stand",
+    "aliases": [
+      "缠魂盔甲架"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:warlock",
+    "name": "术士",
+    "english": "Warlock",
+    "aliases": [
+      "术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "红树林塔生成"
+  },
+  {
+    "entity": "goety:wartling",
+    "name": "疣蛛",
+    "english": "Wartling",
+    "aliases": [
+      "疣蛛"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "下界疣蛋或术士召唤"
+  },
+  {
+    "entity": "goety:heretic",
+    "name": "异教徒",
+    "english": "Heretic",
+    "aliases": [
+      "异教徒"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑暗集会生成"
+  },
+  {
+    "entity": "goety:maverick",
+    "name": "独行者",
+    "english": "Maverick",
+    "aliases": [
+      "独行者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击生成"
+  },
+  {
+    "entity": "goety:crone",
+    "name": "巫婆",
+    "english": "Crone",
+    "aliases": [
+      "巫婆"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "朽坏木屋生成"
+  },
+  {
+    "entity": "goety:skeleton_villager_servant",
+    "name": "骷髅村民仆从",
+    "english": "Skeleton Villager Servant",
+    "aliases": [
+      "骷髅村民仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "goety:zpiglin_servant",
+    "name": "僵尸猪灵仆从",
+    "english": "Zombified Piglin Servant",
+    "aliases": [
+      "僵尸猪灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用腐烂聚晶在下届召唤"
+  },
+  {
+    "entity": "goety:zpiglin_brute_servant",
+    "name": "僵尸猪灵蛮兵仆从",
+    "english": "Zombified Piglin Brute Servant",
+    "aliases": [
+      "僵尸猪灵蛮兵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用腐烂聚晶在堡垒遗迹召唤"
+  },
+  {
+    "entity": "goety:malghast",
+    "name": "凶魂",
+    "english": "Malghast",
+    "aliases": [
+      "凶魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使徒召唤"
+  },
+  {
+    "entity": "goety:inferno",
+    "name": "狱焰",
+    "english": "Inferno",
+    "aliases": [
+      "狱焰"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使徒召唤"
+  },
+  {
+    "entity": "goety:damned",
+    "name": "狱魂",
+    "english": "Damned",
+    "aliases": [
+      "狱魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使徒召唤（处于二阶段的使徒的周围有任意灾厄村民以任意方式死亡时，这名灾厄村民也会原地转化为狱魂生成）"
+  },
+  {
+    "entity": "goety:vampire_bat",
+    "name": "吸血蝙蝠",
+    "english": "Vampire Bat",
+    "aliases": [
+      "吸血蝙蝠"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用蝙蝠爆发药剂召唤（药酿）"
+  },
+  {
+    "entity": "goety:reaper",
+    "name": "收割者",
+    "english": "Reaper",
+    "aliases": [
+      "收割者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:wraith",
+    "name": "幽灵",
+    "english": "Wraith",
+    "aliases": [
+      "幽灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:border_wraith",
+    "name": "边境幽灵",
+    "english": "Border Wraith",
+    "aliases": [
+      "边境幽灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "墓穴生成，较普通幽灵颜色偏暗"
+  },
+  {
+    "entity": "goety:muck_wraith",
+    "name": "秽灵",
+    "english": "Muck Wraith",
+    "aliases": [
+      "秽灵"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:swamp"
+    ],
+    "note": "在沼泽类生物群系地表生成"
+  },
+  {
+    "entity": "goety:crypt_slime",
+    "name": "墓穴史莱姆",
+    "english": "Crypt Slime",
+    "aliases": [
+      "墓穴史莱姆"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "墓穴生成"
+  },
+  {
+    "entity": "goety:web_spider",
+    "name": "织网蜘蛛",
+    "english": "Web Spider",
+    "aliases": [
+      "织网蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:icy_spider",
+    "name": "冰蜘蛛",
+    "english": "Icy Spider",
+    "aliases": [
+      "冰蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:bone_spider",
+    "name": "骸骨蜘蛛",
+    "english": "Bone Spider",
+    "aliases": [
+      "骸骨蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "墓穴生成"
+  },
+  {
+    "entity": "goety:brood_mother",
+    "name": "育母蜘蛛",
+    "english": "Brood Mother",
+    "aliases": [
+      "育母蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "结构蜘蛛之母巢穴生成"
+  },
+  {
+    "entity": "goety:necromancer",
+    "name": "死灵法师",
+    "english": "Necromancer",
+    "aliases": [
+      "死灵法师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "要塞生成"
+  },
+  {
+    "entity": "goety:haunted_armor",
+    "name": "缠魂甲胄",
+    "english": "Haunted Armor",
+    "aliases": [
+      "缠魂甲胄"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "墓穴生成"
+  },
+  {
+    "entity": "goety:vex_servant",
+    "name": "恼鬼",
+    "english": "Vex",
+    "aliases": [
+      "恼鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "恼鬼聚晶召唤"
+  },
+  {
+    "entity": "goety:zombie_servant",
+    "name": "僵尸仆从",
+    "english": "Zombie Servant",
+    "aliases": [
+      "僵尸仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用腐烂聚晶召唤"
+  },
+  {
+    "entity": "goety:zombie_villager_servant",
+    "name": "僵尸村民仆从",
+    "english": "Zombie Villager Servant",
+    "aliases": [
+      "僵尸村民仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "位于村庄使用腐烂聚晶召唤"
+  },
+  {
+    "entity": "goety:husk_servant",
+    "name": "尸壳仆从",
+    "english": "Husk Servant",
+    "aliases": [
+      "尸壳仆从"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:desert"
+    ],
+    "note": "位于沙漠群系使用腐烂聚晶召唤"
+  },
+  {
+    "entity": "goety:drowned_servant",
+    "name": "溺尸仆从",
+    "english": "Drowned Servant",
+    "aliases": [
+      "溺尸仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "位于水下使用腐烂聚晶召唤"
+  },
+  {
+    "entity": "goety:frozen_zombie_servant",
+    "name": "霜冻僵尸仆从",
+    "english": "Frozen Zombie Servant",
+    "aliases": [
+      "霜冻僵尸仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "霜冻魔杖使用腐烂聚晶召唤"
+  },
+  {
+    "entity": "goety:jungle_zombie_servant",
+    "name": "丛林僵尸仆从",
+    "english": "Jungle Zombie Servant",
+    "aliases": [
+      "丛林僵尸仆从"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "位于丛林群系使用腐烂聚晶召唤"
+  },
+  {
+    "entity": "goety:blackguard_servant",
+    "name": "暗卫仆从",
+    "english": "Blackguard Servant",
+    "aliases": [
+      "暗卫仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用暗卫聚晶召唤"
+  },
+  {
+    "entity": "goety:skeleton_servant",
+    "name": "骷髅仆从",
+    "english": "Skeleton Servant",
+    "aliases": [
+      "骷髅仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用骨质聚晶召唤"
+  },
+  {
+    "entity": "goety:wither_skeleton_servant",
+    "name": "凋灵骷髅仆从",
+    "english": "Wither Skeleton Servant",
+    "aliases": [
+      "凋灵骷髅仆从"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "阅读过往卷轴后在下界要塞使用骨质聚晶召唤"
+  },
+  {
+    "entity": "goety:mossy_skeleton_servant",
+    "name": "青苔骷髅仆从",
+    "english": "Mossy Skeleton Servant",
+    "aliases": [
+      "青苔骷髅仆从"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "丛林群系使用骨质聚晶召唤"
+  },
+  {
+    "entity": "goety:sunken_skeleton_servant",
+    "name": "沉溺骷髅仆从",
+    "english": "Sunken Skeleton Servant",
+    "aliases": [
+      "沉溺骷髅仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "水下使用骨质聚晶召唤"
+  },
+  {
+    "entity": "goety:necromancer_servant",
+    "name": "死灵法师仆从",
+    "english": "Necromancer",
+    "aliases": [
+      "死灵法师仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:vanguard_servant",
+    "name": "先锋仆从",
+    "english": "Vanguard Servant",
+    "aliases": [
+      "先锋仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用先锋聚晶召唤"
+  },
+  {
+    "entity": "goety:reaper_servant",
+    "name": "收割者仆从",
+    "english": "Reaper Servant",
+    "aliases": [
+      "收割者仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用收割聚晶召唤"
+  },
+  {
+    "entity": "goety:wraith_servant",
+    "name": "幽灵仆从",
+    "english": "Wraith Servant",
+    "aliases": [
+      "幽灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用骇人聚晶召唤"
+  },
+  {
+    "entity": "goety:border_wraith_servant",
+    "name": "边境幽灵仆从",
+    "english": "Border Wraith Servant",
+    "aliases": [
+      "边境幽灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "处于墓穴使用骇人聚晶召唤"
+  },
+  {
+    "entity": "goety:muck_wraith_servant",
+    "name": "秽灵仆从",
+    "english": "Muck Wraith Servant",
+    "aliases": [
+      "秽灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:swamp"
+    ],
+    "note": "位于沼泽群系使用骇人聚晶召唤"
+  },
+  {
+    "entity": "goety:phantom_servant",
+    "name": "幻翼仆从",
+    "english": "Phantom Servant",
+    "aliases": [
+      "幻翼仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用幻散聚晶召唤"
+  },
+  {
+    "entity": "goety:skeleton_pillager",
+    "name": "骷髅掠夺者",
+    "english": "Skeleton Pillager Servant",
+    "aliases": [
+      "骷髅掠夺者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "位于掠夺前哨战使用骨质聚晶召唤"
+  },
+  {
+    "entity": "goety:zombie_vindicator",
+    "name": "僵尸卫道士",
+    "english": "Zombie Vindicator Servant",
+    "aliases": [
+      "僵尸卫道士"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "biomesoplenty:woodland"
+    ],
+    "note": "处于林地府邸使用腐烂聚晶召唤"
+  },
+  {
+    "entity": "goety:bound_evoker",
+    "name": "被绑定的唤魔者",
+    "english": "Bound Evoker",
+    "aliases": [
+      "被绑定的唤魔者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "仪式召唤"
+  },
+  {
+    "entity": "goety:haunted_armor_servant",
+    "name": "缠魂仆胄",
+    "english": "Haunted Armor Servant",
+    "aliases": [
+      "缠魂仆胄"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "活力核心右击穿满装备的缠魂盔甲架召唤"
+  },
+  {
+    "entity": "goety:mini_ghast",
+    "name": "迷你恶魂",
+    "english": "Mini Ghast",
+    "aliases": [
+      "迷你恶魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "阴森聚晶召唤"
+  },
+  {
+    "entity": "goety:ghast_servant",
+    "name": "恶魂仆从",
+    "english": "Ghast Servant",
+    "aliases": [
+      "恶魂仆从"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "穿戴下界长袍使用阴森聚晶召唤"
+  },
+  {
+    "entity": "goety:blaze_servant",
+    "name": "烈焰人仆从",
+    "english": "Blaze Servant",
+    "aliases": [
+      "烈焰人仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "燃烧聚晶召唤"
+  },
+  {
+    "entity": "goety:wildfire",
+    "name": "野火",
+    "english": "Wildfire",
+    "aliases": [
+      "野火"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "仪式召唤"
+  },
+  {
+    "entity": "goety:slime_servant",
+    "name": "史莱姆仆从",
+    "english": "Slime Servant",
+    "aliases": [
+      "史莱姆仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用黏泞聚晶召唤"
+  },
+  {
+    "entity": "goety:magma_cube_servant",
+    "name": "岩浆怪仆从",
+    "english": "Magma Cube Servant",
+    "aliases": [
+      "岩浆怪仆从"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "位于下界使用黏泞聚晶召唤"
+  },
+  {
+    "entity": "goety:crypt_slime_servant",
+    "name": "墓穴史莱姆仆从",
+    "english": "Crypt Slime Servant",
+    "aliases": [
+      "墓穴史莱姆仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "位于墓穴使用黏泞聚晶召唤"
+  },
+  {
+    "entity": "goety:tropical_slime_servant",
+    "name": "热带史莱姆仆从",
+    "english": "Tropical Slime Servant",
+    "aliases": [
+      "热带史莱姆仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "水下使用黏泞聚晶召唤"
+  },
+  {
+    "entity": "goety:spider_servant",
+    "name": "蜘蛛仆从",
+    "english": "Spider Servant",
+    "aliases": [
+      "蜘蛛仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "育母蜘蛛召唤蜘蛛卵孵化"
+  },
+  {
+    "entity": "goety:cave_spider_servant",
+    "name": "洞穴蜘蛛仆从",
+    "english": "Cave Spider Servant",
+    "aliases": [
+      "洞穴蜘蛛仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:web_spider_servant",
+    "name": "织网蜘蛛仆从",
+    "english": "Web Spider Servant",
+    "aliases": [
+      "织网蜘蛛仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:icy_spider_servant",
+    "name": "冰蜘蛛仆从",
+    "english": "Icy Spider Servant",
+    "aliases": [
+      "冰蜘蛛仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:bone_spider_servant",
+    "name": "骸骨蜘蛛仆从",
+    "english": "Bone Spider Servant",
+    "aliases": [
+      "骸骨蜘蛛仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:brood_mother_servant",
+    "name": "育母蜘蛛仆从",
+    "english": "Brood Mother Servant",
+    "aliases": [
+      "育母蜘蛛仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:neollager",
+    "name": "新刌民",
+    "english": "Neollager",
+    "aliases": [
+      "新刌民"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:pillager_servant",
+    "name": "掠夺者仆从",
+    "english": "Pillager Servant",
+    "aliases": [
+      "掠夺者仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:vindicator_servant",
+    "name": "卫道士仆从",
+    "english": "Vindicator Servant",
+    "aliases": [
+      "卫道士仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:vindicator_chef_servant",
+    "name": "卫道士厨师仆从",
+    "english": "Vindicator Chef Servant",
+    "aliases": [
+      "卫道士厨师仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:crusher_servant",
+    "name": "粉碎者仆从",
+    "english": "Crusher Servant",
+    "aliases": [
+      "粉碎者仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:evoker_servant",
+    "name": "唤魔者仆从",
+    "english": "Evoker Servant",
+    "aliases": [
+      "唤魔者仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:geomancer_servant",
+    "name": "地卜师仆从",
+    "english": "Geomancer Servant",
+    "aliases": [
+      "地卜师仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:wind_caller_servant",
+    "name": "唤风者仆从",
+    "english": "Wind Caller Servant",
+    "aliases": [
+      "唤风者仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:storm_caster_servant",
+    "name": "暴风术士仆从",
+    "english": "Storm Caster Servant",
+    "aliases": [
+      "暴风术士仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:ravaged",
+    "name": "蹂躏者",
+    "english": "Ravaged",
+    "aliases": [
+      "蹂躏者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "阅读劫掠卷轴后仪式召唤"
+  },
+  {
+    "entity": "goety:zombie_ravager",
+    "name": "僵尸劫掠兽",
+    "english": "Zombie Ravager",
+    "aliases": [
+      "僵尸劫掠兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "仪式召唤"
+  },
+  {
+    "entity": "goety:skeleton_wolf",
+    "name": "骷髅狼",
+    "english": "Skeleton Wolf",
+    "aliases": [
+      "骷髅狼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "死灵魔杖使用狩猎聚晶召唤"
+  },
+  {
+    "entity": "goety:hellhound",
+    "name": "狱犬",
+    "english": "Hellhound",
+    "aliases": [
+      "狱犬"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "我没召唤出来（"
+  },
+  {
+    "entity": "goety:twilight_goat",
+    "name": "暮光山羊",
+    "english": "Twilight Goat",
+    "aliases": [
+      "暮光山羊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "goety:snapper",
+    "name": "黑鲷",
+    "english": "Snapper",
+    "aliases": [
+      "黑鲷"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "水下使用狩猎聚晶召唤"
+  },
+  {
+    "entity": "goety:guardian_servant",
+    "name": "守卫者仆从",
+    "english": "Guardian Servant",
+    "aliases": [
+      "守卫者仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "使用守卫聚晶召唤"
+  },
+  {
+    "entity": "goety:bear_servant",
+    "name": "熊仆从",
+    "english": "Bear Servant",
+    "aliases": [
+      "熊仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "猛击聚晶召唤"
+  },
+  {
+    "entity": "goety:polar_bear_servant",
+    "name": "北极熊仆从",
+    "english": "Polar Bear Servant",
+    "aliases": [
+      "北极熊仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "霜冻魔杖使用猛击聚晶召唤"
+  },
+  {
+    "entity": "goety:hoglin_servant",
+    "name": "疣猪兽仆从",
+    "english": "Hoglin Servant",
+    "aliases": [
+      "疣猪兽仆从"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "位于下界使用猛击聚晶召唤"
+  },
+  {
+    "entity": "goety:black_beast",
+    "name": "暗兽",
+    "english": "Black Beast",
+    "aliases": [
+      "暗兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "绯红教堂彩带房有一个"
+  },
+  {
+    "entity": "goety:whisperer",
+    "name": "唤藤者",
+    "english": "Whisperer",
+    "aliases": [
+      "唤藤者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "唤藤聚晶召唤"
+  },
+  {
+    "entity": "goety:wavewhisperer",
+    "name": "唤浪者",
+    "english": "Wavewhisperer",
+    "aliases": [
+      "唤浪者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "水下使用唤藤聚晶召唤"
+  },
+  {
+    "entity": "goety:leapleaf",
+    "name": "腾跃之叶",
+    "english": "Leapleaf",
+    "aliases": [
+      "腾跃之叶"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "四个增生之根放置成倒置T形，并且把两片丛林树叶放在顶部增生根的左右，一朵大王花在顶部增生之根的上方，然后使用活力核心右键中心增生之根激活"
+  },
+  {
+    "entity": "goety:ice_golem",
+    "name": "冰傀儡",
+    "english": "Ice Golem",
+    "aliases": [
+      "冰傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "霜裔聚晶召唤"
+  },
+  {
+    "entity": "goety:squall_golem",
+    "name": "呼啸傀儡",
+    "english": "Squall Golem",
+    "aliases": [
+      "呼啸傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:grave_golem",
+    "name": "墓灵巨像",
+    "english": "Grave Golem",
+    "aliases": [
+      "墓灵巨像"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:haunt",
+    "name": "墓灵",
+    "english": "Haunt",
+    "aliases": [
+      "墓灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "墓灵巨像召唤"
+  },
+  {
+    "entity": "goety:redstone_cube",
+    "name": "红石怪",
+    "english": "Redstone Cube",
+    "aliases": [
+      "红石怪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "红石巨兽召唤"
+  },
+  {
+    "entity": "goety:watchling_servant",
+    "name": "看守灵仆从",
+    "english": "Watchling Servant",
+    "aliases": [
+      "看守灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "看守聚晶召唤"
+  },
+  {
+    "entity": "goety:blastling_servant",
+    "name": "爆破灵仆从",
+    "english": "Blastling Servant",
+    "aliases": [
+      "爆破灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "爆破聚晶召唤"
+  },
+  {
+    "entity": "goety:snareling_servant",
+    "name": "迷惑灵仆从",
+    "english": "Snareling Servant",
+    "aliases": [
+      "迷惑灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "迷惑聚晶召唤"
+  },
+  {
+    "entity": "goety:sorcerer",
+    "name": "巫师",
+    "english": "Sorcerer",
+    "aliases": [
+      "巫师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:envioker",
+    "name": "恶妒者",
+    "english": "Envioker",
+    "aliases": [
+      "恶妒者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:tormentor",
+    "name": "折磨",
+    "english": "Tormentor",
+    "aliases": [
+      "折磨"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:inquillager",
+    "name": "巡查官",
+    "english": "Inquillager",
+    "aliases": [
+      "巡查官"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:conquillager",
+    "name": "征服者",
+    "english": "Conquillager",
+    "aliases": [
+      "征服者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:piker",
+    "name": "长矛兵",
+    "english": "Piker",
+    "aliases": [
+      "长矛兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:crusher",
+    "name": "粉碎者",
+    "english": "Crusher",
+    "aliases": [
+      "粉碎者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:storm_caster",
+    "name": "暴风术士",
+    "english": "Storm Caster",
+    "aliases": [
+      "暴风术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:preacher",
+    "name": "传教士",
+    "english": "Preacher",
+    "aliases": [
+      "传教士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:minister",
+    "name": "灾厄教父",
+    "english": "Minister",
+    "aliases": [
+      "灾厄教父"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:vizier",
+    "name": "灾厄宰相",
+    "english": "Vizier",
+    "aliases": [
+      "灾厄宰相"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "biomesoplenty:woodland"
+    ],
+    "note": "在林地府邸中使用黑暗卷轴召唤"
+  },
+  {
+    "entity": "goety:vizier_clone",
+    "name": "宰相之影",
+    "english": "Vizier Visage",
+    "aliases": [
+      "宰相之影"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "灾厄宰相召唤"
+  },
+  {
+    "entity": "goety:wight",
+    "name": "孤魂尸鬼",
+    "english": "Wight",
+    "aliases": [
+      "孤魂尸鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "goety:carrion_maggot",
+    "name": "腐尸蛆虫",
+    "english": "Carrion Maggot",
+    "aliases": [
+      "腐尸蛆虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "孤魂尸鬼召唤"
+  },
+  {
+    "entity": "goety:carrion_fly",
+    "name": "腐尸飞蝇",
+    "english": "Carrion Fly",
+    "aliases": [
+      "腐尸飞蝇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "当腐尸蛆虫与自身仇恨目标y轴距离≥4格时转化"
+  },
+  {
+    "entity": "goety:skull_lord",
+    "name": "骷髅领主",
+    "english": "Skull Lord",
+    "aliases": [
+      "骷髅领主"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "墓穴生成"
+  },
+  {
+    "entity": "goety:bone_lord",
+    "name": "骨头领主",
+    "english": "Bone Lord",
+    "aliases": [
+      "骨头领主"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "骷髅领主在被召唤时，会附带生成一个骨头领主"
+  },
+  {
+    "entity": "alexsmobs:grizzly_bear",
+    "name": "灰熊",
+    "english": "Grizzly Bear",
+    "aliases": [
+      "灰熊"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:birch_forest",
+      "minecraft:forest",
+      "minecraft:taiga"
+    ],
+    "note": "在森林、针叶林和桦木森林生物群系里生成"
+  },
+  {
+    "entity": "alexsmobs:roadrunner",
+    "name": "走鹃",
+    "english": "Roadrunner",
+    "aliases": [
+      "走鹃"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:badlands",
+      "minecraft:desert"
+    ],
+    "note": "在沙漠和恶地生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:bone_serpent",
+    "name": "骨蟒",
+    "english": "Bone Serpent",
+    "aliases": [
+      "骨蟒"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "生成在下界熔岩海"
+  },
+  {
+    "entity": "alexsmobs:gazelle",
+    "name": "瞪羚",
+    "english": "Gazelle",
+    "aliases": [
+      "瞪羚"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:savanna"
+    ],
+    "note": "在热带草原生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:crocodile",
+    "name": "鳄鱼",
+    "english": "Crocodile",
+    "aliases": [
+      "鳄鱼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:river",
+      "minecraft:swamp"
+    ],
+    "note": "生成在河流、沼泽生物群系"
+  },
+  {
+    "entity": "alexsmobs:fly",
+    "name": "苍蝇",
+    "english": "Fly",
+    "aliases": [
+      "苍蝇"
+    ],
+    "dimensions": [
+      "minecraft:overworld"
+    ],
+    "biomes": [],
+    "note": "主世界生成"
+  },
+  {
+    "entity": "alexsmobs:hummingbird",
+    "name": "蜂鸟",
+    "english": "Hummingbird",
+    "aliases": [
+      "蜂鸟"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:flower_forest",
+      "minecraft:jungle",
+      "minecraft:meadow",
+      "minecraft:sunflower_plains"
+    ],
+    "note": "丛林、繁花森林、草甸和向日葵平原生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:orca",
+    "name": "虎鲸",
+    "english": "Orca",
+    "aliases": [
+      "虎鲸"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:ocean"
+    ],
+    "note": "海洋生物群系里生成"
+  },
+  {
+    "entity": "alexsmobs:sunbird",
+    "name": "曦鹤",
+    "english": "Sunbird",
+    "aliases": [
+      "曦鹤"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "山地生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:gorilla",
+    "name": "大猩猩",
+    "english": "Gorilla",
+    "aliases": [
+      "大猩猩"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "丛林生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:crimson_mosquito",
+    "name": "绯红蚊子",
+    "english": "Crimson Mosquito",
+    "aliases": [
+      "绯红蚊子"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:crimson_forest"
+    ],
+    "note": "绯红森林生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:rattlesnake",
+    "name": "响尾蛇",
+    "english": "Rattlesnake",
+    "aliases": [
+      "响尾蛇"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:badlands",
+      "minecraft:desert"
+    ],
+    "note": "生成于沙漠和恶地群系中"
+  },
+  {
+    "entity": "alexsmobs:endergrade",
+    "name": "末影缓步兽",
+    "english": "Endergrade",
+    "aliases": [
+      "末影缓步兽"
+    ],
+    "dimensions": [
+      "minecraft:the_end"
+    ],
+    "biomes": [],
+    "note": "末地生成"
+  },
+  {
+    "entity": "alexsmobs:hammerhead_shark",
+    "name": "锤头鲨",
+    "english": "Hammerhead Shark",
+    "aliases": [
+      "锤头鲨"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:warm_ocean"
+    ],
+    "note": "暖水海洋群系生成"
+  },
+  {
+    "entity": "alexsmobs:lobster",
+    "name": "龙虾",
+    "english": "Lobster",
+    "aliases": [
+      "龙虾"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:beach",
+      "minecraft:ocean"
+    ],
+    "note": "沙滩及海洋群系生成"
+  },
+  {
+    "entity": "alexsmobs:capuchin_monkey",
+    "name": "卷尾猴",
+    "english": "Capuchin Monkey",
+    "aliases": [
+      "卷尾猴"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "丛林群系生成"
+  },
+  {
+    "entity": "alexsmobs:centipede_head",
+    "name": "洞穴蜈蚣",
+    "english": "Cave Centipede",
+    "aliases": [
+      "洞穴蜈蚣"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "alexsmobs:warped_toad",
+    "name": "诡异蟾蜍",
+    "english": "Warped Toad",
+    "aliases": [
+      "诡异蟾蜍"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:warped_forest"
+    ],
+    "note": "诡异森林群系生成"
+  },
+  {
+    "entity": "alexsmobs:moose",
+    "name": "驼鹿",
+    "english": "Moose",
+    "aliases": [
+      "驼鹿"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:snowy_taiga"
+    ],
+    "note": "生成在积雪针叶林生物群系"
+  },
+  {
+    "entity": "alexsmobs:mimicube",
+    "name": "复刻怪",
+    "english": "Mimicube",
+    "aliases": [
+      "复刻怪"
+    ],
+    "dimensions": [
+      "minecraft:the_end"
+    ],
+    "biomes": [],
+    "note": "结构末地城刷新"
+  },
+  {
+    "entity": "alexsmobs:raccoon",
+    "name": "浣熊",
+    "english": "Raccoon",
+    "aliases": [
+      "浣熊"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:plains"
+    ],
+    "note": "平原生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:blobfish",
+    "name": "水滴鱼",
+    "english": "Blobfish",
+    "aliases": [
+      "水滴鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "渊海挺多的（"
+  },
+  {
+    "entity": "alexsmobs:seal",
+    "name": "海豹",
+    "english": "Seal",
+    "aliases": [
+      "海豹"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:beach",
+      "minecraft:frozen_ocean",
+      "otg:default.snowy_beach"
+    ],
+    "note": "生成在沙滩、积雪的沙滩和冻洋的冰面上"
+  },
+  {
+    "entity": "alexsmobs:cockroach",
+    "name": "蟑螂",
+    "english": "Cockroach",
+    "aliases": [
+      "蟑螂"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "mining_dimension:mining"
+    ],
+    "note": "矿洞生成"
+  },
+  {
+    "entity": "alexsmobs:shoebill",
+    "name": "鲸头鹳",
+    "english": "Shoebill",
+    "aliases": [
+      "鲸头鹳"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:swamp"
+    ],
+    "note": "沼泽群系生成"
+  },
+  {
+    "entity": "alexsmobs:elephant",
+    "name": "大象",
+    "english": "Elephant",
+    "aliases": [
+      "大象"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:savanna",
+      "minecraft:savanna_plateau"
+    ],
+    "note": "热带草原、热带高原群系生成"
+  },
+  {
+    "entity": "alexsmobs:soul_vulture",
+    "name": "灵魂鹫",
+    "english": "Soul Vulture",
+    "aliases": [
+      "灵魂鹫"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:soul_sand_valley"
+    ],
+    "note": "灵魂沙峡谷群系生成"
+  },
+  {
+    "entity": "alexsmobs:snow_leopard",
+    "name": "雪豹",
+    "english": "Snow Leopard",
+    "aliases": [
+      "雪豹"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "雪山生成"
+  },
+  {
+    "entity": "alexsmobs:spectre",
+    "name": "灵翼",
+    "english": "Spectre",
+    "aliases": [
+      "灵翼"
+    ],
+    "dimensions": [
+      "minecraft:the_end"
+    ],
+    "biomes": [],
+    "note": "末地生成"
+  },
+  {
+    "entity": "alexsmobs:crow",
+    "name": "乌鸦",
+    "english": "Crow",
+    "aliases": [
+      "乌鸦"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:plains"
+    ],
+    "note": "平原群系生成"
+  },
+  {
+    "entity": "alexsmobs:alligator_snapping_turtle",
+    "name": "大鳄龟",
+    "english": "Alligator Snapping Turtle",
+    "aliases": [
+      "大鳄龟"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:swamp"
+    ],
+    "note": "沼泽群系生成"
+  },
+  {
+    "entity": "alexsmobs:mungus",
+    "name": "蘑菇君",
+    "english": "Mungus",
+    "aliases": [
+      "蘑菇君"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:mushroom_fields"
+    ],
+    "note": "蘑菇岛群系生成"
+  },
+  {
+    "entity": "alexsmobs:mantis_shrimp",
+    "name": "螳螂虾",
+    "english": "Mantis Shrimp",
+    "aliases": [
+      "螳螂虾"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:warm_ocean"
+    ],
+    "note": "暖水海洋群系生成"
+  },
+  {
+    "entity": "alexsmobs:guster",
+    "name": "沙风怪",
+    "english": "Guster",
+    "aliases": [
+      "沙风怪"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:desert"
+    ],
+    "note": "沙漠群系生成"
+  },
+  {
+    "entity": "alexsmobs:warped_mosco",
+    "name": "诡异蚊鬼",
+    "english": "Warped Mosco",
+    "aliases": [
+      "诡异蚊鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexsmobs:straddler",
+    "name": "跨座兽",
+    "english": "Straddler",
+    "aliases": [
+      "跨座兽"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:basalt_deltas"
+    ],
+    "note": "玄武岩三角洲群系生成"
+  },
+  {
+    "entity": "alexsmobs:stradpole",
+    "name": "跨座蝌蚪",
+    "english": "Stradpole",
+    "aliases": [
+      "跨座蝌蚪"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:basalt_deltas"
+    ],
+    "note": "玄武岩三角洲群系生成"
+  },
+  {
+    "entity": "alexsmobs:emu",
+    "name": "鸸鹋",
+    "english": "Emu",
+    "aliases": [
+      "鸸鹋"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:badlands",
+      "minecraft:savanna"
+    ],
+    "note": "恶地或热带草原群系生成"
+  },
+  {
+    "entity": "alexsmobs:platypus",
+    "name": "鸭嘴兽",
+    "english": "Platypus",
+    "aliases": [
+      "鸭嘴兽"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:river"
+    ],
+    "note": "河流群系生成"
+  },
+  {
+    "entity": "alexsmobs:dropbear",
+    "name": "悬熊",
+    "english": "Dropbear",
+    "aliases": [
+      "悬熊"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [
+      "minecraft:nether_wastes"
+    ],
+    "note": "下界荒地群系生成"
+  },
+  {
+    "entity": "alexsmobs:tasmanian_devil",
+    "name": "袋獾",
+    "english": "Tasmanian Devil",
+    "aliases": [
+      "袋獾"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "森林群系生成"
+  },
+  {
+    "entity": "alexsmobs:kangaroo",
+    "name": "袋鼠",
+    "english": "Kangaroo",
+    "aliases": [
+      "袋鼠"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:badlands",
+      "minecraft:savanna",
+      "minecraft:savanna_plateau"
+    ],
+    "note": "热带草原、热带高原、恶地生物群系生成"
+  },
+  {
+    "entity": "alexsmobs:leafcutter_ant",
+    "name": "切叶蚁",
+    "english": "Leafcutter Ant",
+    "aliases": [
+      "切叶蚁"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "丛林群系生成"
+  },
+  {
+    "entity": "alexsmobs:enderiophage",
+    "name": "末影噬菌体",
+    "english": "Enderiophage",
+    "aliases": [
+      "末影噬菌体"
+    ],
+    "dimensions": [
+      "minecraft:the_end"
+    ],
+    "biomes": [],
+    "note": "末地生成"
+  },
+  {
+    "entity": "alexsmobs:bald_eagle",
+    "name": "白头海雕",
+    "english": "Bald Eagle",
+    "aliases": [
+      "白头海雕"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "山地群系生成"
+  },
+  {
+    "entity": "alexsmobs:tiger",
+    "name": "老虎",
+    "english": "Tiger",
+    "aliases": [
+      "老虎"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:bamboo_jungle"
+    ],
+    "note": "竹林群系生成"
+  },
+  {
+    "entity": "alexsmobs:tarantula_hawk",
+    "name": "沙漠蛛蜂",
+    "english": "Tarantula Hawk",
+    "aliases": [
+      "沙漠蛛蜂"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:desert"
+    ],
+    "note": "沙漠群系生成"
+  },
+  {
+    "entity": "alexsmobs:frilled_shark",
+    "name": "皱鳃鲨",
+    "english": "Frilled Shark",
+    "aliases": [
+      "皱鳃鲨"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:deep_ocean"
+    ],
+    "note": "深海群系生成"
+  },
+  {
+    "entity": "alexsmobs:mimic_octopus",
+    "name": "拟态章鱼",
+    "english": "Mimic Octopus",
+    "aliases": [
+      "拟态章鱼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:warm_ocean"
+    ],
+    "note": "暖水海洋群系生成"
+  },
+  {
+    "entity": "alexsmobs:seagull",
+    "name": "海鸥",
+    "english": "Seagull",
+    "aliases": [
+      "海鸥"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:beach"
+    ],
+    "note": "沙滩群系生成"
+  },
+  {
+    "entity": "alexsmobs:tusklin",
+    "name": "獠牙兽",
+    "english": "Tusklin",
+    "aliases": [
+      "獠牙兽"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:snowy_plains"
+    ],
+    "note": "雪原群系生成"
+  },
+  {
+    "entity": "alexsmobs:laviathan",
+    "name": "炽岩",
+    "english": "Laviathan",
+    "aliases": [
+      "炽岩"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "下界生成（看头部碰撞箱）"
+  },
+  {
+    "entity": "alexsmobs:cosmaw",
+    "name": "宙游鲟",
+    "english": "Cosmaw",
+    "aliases": [
+      "宙游鲟"
+    ],
+    "dimensions": [
+      "minecraft:the_end"
+    ],
+    "biomes": [],
+    "note": "末地生成"
+  },
+  {
+    "entity": "alexsmobs:toucan",
+    "name": "巨嘴鸟",
+    "english": "Toucan",
+    "aliases": [
+      "巨嘴鸟"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "丛林群系生成"
+  },
+  {
+    "entity": "alexsmobs:maned_wolf",
+    "name": "鬃狼",
+    "english": "Maned Wolf",
+    "aliases": [
+      "鬃狼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:savanna"
+    ],
+    "note": "热带草原群系生成"
+  },
+  {
+    "entity": "alexsmobs:anteater",
+    "name": "食蚁兽",
+    "english": "Anteater",
+    "aliases": [
+      "食蚁兽"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:jungle"
+    ],
+    "note": "丛林群系生成"
+  },
+  {
+    "entity": "alexsmobs:flutter",
+    "name": "花飘飘",
+    "english": "Flutter",
+    "aliases": [
+      "花飘飘"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "繁华洞穴群系生成"
+  },
+  {
+    "entity": "alexsmobs:gelada_monkey",
+    "name": "狮尾狒狒",
+    "english": "Gelada Monkey",
+    "aliases": [
+      "狮尾狒狒"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:meadow"
+    ],
+    "note": "草甸群系生成"
+  },
+  {
+    "entity": "alexsmobs:jerboa",
+    "name": "跳鼠",
+    "english": "Jerboa",
+    "aliases": [
+      "跳鼠"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:desert"
+    ],
+    "note": "沙漠群系生成"
+  },
+  {
+    "entity": "alexsmobs:terrapin",
+    "name": "水龟",
+    "english": "Terrapin",
+    "aliases": [
+      "水龟"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:river"
+    ],
+    "note": "河流群系生成"
+  },
+  {
+    "entity": "alexsmobs:comb_jelly",
+    "name": "栉水母",
+    "english": "Comb Jelly",
+    "aliases": [
+      "栉水母"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:frozen_ocean"
+    ],
+    "note": "夜晚冻洋群系生成"
+  },
+  {
+    "entity": "alexsmobs:cosmic_cod",
+    "name": "宇宙鳕鱼",
+    "english": "Cosmic Cod",
+    "aliases": [
+      "宇宙鳕鱼"
+    ],
+    "dimensions": [
+      "minecraft:the_end"
+    ],
+    "biomes": [],
+    "note": "末地生成"
+  },
+  {
+    "entity": "alexsmobs:bunfungus",
+    "name": "蘑菇兔",
+    "english": "Bunfungus",
+    "aliases": [
+      "蘑菇兔"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:mushroom_fields"
+    ],
+    "note": "蘑菇岛群系生成"
+  },
+  {
+    "entity": "alexsmobs:bison",
+    "name": "野牛",
+    "english": "Bison",
+    "aliases": [
+      "野牛"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:meadow",
+      "minecraft:plains"
+    ],
+    "note": "平原、积雪的平原和草甸群系生成"
+  },
+  {
+    "entity": "alexsmobs:sea_bear",
+    "name": "海熊",
+    "english": "Sea Bear",
+    "aliases": [
+      "海熊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "alexsmobs:devils_hole_pupfish",
+    "name": "魔鳉",
+    "english": "Devil's Hole Pupfish",
+    "aliases": [
+      "魔鳉"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "什么你问我在哪里找？去任务书仔细看一看吧"
+  },
+  {
+    "entity": "alexsmobs:catfish",
+    "name": "鲶鱼",
+    "english": "Catfish",
+    "aliases": [
+      "鲶鱼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:river",
+      "minecraft:swamp"
+    ],
+    "note": "河流沼泽群系生成"
+  },
+  {
+    "entity": "alexsmobs:flying_fish",
+    "name": "飞鱼",
+    "english": "Flying Fish",
+    "aliases": [
+      "飞鱼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:lukewarm_ocean"
+    ],
+    "note": "温水海洋群系生成"
+  },
+  {
+    "entity": "alexsmobs:skelewag",
+    "name": "骷髅剑鱼",
+    "english": "Skelewag",
+    "aliases": [
+      "骷髅剑鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "失落维度的沉船附近多一点"
+  },
+  {
+    "entity": "alexsmobs:rain_frog",
+    "name": "雨蛙",
+    "english": "Rain Frog",
+    "aliases": [
+      "雨蛙"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:desert"
+    ],
+    "note": "雨天沙漠群系生成"
+  },
+  {
+    "entity": "alexsmobs:potoo",
+    "name": "林鸱",
+    "english": "Potoo",
+    "aliases": [
+      "林鸱"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:dark_forest"
+    ],
+    "note": "黑森林群系生成"
+  },
+  {
+    "entity": "alexsmobs:mudskipper",
+    "name": "弹涂鱼",
+    "english": "Mudskipper",
+    "aliases": [
+      "弹涂鱼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:mangrove_swamp"
+    ],
+    "note": "红树林沼泽生成"
+  },
+  {
+    "entity": "alexsmobs:rhinoceros",
+    "name": "犀牛",
+    "english": "Rhinoceros",
+    "aliases": [
+      "犀牛"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:savanna"
+    ],
+    "note": "热带草原群系生成"
+  },
+  {
+    "entity": "alexsmobs:sugar_glider",
+    "name": "蜜袋鼯",
+    "english": "Sugar Glider",
+    "aliases": [
+      "蜜袋鼯"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:birch_forest"
+    ],
+    "note": "桦木森林群系生成"
+  },
+  {
+    "entity": "alexsmobs:farseer",
+    "name": "瞻远者",
+    "english": "Farseer",
+    "aliases": [
+      "瞻远者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexsmobs:skreecher",
+    "name": "贱叫怪",
+    "english": "Skreecher",
+    "aliases": [
+      "贱叫怪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "幽匿维度生成"
+  },
+  {
+    "entity": "alexsmobs:underminer",
+    "name": "地底矿工",
+    "english": "Underminer",
+    "aliases": [
+      "地底矿工"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "mining_dimension:mining"
+    ],
+    "note": "矿洞废弃矿井生成（耐下心来好好找会遇见的）"
+  },
+  {
+    "entity": "alexsmobs:murmur",
+    "name": "轻语灵",
+    "english": "Murmur",
+    "aliases": [
+      "轻语灵"
+    ],
+    "dimensions": [
+      "minecraft:overworld"
+    ],
+    "biomes": [],
+    "note": "主世界的-30及以下的层数生成"
+  },
+  {
+    "entity": "alexsmobs:murmur_head",
+    "name": "轻语灵的头",
+    "english": "Murmur",
+    "aliases": [
+      "轻语灵的头"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexsmobs:skunk",
+    "name": "臭鼬",
+    "english": "Skunk",
+    "aliases": [
+      "臭鼬"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "森林群系生成"
+  },
+  {
+    "entity": "alexsmobs:banana_slug",
+    "name": "香蕉蛞蝓",
+    "english": "Banana Slug",
+    "aliases": [
+      "香蕉蛞蝓"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:old_growth_pine_taiga"
+    ],
+    "note": "原始松木针叶林群系生成"
+  },
+  {
+    "entity": "alexsmobs:blue_jay",
+    "name": "冠蓝鸦",
+    "english": "Blue Jay",
+    "aliases": [
+      "冠蓝鸦"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "森林群系生成"
+  },
+  {
+    "entity": "alexsmobs:caiman",
+    "name": "凯门鳄",
+    "english": "Caiman",
+    "aliases": [
+      "凯门鳄"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:mangrove_swamp"
+    ],
+    "note": "红树林沼泽群系生成"
+  },
+  {
+    "entity": "alexsmobs:triops",
+    "name": "鲎虫",
+    "english": "Triops",
+    "aliases": [
+      "鲎虫"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:desert"
+    ],
+    "note": "沙漠群系的水里生成，注意一定是沙漠群系"
+  },
+  {
+    "entity": "bookwyrms:book_wyrm",
+    "name": "书卷之龙",
+    "english": "Book Wyrm",
+    "aliases": [
+      "书卷之龙"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "森林群系生成"
+  },
+  {
+    "entity": "takesapillage:clay_golem",
+    "name": "黏土傀儡",
+    "english": "Clay Golem",
+    "aliases": [
+      "黏土傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "类似铁傀儡，但要把铁块换成黏土块"
+  },
+  {
+    "entity": "takesapillage:skirmisher",
+    "name": "突袭者",
+    "english": "Skirmisher",
+    "aliases": [
+      "突袭者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "takesapillage:legioner",
+    "name": "重装军",
+    "english": "Legioner",
+    "aliases": [
+      "重装军"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "以上三个均在巴士底狱生成"
+  },
+  {
+    "entity": "bygonenether:wex",
+    "name": "凋灵恼鬼",
+    "english": "Wex",
+    "aliases": [
+      "凋灵恼鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "击杀凋灵死尸生成"
+  },
+  {
+    "entity": "bygonenether:warped_enderman",
+    "name": "诡异末影人",
+    "english": "Warped Enderman",
+    "aliases": [
+      "诡异末影人"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "下界堡垒生成"
+  },
+  {
+    "entity": "bygonenether:piglin_prisoner",
+    "name": "猪灵囚犯",
+    "english": "Piglin Prisoner",
+    "aliases": [
+      "猪灵囚犯"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巨型化石营地囚笼层升成"
+  },
+  {
+    "entity": "bygonenether:piglin_hunter",
+    "name": "猪灵猎人",
+    "english": "Piglin Hunter",
+    "aliases": [
+      "猪灵猎人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "猪灵庄园生成"
+  },
+  {
+    "entity": "bygonenether:wraither",
+    "name": "凋灵死士",
+    "english": "Wraither",
+    "aliases": [
+      "凋灵死士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巨型化石营地生成"
+  },
+  {
+    "entity": "bygonenether:wither_skeleton_knight",
+    "name": "凋灵骷髅骑士",
+    "english": "Wither Skeleton Knight",
+    "aliases": [
+      "凋灵骷髅骑士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巨型化石营地生成"
+  },
+  {
+    "entity": "bygonenether:corpor",
+    "name": "凋灵蛮兵",
+    "english": "Corpor",
+    "aliases": [
+      "凋灵蛮兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巨型化石营地生成"
+  },
+  {
+    "entity": "bygonenether:wither_skeleton_horse",
+    "name": "凋灵骷髅马",
+    "english": "Wither Skeleton Horse",
+    "aliases": [
+      "凋灵骷髅马"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "猪灵庄园生成"
+  },
+  {
+    "entity": "twilightforest:adherent",
+    "name": "信徒",
+    "english": "Adherent",
+    "aliases": [
+      "信徒"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "twilightforest:alpha_yeti",
+    "name": "雪怪首领",
+    "english": "Alpha Yeti",
+    "aliases": [
+      "雪怪首领"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "雪怪洞窟刷新"
+  },
+  {
+    "entity": "twilightforest:armored_giant",
+    "name": "武装巨人",
+    "english": "Armored Giant",
+    "aliases": [
+      "武装巨人"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:highlands"
+    ],
+    "note": "荆棘高地的云上小屋生成"
+  },
+  {
+    "entity": "twilightforest:bighorn_sheep",
+    "name": "大角羊",
+    "english": "Bighorn Sheep",
+    "aliases": [
+      "大角羊"
+    ],
+    "dimensions": [
+      "twilightforest:twilight_forest"
+    ],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "暮色森林生成"
+  },
+  {
+    "entity": "twilightforest:blockchain_goblin",
+    "name": "链锤哥布林",
+    "english": "Block and Chain Goblin",
+    "aliases": [
+      "链锤哥布林"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑松骑士要塞生成"
+  },
+  {
+    "entity": "twilightforest:boar",
+    "name": "野猪",
+    "english": "Boar",
+    "aliases": [
+      "野猪"
+    ],
+    "dimensions": [
+      "twilightforest:twilight_forest"
+    ],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "暮色森林生成"
+  },
+  {
+    "entity": "twilightforest:carminite_broodling",
+    "name": "砷铅铁寄生虫",
+    "english": "Carminite Broodling",
+    "aliases": [
+      "砷铅铁寄生虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑暗高塔生成"
+  },
+  {
+    "entity": "twilightforest:carminite_ghastguard",
+    "name": "高塔守卫",
+    "english": "Carminite Ghastguard",
+    "aliases": [
+      "高塔守卫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑暗高塔生成（大的那个）"
+  },
+  {
+    "entity": "twilightforest:carminite_ghastling",
+    "name": "砷铅铁恶灵",
+    "english": "Carminite Ghastling",
+    "aliases": [
+      "砷铅铁恶灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑暗高塔生成（小的那个）"
+  },
+  {
+    "entity": "twilightforest:carminite_golem",
+    "name": "砷铅铁傀儡",
+    "english": "Carminite Golem",
+    "aliases": [
+      "砷铅铁傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑暗高塔生成"
+  },
+  {
+    "entity": "twilightforest:death_tome",
+    "name": "死灵书",
+    "english": "Death Tome",
+    "aliases": [
+      "死灵书"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巫妖怪塔生成"
+  },
+  {
+    "entity": "twilightforest:deer",
+    "name": "鹿",
+    "english": "Deer",
+    "aliases": [
+      "鹿"
+    ],
+    "dimensions": [
+      "twilightforest:twilight_forest"
+    ],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "暮色森林生成"
+  },
+  {
+    "entity": "twilightforest:dwarf_rabbit",
+    "name": "侏儒兔",
+    "english": "Dwarf Rabbit",
+    "aliases": [
+      "侏儒兔"
+    ],
+    "dimensions": [
+      "twilightforest:twilight_forest"
+    ],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "暮色森林生成"
+  },
+  {
+    "entity": "twilightforest:fire_beetle",
+    "name": "喷火甲虫",
+    "english": "Fire Beetle",
+    "aliases": [
+      "喷火甲虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "牛头人迷宫生成"
+  },
+  {
+    "entity": "twilightforest:giant_miner",
+    "name": "巨人矿工",
+    "english": "Giant Miner",
+    "aliases": [
+      "巨人矿工"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:highlands"
+    ],
+    "note": "荆棘高地的云上小屋生成"
+  },
+  {
+    "entity": "twilightforest:harbinger_cube",
+    "name": "噩兆立方",
+    "english": "Harbinger Cube",
+    "aliases": [
+      "噩兆立方"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "twilightforest:hedge_spider",
+    "name": "树篱蜘蛛",
+    "english": "Hedge Spider",
+    "aliases": [
+      "树篱蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "树篱迷宫生成"
+  },
+  {
+    "entity": "twilightforest:helmet_crab",
+    "name": "寄居蟹",
+    "english": "Helmet Crab",
+    "aliases": [
+      "寄居蟹"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑松骑士要塞生成"
+  },
+  {
+    "entity": "twilightforest:hostile_wolf",
+    "name": "恶狼",
+    "english": "Hostile Wolf",
+    "aliases": [
+      "恶狼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "树篱迷宫生成"
+  },
+  {
+    "entity": "twilightforest:hydra",
+    "name": "九头蛇",
+    "english": "Hydra",
+    "aliases": [
+      "九头蛇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "twilightforest:ice_crystal",
+    "name": "冰晶",
+    "english": "Ice Crystal",
+    "aliases": [
+      "冰晶"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "极光宫殿内生成"
+  },
+  {
+    "entity": "twilightforest:king_spider",
+    "name": "国王蜘蛛",
+    "english": "King Spider",
+    "aliases": [
+      "国王蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:dark_forest"
+    ],
+    "note": "黑暗森林生成"
+  },
+  {
+    "entity": "twilightforest:knight_phantom",
+    "name": "幻影骑士",
+    "english": "Knight Phantom",
+    "aliases": [
+      "幻影骑士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑松骑士要塞生成"
+  },
+  {
+    "entity": "twilightforest:kobold",
+    "name": "狗头人",
+    "english": "Kobold",
+    "aliases": [
+      "狗头人"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:underground"
+    ],
+    "note": "Y 小于 30 的地下、空心矿山和黑松骑士要塞生成"
+  },
+  {
+    "entity": "twilightforest:lich",
+    "name": "巫妖",
+    "english": "Lich",
+    "aliases": [
+      "巫妖"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巫妖怪塔生成"
+  },
+  {
+    "entity": "twilightforest:lich_minion",
+    "name": "巫妖仆从",
+    "english": "Lich Minion",
+    "aliases": [
+      "巫妖仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巫妖召唤"
+  },
+  {
+    "entity": "twilightforest:lower_goblin_knight",
+    "name": "哥布林骑士（下身）",
+    "english": "Lower Goblin Knight",
+    "aliases": [
+      "哥布林骑士（下身）"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑松骑士要塞生成"
+  },
+  {
+    "entity": "twilightforest:loyal_zombie",
+    "name": "忠诚的僵尸",
+    "english": "Loyal Zombie",
+    "aliases": [
+      "忠诚的僵尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "僵尸权杖召唤"
+  },
+  {
+    "entity": "twilightforest:maze_slime",
+    "name": "迷宫史莱姆",
+    "english": "Maze Slime",
+    "aliases": [
+      "迷宫史莱姆"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "牛头人迷宫生成"
+  },
+  {
+    "entity": "twilightforest:minoshroom",
+    "name": "米诺菇",
+    "english": "Minoshroom",
+    "aliases": [
+      "米诺菇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "牛头人迷宫生成"
+  },
+  {
+    "entity": "twilightforest:minotaur",
+    "name": "牛头人",
+    "english": "Minotaur",
+    "aliases": [
+      "牛头人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "牛头人迷宫生成"
+  },
+  {
+    "entity": "twilightforest:mist_wolf",
+    "name": "迷雾狼",
+    "english": "Mist Wolf",
+    "aliases": [
+      "迷雾狼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:dark_forest"
+    ],
+    "note": "黑暗森林生成"
+  },
+  {
+    "entity": "twilightforest:mosquito_swarm",
+    "name": "蚊群",
+    "english": "Mosquito Swarm",
+    "aliases": [
+      "蚊群"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:swamp"
+    ],
+    "note": "暮光沼泽生成"
+  },
+  {
+    "entity": "twilightforest:naga",
+    "name": "娜迦",
+    "english": "Naga",
+    "aliases": [
+      "娜迦"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "娜迦庭院生成"
+  },
+  {
+    "entity": "twilightforest:penguin",
+    "name": "企鹅",
+    "english": "Penguin",
+    "aliases": [
+      "企鹅"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:glacier"
+    ],
+    "note": "极光冰川生成"
+  },
+  {
+    "entity": "twilightforest:pinch_beetle",
+    "name": "巨钳甲虫",
+    "english": "Pinch Beetle",
+    "aliases": [
+      "巨钳甲虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "牛头人迷宫、黑暗高塔以及大型空心矿山生成e"
+  },
+  {
+    "entity": "twilightforest:quest_ram",
+    "name": "谜题羊",
+    "english": "Quest Ram",
+    "aliases": [
+      "谜题羊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "谜题羊树丛刷新"
+  },
+  {
+    "entity": "twilightforest:raven",
+    "name": "渡鸦",
+    "english": "Raven",
+    "aliases": [
+      "渡鸦"
+    ],
+    "dimensions": [
+      "twilightforest:twilight_forest"
+    ],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "暮色森林生成"
+  },
+  {
+    "entity": "twilightforest:redcap",
+    "name": "红帽",
+    "english": "Redcap",
+    "aliases": [
+      "红帽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "空心矿山和黑松骑士要塞生成"
+  },
+  {
+    "entity": "twilightforest:redcap_sapper",
+    "name": "红帽工兵",
+    "english": "Redcap Sapper",
+    "aliases": [
+      "红帽工兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "空心矿山和黑松骑士要塞生成"
+  },
+  {
+    "entity": "twilightforest:rising_zombie",
+    "name": "僵尸",
+    "english": "Zombie",
+    "aliases": [
+      "僵尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "twilightforest:skeleton_druid",
+    "name": "骷髅德鲁伊",
+    "english": "Skeleton Druid",
+    "aliases": [
+      "骷髅德鲁伊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "你要是先找到国王蜘蛛的话，你就会发现某个东西坐在国王蜘蛛上面"
+  },
+  {
+    "entity": "twilightforest:slime_beetle",
+    "name": "黏液甲虫",
+    "english": "Slime Beetle",
+    "aliases": [
+      "黏液甲虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "牛头人迷宫，黑松骑士要塞以及大型空心矿山生成"
+  },
+  {
+    "entity": "twilightforest:snow_guardian",
+    "name": "冰雪守卫",
+    "english": "Snow Guardian",
+    "aliases": [
+      "冰雪守卫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "极光宫殿生成"
+  },
+  {
+    "entity": "twilightforest:snow_queen",
+    "name": "冰雪女王",
+    "english": "Snow Queen",
+    "aliases": [
+      "冰雪女王"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "极光宫殿生成"
+  },
+  {
+    "entity": "twilightforest:squirrel",
+    "name": "松鼠",
+    "english": "Squirrel",
+    "aliases": [
+      "松鼠"
+    ],
+    "dimensions": [
+      "twilightforest:twilight_forest"
+    ],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "暮色森林生成"
+  },
+  {
+    "entity": "twilightforest:stable_ice_core",
+    "name": "冰精灵",
+    "english": "Stable Ice Core",
+    "aliases": [
+      "冰精灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "极光宫殿生成"
+  },
+  {
+    "entity": "twilightforest:swarm_spider",
+    "name": "集群蜘蛛",
+    "english": "Swarm Spider",
+    "aliases": [
+      "集群蜘蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "空心矿山、树篱迷宫与树洞等刷怪笼生成"
+  },
+  {
+    "entity": "twilightforest:tiny_bird",
+    "name": "小鸟",
+    "english": "Tiny Bird",
+    "aliases": [
+      "小鸟"
+    ],
+    "dimensions": [
+      "twilightforest:twilight_forest"
+    ],
+    "biomes": [
+      "minecraft:forest"
+    ],
+    "note": "暮色森林生成"
+  },
+  {
+    "entity": "twilightforest:towerwood_borer",
+    "name": "塔木蛀虫",
+    "english": "Towerwood Borer",
+    "aliases": [
+      "塔木蛀虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑暗高塔破坏虫蛀塔木生成"
+  },
+  {
+    "entity": "twilightforest:troll",
+    "name": "巨魔",
+    "english": "Troll",
+    "aliases": [
+      "巨魔"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巨魔洞穴生成"
+  },
+  {
+    "entity": "twilightforest:unstable_ice_core",
+    "name": "破碎冰精灵",
+    "english": "Unstable Ice Core",
+    "aliases": [
+      "破碎冰精灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "极光宫殿生成"
+  },
+  {
+    "entity": "twilightforest:upper_goblin_knight",
+    "name": "哥布林骑士（上身）",
+    "english": "Upper Goblin Knight",
+    "aliases": [
+      "哥布林骑士（上身）"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "twilightforest:ur_ghast",
+    "name": "暮初恶魂",
+    "english": "Ur-Ghast",
+    "aliases": [
+      "暮初恶魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "黑暗高塔生成"
+  },
+  {
+    "entity": "twilightforest:winter_wolf",
+    "name": "寒冬狼",
+    "english": "Winter Wolf",
+    "aliases": [
+      "寒冬狼"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "twilightforest:snowy_forest"
+    ],
+    "note": "积雪森林生成"
+  },
+  {
+    "entity": "twilightforest:wraith",
+    "name": "幽灵",
+    "english": "Wraith",
+    "aliases": [
+      "幽灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "twilightforest:yeti",
+    "name": "雪怪",
+    "english": "Yeti",
+    "aliases": [
+      "雪怪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "雪怪洞窟生成"
+  },
+  {
+    "entity": "eeeabsmobs:corpse",
+    "name": "死尸",
+    "english": "Corpse",
+    "aliases": [
+      "死尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "eeeabsmobs:corpse_villager",
+    "name": "死尸村民",
+    "english": "Corpse Villager",
+    "aliases": [
+      "死尸村民"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "死尸术士召唤"
+  },
+  {
+    "entity": "eeeabsmobs:corpse_warlock",
+    "name": "死尸术士",
+    "english": "Corpse Warlock",
+    "aliases": [
+      "死尸术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "血色祭坛生成"
+  },
+  {
+    "entity": "eeeabsmobs:corpse_to_player",
+    "name": "随从死尸",
+    "english": "Corpse Minion",
+    "aliases": [
+      "随从死尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "唤魂项链召唤"
+  },
+  {
+    "entity": "eeeabsmobs:immortal_skeleton",
+    "name": "不朽骷髅",
+    "english": "Immortal Skeleton",
+    "aliases": [
+      "不朽骷髅"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "ageofmythology:soul_cave"
+    ],
+    "note": "灵魂禁土生成"
+  },
+  {
+    "entity": "eeeabsmobs:immortal_shaman",
+    "name": "不朽巫师",
+    "english": "Immortal Shaman",
+    "aliases": [
+      "不朽巫师"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "ageofmythology:soul_cave"
+    ],
+    "note": "灵魂禁土生成"
+  },
+  {
+    "entity": "eeeabsmobs:immortal_golem",
+    "name": "不朽傀儡",
+    "english": "Immortal Golem",
+    "aliases": [
+      "不朽傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "ageofmythology:soul_cave"
+    ],
+    "note": "灵魂禁土生成"
+  },
+  {
+    "entity": "eeeabsmobs:immortal_executioner",
+    "name": "不朽斩魂者",
+    "english": "Immortal Executioner",
+    "aliases": [
+      "不朽斩魂者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "eeeabsmobs:immortal",
+    "name": "不朽者",
+    "english": "The Immortal",
+    "aliases": [
+      "不朽者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "eeeabsmobs:nameless_guardian",
+    "name": "无名守卫者",
+    "english": "Nameless Guardian",
+    "aliases": [
+      "无名守卫者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "古陵生成"
+  },
+  {
+    "entity": "eeeabsmobs:tester",
+    "name": "测试者",
+    "english": "Tester",
+    "aliases": [
+      "测试者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录（当然你能召唤出来那就可以记录）"
+  },
+  {
+    "entity": "cataclysm:ender_golem",
+    "name": "末影傀儡",
+    "english": "Ender Golem",
+    "aliases": [
+      "末影傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "废弃堡垒生成"
+  },
+  {
+    "entity": "cataclysm:ender_guardian",
+    "name": "末影守卫",
+    "english": "Ender Guardian",
+    "aliases": [
+      "末影守卫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "废弃堡垒生成"
+  },
+  {
+    "entity": "cataclysm:netherite_monstrosity",
+    "name": "下界合金巨兽",
+    "english": "Netherite Monstrosity",
+    "aliases": [
+      "下界合金巨兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "灵魂锻造厂生成"
+  },
+  {
+    "entity": "cataclysm:netherite_ministrosity",
+    "name": "下界合金幼兽",
+    "english": "Netherite Ministrosity",
+    "aliases": [
+      "下界合金幼兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:ignis",
+    "name": "焰魔",
+    "english": "Ignis",
+    "aliases": [
+      "焰魔"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "烈焰竞技场"
+  },
+  {
+    "entity": "cataclysm:endermaptera",
+    "name": "末影甲虫",
+    "english": "Endermaptera",
+    "aliases": [
+      "末影甲虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "废弃堡垒生成"
+  },
+  {
+    "entity": "cataclysm:deepling",
+    "name": "渊灵",
+    "english": "Deepling",
+    "aliases": [
+      "渊灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:deepling_brute",
+    "name": "渊灵蛮兵",
+    "english": "Deepling Brute",
+    "aliases": [
+      "渊灵蛮兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:deepling_angler",
+    "name": "渊灵垂钓者",
+    "english": "Deepling Angler",
+    "aliases": [
+      "渊灵垂钓者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:deepling_priest",
+    "name": "渊灵祭司",
+    "english": "Deepling Priest",
+    "aliases": [
+      "渊灵祭司"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:deepling_warlock",
+    "name": "渊灵术士",
+    "english": "Deepling Warlock",
+    "aliases": [
+      "渊灵术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:lionfish",
+    "name": "蓑鲉",
+    "english": "Lionfish",
+    "aliases": [
+      "蓑鲉"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:coral_golem",
+    "name": "珊瑚傀儡",
+    "english": "Coral Golem",
+    "aliases": [
+      "珊瑚傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:coralssus",
+    "name": "珊瑚巨像",
+    "english": "Coralssus",
+    "aliases": [
+      "珊瑚巨像"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "以上皆在沉没之城生成"
+  },
+  {
+    "entity": "cataclysm:ignited_berserker",
+    "name": "炽燃狂魂",
+    "english": "Ignited Berserker",
+    "aliases": [
+      "炽燃狂魂"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [],
+    "note": "击败焰魔后会有极小的概率自然生成在下界要塞"
+  },
+  {
+    "entity": "cataclysm:the_harbinger",
+    "name": "先驱者",
+    "english": "The Harbinger",
+    "aliases": [
+      "先驱者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:the_watcher",
+    "name": "观测者",
+    "english": "The Watcher",
+    "aliases": [
+      "观测者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:the_prowler",
+    "name": "徘徊者",
+    "english": "The Prowler",
+    "aliases": [
+      "徘徊者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "以上皆在远古工厂生成"
+  },
+  {
+    "entity": "cataclysm:the_leviathan",
+    "name": "利维坦",
+    "english": "The Leviathan",
+    "aliases": [
+      "利维坦"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:the_baby_leviathan",
+    "name": "幼年利维坦",
+    "english": "The Baby Leviathan",
+    "aliases": [
+      "幼年利维坦"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:amethyst_crab",
+    "name": "紫水晶巨蟹",
+    "english": "Amethyst Crab",
+    "aliases": [
+      "紫水晶巨蟹"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:lush_caves"
+    ],
+    "note": "繁茂洞穴"
+  },
+  {
+    "entity": "cataclysm:ancient_ancient_remnant",
+    "name": "上古遗魂",
+    "english": "Ancient Ancient Remnant",
+    "aliases": [
+      "上古遗魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录（当然你可以指令召唤出来）"
+  },
+  {
+    "entity": "cataclysm:ancient_remnant",
+    "name": "远古遗魂",
+    "english": "Ancient Remnant",
+    "aliases": [
+      "远古遗魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:modern_remnant",
+    "name": "现世遗魂",
+    "english": "Modern Remnant",
+    "aliases": [
+      "现世遗魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:maledictus",
+    "name": "咒翼灵骸",
+    "english": "Maledictus",
+    "aliases": [
+      "咒翼灵骸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:draugr",
+    "name": "再行魂尸",
+    "english": "Draugr",
+    "aliases": [
+      "再行魂尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:royal_draugr",
+    "name": "皇家魂尸",
+    "english": "Royal Draugr",
+    "aliases": [
+      "皇家魂尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:elite_draugr",
+    "name": "精英魂尸",
+    "english": "Elite Draugr",
+    "aliases": [
+      "精英魂尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:aptrgangr",
+    "name": "冥行武弁",
+    "english": "Aptrgangr",
+    "aliases": [
+      "冥行武弁"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "以上皆在苦寒监牢生成"
+  },
+  {
+    "entity": "cataclysm:hippocamtus",
+    "name": "沧溟巡守",
+    "english": "Hippocamtus",
+    "aliases": [
+      "沧溟巡守"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:cindaria",
+    "name": "水母莉亚",
+    "english": "Cindaria",
+    "aliases": [
+      "水母莉亚"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:clawdian",
+    "name": "巨钳守卫",
+    "english": "Clawdian",
+    "aliases": [
+      "巨钳守卫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:scylla",
+    "name": "斯库拉",
+    "english": "Scylla",
+    "aliases": [
+      "斯库拉"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:urchinkin",
+    "name": "小海胆",
+    "english": "Urchinkin",
+    "aliases": [
+      "小海胆"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:drowned_host",
+    "name": "溺尸宿主",
+    "english": "Drowned Host",
+    "aliases": [
+      "溺尸宿主"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "cataclysm:symbiocto",
+    "name": "章鱼共生体",
+    "english": "Symbiocto",
+    "aliases": [
+      "章鱼共生体"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "以上皆在卫城生成"
+  },
+  {
+    "entity": "goety_revelation:phantom_servant",
+    "name": "幻翼仆从",
+    "english": "Phantom Servant",
+    "aliases": [
+      "幻翼仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "当亚波伦的头衔为“黑天使之影”时，其召唤的狱焰将会被替换为幻翼仆从（无法记录）"
+  },
+  {
+    "entity": "goety_revelation:wither_servant",
+    "name": "凋灵仆从",
+    "english": "Wither Servant",
+    "aliases": [
+      "凋灵仆从"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法召唤"
+  },
+  {
+    "entity": "deeperdarker:sculk_centipede",
+    "name": "幽匿蜈蚣",
+    "english": "Sculk Centipede",
+    "aliases": [
+      "幽匿蜈蚣"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "deeperdarker:sculk_leech",
+    "name": "幽匿水蛭",
+    "english": "Sculk Leech",
+    "aliases": [
+      "幽匿水蛭"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "deeperdarker:sculk_snapper",
+    "name": "幽匿啃啮兽",
+    "english": "Sculk Snapper",
+    "aliases": [
+      "幽匿啃啮兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "deeperdarker:shattered",
+    "name": "碎裂者",
+    "english": "Shattered",
+    "aliases": [
+      "碎裂者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "deeperdarker:shriek_worm",
+    "name": "尖啸匿蠕",
+    "english": "Shriek Worm",
+    "aliases": [
+      "尖啸匿蠕"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "deeperdarker:stalker",
+    "name": "潜行者",
+    "english": "Stalker",
+    "aliases": [
+      "潜行者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "以上都在幽匿维度生成"
+  },
+  {
+    "entity": "vinery:wandering_winemaker",
+    "name": "流浪酿酒师",
+    "english": "Wandering Winemaker",
+    "aliases": [
+      "流浪酿酒师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "illageandspillage:igniter",
+    "name": "纵火者",
+    "english": "Igniter",
+    "aliases": [
+      "纵火者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击"
+  },
+  {
+    "entity": "illageandspillage:engineer",
+    "name": "工程师",
+    "english": "Engineer",
+    "aliases": [
+      "工程师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击"
+  },
+  {
+    "entity": "illageandspillage:chagrin_sentry",
+    "name": "懊恼哨兵",
+    "english": "Chagrin Sentry",
+    "aliases": [
+      "懊恼哨兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "工程兵召唤"
+  },
+  {
+    "entity": "illageandspillage:hinder",
+    "name": "治愈者",
+    "english": "Hinder",
+    "aliases": [
+      "治愈者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "工程兵召唤"
+  },
+  {
+    "entity": "illageandspillage:factory",
+    "name": "兵工厂",
+    "english": "Factory",
+    "aliases": [
+      "兵工厂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "工程兵召唤"
+  },
+  {
+    "entity": "illageandspillage:beeper",
+    "name": "传呼自爆机",
+    "english": "Beeper",
+    "aliases": [
+      "传呼自爆机"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "兵工厂召唤"
+  },
+  {
+    "entity": "illageandspillage:sniper",
+    "name": "狙击手",
+    "english": "Sniper",
+    "aliases": [
+      "狙击手"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "兵工厂召唤"
+  },
+  {
+    "entity": "illageandspillage:magispeller",
+    "name": "魔法师",
+    "english": "Magispeller",
+    "aliases": [
+      "魔法师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击"
+  },
+  {
+    "entity": "illageandspillage:faker",
+    "name": "魔法克隆体",
+    "english": "Faker",
+    "aliases": [
+      "魔法克隆体"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "魔法师低于125血召唤"
+  },
+  {
+    "entity": "illageandspillage:illashooter",
+    "name": "厄灵弓手",
+    "english": "Illashooter",
+    "aliases": [
+      "厄灵弓手"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "魔法师召唤"
+  },
+  {
+    "entity": "illageandspillage:crashager",
+    "name": "碾压者",
+    "english": "Crashager",
+    "aliases": [
+      "碾压者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "魔法师召唤"
+  },
+  {
+    "entity": "illageandspillage:twittollager",
+    "name": "暴躁推特哥",
+    "english": "Twittollager",
+    "aliases": [
+      "暴躁推特哥"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击"
+  },
+  {
+    "entity": "illageandspillage:spiritcaller",
+    "name": "灵魂感应师",
+    "english": "Spiritcaller",
+    "aliases": [
+      "灵魂感应师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击"
+  },
+  {
+    "entity": "illageandspillage:mob_spirit",
+    "name": "生之灵",
+    "english": "Mob Spirit",
+    "aliases": [
+      "生之灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "illageandspillage:illager_soul",
+    "name": "灾厄灵",
+    "english": "Illager Soul",
+    "aliases": [
+      "灾厄灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "illageandspillage:imp",
+    "name": "灵魂",
+    "english": "Imp",
+    "aliases": [
+      "灵魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "illageandspillage:spirit_hand",
+    "name": "灵魂之掌",
+    "english": "Spirit Hand",
+    "aliases": [
+      "灵魂之掌"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "illageandspillage:crocofang",
+    "name": "鳄牙",
+    "english": "Crocofang",
+    "aliases": [
+      "鳄牙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击"
+  },
+  {
+    "entity": "illageandspillage:absorber",
+    "name": "伤害吸收者",
+    "english": "Absorber",
+    "aliases": [
+      "伤害吸收者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "illageandspillage:preserver",
+    "name": "保护者",
+    "english": "Preserver",
+    "aliases": [
+      "保护者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "袭击"
+  },
+  {
+    "entity": "illageandspillage:eyesore",
+    "name": "血眼",
+    "english": "Eyesore",
+    "aliases": [
+      "血眼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "怪人召唤"
+  },
+  {
+    "entity": "illageandspillage:funnybone",
+    "name": "幽默骨感",
+    "english": "Funnybone",
+    "aliases": [
+      "幽默骨感"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "怪人召唤"
+  },
+  {
+    "entity": "illageandspillage:old_magispeller",
+    "name": "旧版魔法师",
+    "english": "Magispeller",
+    "aliases": [
+      "旧版魔法师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "illageandspillage:kaboomer",
+    "name": "虚拟苦力怕",
+    "english": "Kaboomer",
+    "aliases": [
+      "虚拟苦力怕"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "魔法师召唤"
+  },
+  {
+    "entity": "illageandspillage:trick_or_treat",
+    "name": "捣蛋糖果",
+    "english": "Trick or Treat",
+    "aliases": [
+      "捣蛋糖果"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法召唤"
+  },
+  {
+    "entity": "mowziesmobs:foliaath",
+    "name": "巨噬叶",
+    "english": "Foliaath",
+    "aliases": [
+      "巨噬叶"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:baby_foliaath",
+    "name": "巨噬叶幼苗",
+    "english": "Baby Foliaath",
+    "aliases": [
+      "巨噬叶幼苗"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "巨噬叶芽种在草方块召唤"
+  },
+  {
+    "entity": "mowziesmobs:ferrous_wroughtnaut",
+    "name": "钢铁守护者",
+    "english": "Ferrous Wroughtnaut",
+    "aliases": [
+      "钢铁守护者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:umvuthana_follower_raptor",
+    "name": "乌姆塔纳猛禽追随者",
+    "english": "Umvuthana",
+    "aliases": [
+      "乌姆塔纳猛禽追随者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:umvuthana_follower_player",
+    "name": "乌姆塔纳追随者",
+    "english": "Umvuthana",
+    "aliases": [
+      "乌姆塔纳追随者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "mowziesmobs:umvuthana_crane_player",
+    "name": "乌姆塔纳食人鹤追随者",
+    "english": "Umvuthana Crane",
+    "aliases": [
+      "乌姆塔纳食人鹤追随者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "mowziesmobs:umvuthana",
+    "name": "乌姆塔纳族人",
+    "english": "Umvuthana",
+    "aliases": [
+      "乌姆塔纳族人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:umvuthana_raptor",
+    "name": "乌姆塔纳猛禽",
+    "english": "Umvuthana Raptor",
+    "aliases": [
+      "乌姆塔纳猛禽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:umvuthana_crane",
+    "name": "乌姆塔纳食人鹤",
+    "english": "Umvuthana Crane",
+    "aliases": [
+      "乌姆塔纳食人鹤"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:frostmaw",
+    "name": "霜冻巨兽",
+    "english": "Frostmaw",
+    "aliases": [
+      "霜冻巨兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:grottol",
+    "name": "岩壳",
+    "english": "Grottol",
+    "aliases": [
+      "岩壳"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:lantern",
+    "name": "浮灯",
+    "english": "Lantern",
+    "aliases": [
+      "浮灯"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:naga",
+    "name": "娜迦",
+    "english": "Naga",
+    "aliases": [
+      "娜迦"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:sculptor",
+    "name": "雕刻家-通臂大师",
+    "english": "Tongbi, the Sculptor",
+    "aliases": [
+      "雕刻家-通臂大师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "mowziesmobs:bluff",
+    "name": "泥峭人",
+    "english": "Bluff",
+    "aliases": [
+      "泥峭人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "graveyard:reaper",
+    "name": "死神",
+    "english": "Reaper",
+    "aliases": [
+      "死神"
+    ],
+    "dimensions": [
+      "minecraft:the_nether"
+    ],
+    "biomes": [
+      "minecraft:nether_wastes",
+      "minecraft:swamp"
+    ],
+    "note": "沼泽，下界荒地群系生成"
+  },
+  {
+    "entity": "graveyard:acolyte",
+    "name": "守灵人",
+    "english": "Acolyte",
+    "aliases": [
+      "守灵人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "haunted house或crypt生成"
+  },
+  {
+    "entity": "graveyard:corrupted_vindicator",
+    "name": "腐化卫道士",
+    "english": "Corrupted Vindicator",
+    "aliases": [
+      "腐化卫道士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "crypt生成"
+  },
+  {
+    "entity": "graveyard:corrupted_pillager",
+    "name": "腐化掠夺者",
+    "english": "Corrupted Pillager",
+    "aliases": [
+      "腐化掠夺者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "crypt生成"
+  },
+  {
+    "entity": "graveyard:skeleton_creeper",
+    "name": "骷髅苦力怕",
+    "english": "Skeleton Creeper",
+    "aliases": [
+      "骷髅苦力怕"
+    ],
+    "dimensions": [],
+    "biomes": [
+      "minecraft:dark_forest"
+    ],
+    "note": "黑森林生成"
+  },
+  {
+    "entity": "graveyard:ghoul",
+    "name": "食尸鬼",
+    "english": "Ghoul",
+    "aliases": [
+      "食尸鬼",
+      "食尸鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "graveyard:revenant",
+    "name": "亡魂",
+    "english": "Revenant",
+    "aliases": [
+      "亡魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "graveyard:wraith",
+    "name": "幽魂",
+    "english": "Wraith",
+    "aliases": [
+      "幽魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "crypt生成"
+  },
+  {
+    "entity": "graveyard:nightmare",
+    "name": "梦魇",
+    "english": "Nightmare",
+    "aliases": [
+      "梦魇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "graveyard:lich",
+    "name": "腐化英雄",
+    "english": "Corrupted Champion",
+    "aliases": [
+      "腐化英雄"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "ruins结构生成，什么你问我怎么召唤？看任务书去"
+  },
+  {
+    "entity": "conjurer_illager:conjurer",
+    "name": "魔术师",
+    "english": "Conjurer",
+    "aliases": [
+      "魔术师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:fire_dragon",
+    "name": "火龙",
+    "english": "Fire Dragon",
+    "aliases": [
+      "火龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:ice_dragon",
+    "name": "冰龙",
+    "english": "Ice Dragon",
+    "aliases": [
+      "冰龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:lightning_dragon",
+    "name": "电龙",
+    "english": "Lightning Dragon",
+    "aliases": [
+      "电龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:hippogryph",
+    "name": "骏鹰",
+    "english": "Hippogryph",
+    "aliases": [
+      "骏鹰"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:gorgon",
+    "name": "蛇发女妖",
+    "english": "Gorgon",
+    "aliases": [
+      "蛇发女妖"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:pixie",
+    "name": "小精灵",
+    "english": "Pixie",
+    "aliases": [
+      "小精灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:cyclops",
+    "name": "独眼巨人",
+    "english": "Cyclops",
+    "aliases": [
+      "独眼巨人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:siren",
+    "name": "塞壬",
+    "english": "Siren",
+    "aliases": [
+      "塞壬"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:hippocampus",
+    "name": "海马",
+    "english": "Hippocampus",
+    "aliases": [
+      "海马"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:deathworm",
+    "name": "死亡蠕虫",
+    "english": "Death Worm",
+    "aliases": [
+      "死亡蠕虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:cockatrice",
+    "name": "鸡蛇",
+    "english": "Cockatrice",
+    "aliases": [
+      "鸡蛇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:stymphalian_bird",
+    "name": "铜羽泽鹗",
+    "english": "Stymphalian Bird",
+    "aliases": [
+      "铜羽泽鹗"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:troll",
+    "name": "食人妖",
+    "english": "Troll",
+    "aliases": [
+      "食人妖"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:amphithere",
+    "name": "翼蚺",
+    "english": "Amphithere",
+    "aliases": [
+      "翼蚺"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:sea_serpent",
+    "name": "海蟒",
+    "english": "Sea Serpent",
+    "aliases": [
+      "海蟒"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:dread_thrall",
+    "name": "悚怖尸奴",
+    "english": "Dread Thrall",
+    "aliases": [
+      "悚怖尸奴"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:dread_ghoul",
+    "name": "悚怖食尸鬼",
+    "english": "Dread Ghoul",
+    "aliases": [
+      "悚怖食尸鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:dread_beast",
+    "name": "悚怖尸兽",
+    "english": "Dread Beast",
+    "aliases": [
+      "悚怖尸兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:dread_scuttler",
+    "name": "悚怖劫蛛",
+    "english": "Dread Scuttler",
+    "aliases": [
+      "悚怖劫蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:dread_lich",
+    "name": "悚怖尸巫",
+    "english": "Dread Lich",
+    "aliases": [
+      "悚怖尸巫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:dread_knight",
+    "name": "悚怖尸骑",
+    "english": "Dread Knight",
+    "aliases": [
+      "悚怖尸骑"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:dread_horse",
+    "name": "悚怖尸骑战马",
+    "english": "Dread Knight Horse",
+    "aliases": [
+      "悚怖尸骑战马"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:hydra",
+    "name": "九头蛇",
+    "english": "Hydra",
+    "aliases": [
+      "九头蛇"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "iceandfire:ghost",
+    "name": "幽灵",
+    "english": "Ghost",
+    "aliases": [
+      "幽灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "bosses_of_mass_destruction:lich",
+    "name": "暗夜巫妖",
+    "english": "Night Lich",
+    "aliases": [
+      "暗夜巫妖"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "bosses_of_mass_destruction:obsidilith",
+    "name": "黑曜石柱",
+    "english": "Obsidilith",
+    "aliases": [
+      "黑曜石柱"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "bosses_of_mass_destruction:gauntlet",
+    "name": "下界铁掌",
+    "english": "Nether Gauntlet",
+    "aliases": [
+      "下界铁掌"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "bosses_of_mass_destruction:void_blossom",
+    "name": "虚空之花",
+    "english": "Void Blossom",
+    "aliases": [
+      "虚空之花"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "meetyourfight:bellringer",
+    "name": "敲钟人",
+    "english": "Bellringer",
+    "aliases": [
+      "敲钟人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "meetyourfight:dame_fortuna",
+    "name": "福尔图娜女爵",
+    "english": "Dame Fortuna",
+    "aliases": [
+      "福尔图娜女爵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "meetyourfight:rosalyne",
+    "name": "薄暮之锋，罗莎琳",
+    "english": "Rosalyne, Blade of Dusk",
+    "aliases": [
+      "薄暮之锋，罗莎琳"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "meetyourfight:rose_spirit",
+    "name": "蔷薇怨灵",
+    "english": "Rose Spirit",
+    "aliases": [
+      "蔷薇怨灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:teletor",
+    "name": "磁流灵",
+    "english": "Teletor",
+    "aliases": [
+      "磁流灵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:magnetron",
+    "name": "磁控机兵",
+    "english": "Magnetron",
+    "aliases": [
+      "磁控机兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:boundroid",
+    "name": "弹跳机兵",
+    "english": "Boundroid",
+    "aliases": [
+      "弹跳机兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:boundroid_winch",
+    "name": "弹跳机兵绞盘",
+    "english": "Boundroid Winch",
+    "aliases": [
+      "弹跳机兵绞盘"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:ferrouslime",
+    "name": "富铁史莱姆",
+    "english": "Ferrouslime",
+    "aliases": [
+      "富铁史莱姆"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:notor",
+    "name": "扫描机兵",
+    "english": "Notor",
+    "aliases": [
+      "扫描机兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:subterranodon",
+    "name": "地底翼龙",
+    "english": "Subterranodon",
+    "aliases": [
+      "地底翼龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:vallumraptor",
+    "name": "阔鼻迅猛龙",
+    "english": "Vallumraptor",
+    "aliases": [
+      "阔鼻迅猛龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:grottoceratops",
+    "name": "洞穴角龙",
+    "english": "Grottoceratops",
+    "aliases": [
+      "洞穴角龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:trilocaris",
+    "name": "三叶虾",
+    "english": "Trilocaris",
+    "aliases": [
+      "三叶虾"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:tremorsaurus",
+    "name": "撼地龙",
+    "english": "Tremorsaurus",
+    "aliases": [
+      "撼地龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:relicheirus",
+    "name": "遗迹恐手龙",
+    "english": "Relicheirus",
+    "aliases": [
+      "遗迹恐手龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:atlatitan",
+    "name": "擎天龙",
+    "english": "Atlatitan",
+    "aliases": [
+      "擎天龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:nucleeper",
+    "name": "核能苦力怕",
+    "english": "Nucleeper",
+    "aliases": [
+      "核能苦力怕"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:radgill",
+    "name": "辐鳃鱼",
+    "english": "Radgill",
+    "aliases": [
+      "辐鳃鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:brainiac",
+    "name": "舐脑魔",
+    "english": "Brainiac",
+    "aliases": [
+      "舐脑魔"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:gammaroach",
+    "name": "伽马蟑螂",
+    "english": "Gammaroach",
+    "aliases": [
+      "伽马蟑螂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:raycat",
+    "name": "射线猫",
+    "english": "Raycat",
+    "aliases": [
+      "射线猫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:tremorzilla",
+    "name": "撼地斯拉",
+    "english": "Tremorzilla",
+    "aliases": [
+      "撼地斯拉"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "记录点在尾巴根"
+  },
+  {
+    "entity": "alexscaves:lanternfish",
+    "name": "灯笼鱼",
+    "english": "Lanternfish",
+    "aliases": [
+      "灯笼鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:sea_pig",
+    "name": "海猪",
+    "english": "Sea Pig",
+    "aliases": [
+      "海猪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:hullbreaker",
+    "name": "碎船兽",
+    "english": "Hullbreaker",
+    "aliases": [
+      "碎船兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:gossamer_worm",
+    "name": "浮蚕",
+    "english": "Gossamer Worm",
+    "aliases": [
+      "浮蚕"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:tripodfish",
+    "name": "三脚鱼",
+    "english": "Tripodfish",
+    "aliases": [
+      "三脚鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:deep_one",
+    "name": "深潜者",
+    "english": "Deep One",
+    "aliases": [
+      "深潜者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:deep_one_knight",
+    "name": "深潜者骑士",
+    "english": "Deep One Knight",
+    "aliases": [
+      "深潜者骑士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:deep_one_mage",
+    "name": "深潜者法师",
+    "english": "Deep One Mage",
+    "aliases": [
+      "深潜者法师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:mine_guardian",
+    "name": "水雷守卫者",
+    "english": "Mine Guardian",
+    "aliases": [
+      "水雷守卫者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:gloomoth",
+    "name": "幽暗蛾",
+    "english": "Gloomoth",
+    "aliases": [
+      "幽暗蛾"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:underzealot",
+    "name": "地底异教徒",
+    "english": "Underzealot",
+    "aliases": [
+      "地底异教徒"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:watcher",
+    "name": "窥心者",
+    "english": "Watcher",
+    "aliases": [
+      "窥心者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:corrodent",
+    "name": "蚀牙兽",
+    "english": "Corrodent",
+    "aliases": [
+      "蚀牙兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:vesper",
+    "name": "夜行蝠",
+    "english": "Vesper",
+    "aliases": [
+      "夜行蝠"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:forsaken",
+    "name": "遗弃者",
+    "english": "Forsaken",
+    "aliases": [
+      "遗弃者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:sweetish_fish",
+    "name": "软糖鱼",
+    "english": "Sweetish Fish",
+    "aliases": [
+      "软糖鱼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:caniac",
+    "name": "嗜糖魔",
+    "english": "Caniac",
+    "aliases": [
+      "嗜糖魔"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:gumbeeper",
+    "name": "糖球苦力怕",
+    "english": "Gumbeeper",
+    "aliases": [
+      "糖球苦力怕"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:candicorn",
+    "name": "糖果独角兽",
+    "english": "Candicorn",
+    "aliases": [
+      "糖果独角兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:caramel_cube",
+    "name": "焦糖怪",
+    "english": "Caramel Cube",
+    "aliases": [
+      "焦糖怪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:gummy_bear",
+    "name": "软糖熊",
+    "english": "Gummy Bear",
+    "aliases": [
+      "软糖熊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:licowitch",
+    "name": "甘草女巫",
+    "english": "Licowitch",
+    "aliases": [
+      "甘草女巫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "alexscaves:gingerbread_man",
+    "name": "姜饼人",
+    "english": "Gingerbread Man",
+    "aliases": [
+      "姜饼人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "traveloptics:fading_mage",
+    "name": "褪色法师",
+    "english": "Fading Mage",
+    "aliases": [
+      "褪色法师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "traveloptics:aquamancer",
+    "name": "源流术士",
+    "english": "Aquamancer",
+    "aliases": [
+      "源流术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "traveloptics:void_tome",
+    "name": "虚空魔典",
+    "english": "Void Tome",
+    "aliases": [
+      "虚空魔典"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "traveloptics:voidshelf_golem",
+    "name": "虚空书架傀儡",
+    "english": "VoidShelf Golem",
+    "aliases": [
+      "虚空书架傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "traveloptics:aqua_grandmaster",
+    "name": "源流宗师",
+    "english": "Aqua Grandmaster",
+    "aliases": [
+      "源流宗师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "traveloptics:summoned_clawdian",
+    "name": "被唤起的巨钳守卫",
+    "english": "Summoned Clawdian",
+    "aliases": [
+      "被唤起的巨钳守卫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "卫城先驱召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_hullbreaker",
+    "name": "被唤起的碎船兽",
+    "english": "Summoned Hullbreaker",
+    "aliases": [
+      "被唤起的碎船兽"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "深渊回声召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_void_tome",
+    "name": "被召唤的虚空魔典",
+    "english": "Summoned Void Tome",
+    "aliases": [
+      "被召唤的虚空魔典"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "虚典戏法召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_koboleton",
+    "name": "被召唤的骸龙",
+    "english": "Summoned Koboleton",
+    "aliases": [
+      "被召唤的骸龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "沙海群居召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_wadjet",
+    "name": "被召唤的瓦吉特",
+    "english": "Summoned Wadjet",
+    "aliases": [
+      "被召唤的瓦吉特"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "沙海群居召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_kobolediator",
+    "name": "被召唤的骸骨斩首者",
+    "english": "Summoned Kobolediator",
+    "aliases": [
+      "被召唤的骸骨斩首者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "古众之利剑召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_magnetron",
+    "name": "被唤起的磁控机兵",
+    "english": "Summoned Magnetron",
+    "aliases": [
+      "被唤起的磁控机兵"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "磁控机兵布置召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_the_watcher",
+    "name": "被召唤的观测者",
+    "english": "Summoned The Watcher",
+    "aliases": [
+      "被召唤的观测者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "机械掠食部队召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_gum_worm",
+    "name": "被唤起的口香糖蠕虫",
+    "english": "Summoned Gum Worm",
+    "aliases": [
+      "被唤起的口香糖蠕虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "胶粘坐骑之唤召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_forsaken",
+    "name": "被唤起的遗弃者",
+    "english": "Summoned Forsaken",
+    "aliases": [
+      "被唤起的遗弃者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "遗失凶兽召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_tremorsaurus",
+    "name": "被召唤的阔鼻迅猛龙",
+    "english": "Summoned Tremorsaurus",
+    "aliases": [
+      "被召唤的阔鼻迅猛龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "原始族群召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_vallumraptor",
+    "name": "被唤起的撼地龙",
+    "english": "Summoned Vallumraptor",
+    "aliases": [
+      "被唤起的撼地龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "原始族群召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_atlatitan",
+    "name": "被召唤的擎天龙",
+    "english": "Summoned Atlatitan",
+    "aliases": [
+      "被召唤的擎天龙"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "远古之骑召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_ignited_revenant",
+    "name": "被唤起的燃魂",
+    "english": "Summoned Ignited Revenant",
+    "aliases": [
+      "被唤起的燃魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "炽然侵袭召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_ignited_berserker",
+    "name": "被唤起的炽燃狂魂",
+    "english": "Summoned Ignited Berserker",
+    "aliases": [
+      "被唤起的炽燃狂魂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "炽然侵袭召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_ender_golem",
+    "name": "被唤起的末影傀儡",
+    "english": "Summoned Ender Golem",
+    "aliases": [
+      "被唤起的末影傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "不朽哨位召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_draugr",
+    "name": "被召唤的再行魂尸",
+    "english": "Summoned Draugr",
+    "aliases": [
+      "被召唤的再行魂尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "怨咒尸众召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_royal_draugr",
+    "name": "被召唤的皇家魂尸",
+    "english": "Summoned Royal Draugr",
+    "aliases": [
+      "被召唤的皇家魂尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "怨咒尸众召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_elite_draugr",
+    "name": "被召唤的精英魂尸",
+    "english": "Summoned Elite Draugr",
+    "aliases": [
+      "被召唤的精英魂尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "怨咒尸众召唤"
+  },
+  {
+    "entity": "traveloptics:summoned_aptrgangr",
+    "name": "被唤起的冥行武弁",
+    "english": "Summoned Aptrgangr",
+    "aliases": [
+      "被唤起的冥行武弁"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "劫数之巨斧召唤"
+  },
+  {
+    "entity": "irons_spellbooks:pyromancer",
+    "name": "炽焰术士",
+    "english": "Pyromancer",
+    "aliases": [
+      "炽焰术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:cryomancer",
+    "name": "冰霜术士",
+    "english": "Cryomancer",
+    "aliases": [
+      "冰霜术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:necromancer",
+    "name": "亡灵术士",
+    "english": "Necromancer",
+    "aliases": [
+      "亡灵术士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:dead_king",
+    "name": "死者之王",
+    "english": "The Dead King",
+    "aliases": [
+      "死者之王"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:dead_king_corpse",
+    "name": "死者之王遗体",
+    "english": "Skeleton",
+    "aliases": [
+      "死者之王遗体"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:archevoker",
+    "name": "高位唤魔者",
+    "english": "Archevoker",
+    "aliases": [
+      "高位唤魔者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:citadel_keeper",
+    "name": "远古骑士",
+    "english": "Ancient Knight",
+    "aliases": [
+      "远古骑士"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:sculk_tentacle",
+    "name": "幽匿之触",
+    "english": "Sculk Tentacle",
+    "aliases": [
+      "幽匿之触"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "irons_spellbooks:priest",
+    "name": "牧师",
+    "english": "Priest",
+    "aliases": [
+      "牧师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:apothecarist",
+    "name": "药剂师",
+    "english": "Apothecarist",
+    "aliases": [
+      "药剂师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "irons_spellbooks:cultist",
+    "name": "邪教徒",
+    "english": "Cultist",
+    "aliases": [
+      "邪教徒"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "无法记录"
+  },
+  {
+    "entity": "irons_spellbooks:spectral_steed",
+    "name": "幽冥骏马",
+    "english": "Spectral Steed",
+    "aliases": [
+      "幽冥骏马"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "召唤骏马召唤"
+  },
+  {
+    "entity": "irons_spellbooks:summoned_vex",
+    "name": "召唤出的恼鬼",
+    "english": "Summoned Vex",
+    "aliases": [
+      "召唤出的恼鬼"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "召唤恼鬼召唤"
+  },
+  {
+    "entity": "irons_spellbooks:summoned_zombie",
+    "name": "召唤出的僵尸",
+    "english": "Summoned Zombie",
+    "aliases": [
+      "召唤出的僵尸"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "驱役亡灵召唤"
+  },
+  {
+    "entity": "irons_spellbooks:summoned_skeleton",
+    "name": "召唤出的骷髅",
+    "english": "Summoned Skeleton",
+    "aliases": [
+      "召唤出的骷髅"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "驱役亡灵召唤"
+  },
+  {
+    "entity": "irons_spellbooks:summoned_polar_bear",
+    "name": "召唤出的北极熊",
+    "english": "Summoned Polar Bear",
+    "aliases": [
+      "召唤出的北极熊"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": "召唤北极熊召唤"
+  },
+  {
+    "entity": "crittersandcompanions:ferret",
+    "name": "雪貂",
+    "english": "Ferret",
+    "aliases": [
+      "雪貂"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "crittersandcompanions:jumping_spider",
+    "name": "跳蛛",
+    "english": "Jumping Spider",
+    "aliases": [
+      "跳蛛"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "crittersandcompanions:leaf_insect",
+    "name": "叶虫",
+    "english": "Leaf Insect",
+    "aliases": [
+      "叶虫"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "crittersandcompanions:sea_bunny",
+    "name": "海兔",
+    "english": "Sea Bunny",
+    "aliases": [
+      "海兔"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "crittersandcompanions:shima_enaga",
+    "name": "长尾山雀",
+    "english": "Shima Enaga",
+    "aliases": [
+      "长尾山雀"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "dungeonsdelight:monster_yam",
+    "name": "山芋怪",
+    "english": "Monster Yam",
+    "aliases": [
+      "山芋怪"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "ageofmythology:shadow_demon",
+    "name": "影魔",
+    "english": "shadow_demon",
+    "aliases": [
+      "影魔"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "ageofmythology:ice_thunder_soul",
+    "name": "冰雷学者",
+    "english": "ice_thunder_soul",
+    "aliases": [
+      "冰雷学者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "ageofmythology:sculk_shrieker",
+    "name": "幽匿尖啸者",
+    "english": "sculk_shrieker",
+    "aliases": [
+      "幽匿尖啸者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "ageofmythology:hell_traveler",
+    "name": "地狱旅人",
+    "english": "hell_traveler",
+    "aliases": [
+      "地狱旅人"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "ageofmythology:end_scholar",
+    "name": "末影法师",
+    "english": "end_scholar",
+    "aliases": [
+      "末影法师"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "ageofmythology:lost_one",
+    "name": "黑暗傀儡",
+    "english": "lost_one",
+    "aliases": [
+      "黑暗傀儡"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  },
+  {
+    "entity": "ageofmythology:good_evil",
+    "name": "终末使者",
+    "english": "good_evil",
+    "aliases": [
+      "终末使者"
+    ],
+    "dimensions": [],
+    "biomes": [],
+    "note": ""
+  }
+]

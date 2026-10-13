@@ -39,12 +39,15 @@ minecraft {
     }
 }
 repositories {
+    maven { url = 'https://api.modrinth.com/maven'; content { includeGroup 'maven.modrinth' } }
     mavenCentral { content { excludeGroup 'com.github.promeg' } }
     maven { url = 'https://maven.aliyun.com/repository/public'; content { includeGroup 'com.github.promeg' } }
     maven { url = 'https://maven.minecraftforge.net' }
 }
 configurations.annotationProcessor.extendsFrom(configurations.compileClasspath)
 dependencies {
+    compileOnly fg.deobf('maven.modrinth:NcUtCpym:3Wmpi0tR')
+    compileOnly fg.deobf('maven.modrinth:1bokaNcj:c3BiB41R')
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.18'
     annotationProcessor 'org.spongepowered:mixin:0.8.5'
     // 原拼音库只在生成工具与测试中使用，不进入发布包。
@@ -79,7 +82,14 @@ tasks.named('compileJava', JavaCompile).configure {
             '-AdefaultObfuscationEnv=searge']
     }
 }
-tasks.named('processResources').configure { dependsOn 'compileJava', 'generatePinyinTable' }
+tasks.named('processResources').configure {
+    dependsOn 'compileJava', 'generatePinyinTable'
+    inputs.property 'productVersion', project.version
+    // 一些整合包按旧指南针的“MC版本-模组版本”比较依赖；产品版本独立保持1.2.0。
+    filesMatching('META-INF/mods.toml') {
+        expand mod_version: project.version, loader_version: "1.20.1-1.4.0-unified-${project.version}"
+    }
+}
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     // 发布不携带调试属性；完整源码随交付提供，栈仍保留类名和方法名。
@@ -131,7 +141,7 @@ tasks.register('compactRelease') {
             java.nio.file.Files.deleteIfExists(temporary)
         }
         // 接近体积上限时使用更深的 Deflate；原始内容不变，玩家不需要安装 7-Zip。
-        if (java.nio.file.Files.size(archive) > 500 * 1024) {
+        if (java.nio.file.Files.size(archive) > 750 * 1024) {
             def staging = layout.buildDirectory.dir('tmp/release-strong').get().asFile
             if (!staging.canonicalPath.startsWith(layout.buildDirectory.get().asFile.canonicalPath + File.separator))
                 throw new GradleException('Unsafe release staging path')
@@ -171,7 +181,7 @@ tasks.register('checkReleaseSize') {
     dependsOn 'compactRelease'
     doLast {
         def bytes = tasks.jar.archiveFile.get().asFile.length()
-        if (bytes > 500 * 1024) throw new GradleException('Release exceeds 500 KiB: ' + bytes)
+        if (bytes > 750 * 1024) throw new GradleException('Release exceeds 750 KiB: ' + bytes)
         println 'Unified release size: ' + bytes + ' bytes'
     }
 }

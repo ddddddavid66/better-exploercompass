@@ -54,6 +54,7 @@ public class ExplorersCompass {
 	private void buildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
 		if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
 			event.accept(new ItemStack(explorersCompass));
+            event.accept(com.chaosthedude.explorerscompass.unified.creature.CreatureItem.INSTANCE);
 		}
 	}
 

@@ -20,6 +20,7 @@ public final class SearchEvents {
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.interrupted");
+            com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(player.getUUID());
             SearchService.cancel(player, true); TeleportEvents.clear(player.getUUID());
             TeleportService.forget(player.getUUID());
         }
@@ -27,6 +28,7 @@ public final class SearchEvents {
     @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.interrupted");
+            com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(player.getUUID());
             SearchService.cancel(player, true);
         }
     }
@@ -37,9 +39,10 @@ public final class SearchEvents {
     }
     public static void invalidate(net.minecraft.server.MinecraftServer server) {
         com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.clear();
+        com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.clear();
         SearchService.stopAll(); com.chaosthedude.explorerscompass.unified.network.CatalogService.clear();
         for (var player : server.getPlayerList().getPlayers()) com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.send(player,
                 new com.chaosthedude.explorerscompass.unified.network.CatalogInvalidatedPacket());
     }
-    @SubscribeEvent public static void stop(ServerStoppingEvent event) { com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.clear();SearchService.shutdown(); com.chaosthedude.explorerscompass.unified.network.CatalogService.clear(); }
+    @SubscribeEvent public static void stop(ServerStoppingEvent event) { com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.clear();com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.clear();SearchService.shutdown(); com.chaosthedude.explorerscompass.unified.network.CatalogService.clear(); }
 }

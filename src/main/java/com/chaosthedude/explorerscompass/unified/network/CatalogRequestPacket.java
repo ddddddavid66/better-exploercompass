@@ -20,7 +20,8 @@ public record CatalogRequestPacket(UUID requestId) {
     public static void handle(CatalogRequestPacket packet, Supplier<NetworkEvent.Context> context) {
         context.get().enqueueWork(() -> {
             ServerPlayer player = context.get().getSender();
-            if (player == null || ItemUtils.getHeldItem(player, ExplorersCompass.explorersCompass).isEmpty()) return;
+            if (player == null || ItemUtils.getHeldItem(player, ExplorersCompass.explorersCompass).isEmpty()
+                    && com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.held(player).isEmpty()) return;
             // 仅枚举当前服务器的注册表与标签，不生成或加载任何新区块。
             UnifiedNetwork.send(player, CatalogService.snapshot(player, packet.requestId));
         });

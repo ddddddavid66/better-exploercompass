@@ -58,6 +58,9 @@ public class ConfigHandler {
 	}
 
 	public static class Client {
+        public final ForgeConfigSpec.IntValue creatureRounds;
+        public final ForgeConfigSpec.BooleanValue creatureDots;
+        public final ForgeConfigSpec.ConfigValue<String> creatureDimension,creatureBiome;
         public final ForgeConfigSpec.EnumValue<com.chaosthedude.explorerscompass.unified.data.LandingMode> landingMode;
         public final ForgeConfigSpec.BooleanValue searchLogEnabled;
 		public final ForgeConfigSpec.BooleanValue displayWithChatOpen;
@@ -66,6 +69,9 @@ public class ConfigHandler {
 		public final ForgeConfigSpec.IntValue overlayLineOffset;
 
 		Client(ForgeConfigSpec.Builder builder) {
+            creatureRounds=builder.comment("生物初查失败后的邻区兜底轮数；0只查询当前已加载实体。").defineInRange("creatureRounds",4,0,32);
+            creatureDots=builder.define("creatureDots",true);
+            creatureDimension=builder.define("creatureDimension","");creatureBiome=builder.define("creatureBiome","");
 			String desc;
 			builder.push("Client");
             landingMode = builder.comment("Default two-stage, strict-only, or immediate relaxed landing.").defineEnum("landingMode", com.chaosthedude.explorerscompass.unified.data.LandingMode.DEFAULT);

@@ -22,6 +22,7 @@ final class BiomeColumnLane implements ScanCoordinator.Lane<SearchCandidate> {
         this.geometry = geometry; frontier = new RectFrontier(geometry, domain, 16, maximum);
         this.budget = budget; this.heights = heights; this.interval = interval; this.background = background; this.sampler = sampler;
     }
+    BiomeColumnLane innerRadius(int radius){frontier.withInnerRadius(radius);return this;}
     public long pendingLowerBound() {
         return Math.min(frontier.lowerBound(), column ? geometry.lowerBound(x, z, x, z) : Long.MAX_VALUE);
     }

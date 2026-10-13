@@ -59,13 +59,22 @@ public final class RectFrontier {
     private final Geometry geometry;
     private final int leafSize;
     private final long maximum;
+    private long innerSquared=-1;
+    /** 扩圈只增加外环；完全处于已证明空内圈的矩形不再展开。 */
+    public RectFrontier withInnerRadius(int radius){innerSquared=radius<0?-1:(long)radius*radius;return this;}
+    private boolean inside(int minX,int minZ,int maxX,int maxZ) {
+        if(innerSquared<0)return false;
+        long dx=Math.max(Math.abs((long)minX*geometry.step+geometry.minOffsetX-geometry.originX),Math.abs((long)maxX*geometry.step+geometry.maxOffsetX-geometry.originX));
+        long dz=Math.max(Math.abs((long)minZ*geometry.step+geometry.minOffsetZ-geometry.originZ),Math.abs((long)maxZ*geometry.step+geometry.maxOffsetZ-geometry.originZ));
+        return dx*dx+dz*dz<=innerSquared;
+    }
     // 原始类型二叉堆：不为每个分块分配 Node/Rect，也不为每个采样点建树。
     private int[] minXs, minZs, maxXs, maxZs;
     private long[] bounds;
     private Rect seed;
     private long seedBound;
     private int size, x, z, leafMinX, leafMaxX, leafMinZ, leafMaxZ, rowStartX, leftX, rightX, leftZ, rightZ;
-    private boolean leaf;
+    private boolean leaf, exhausted;
     private long leafBound;
 
     public RectFrontier(Geometry geometry, Rect domain, int leafSize, long maximumSquared) {
@@ -76,7 +85,7 @@ public final class RectFrontier {
     }
     private void add(int minX, int minZ, int maxX, int maxZ) {
         long bound = geometry.lowerBound(minX, minZ, maxX, maxZ);
-        if (bound > maximum) return;
+        if (bound > maximum || inside(minX,minZ,maxX,maxZ)) return;
         // 请求阶段只保留不可变根范围；堆数组在实际采样线程首次使用时建立。
         if(bounds==null) {
             minXs=new int[16];minZs=new int[16];maxXs=new int[16];maxZs=new int[16];bounds=new long[16];
@@ -143,7 +152,7 @@ public final class RectFrontier {
                 z = geometry.nearestZ(minZ, maxZ); leftZ = z - 1; rightZ = z + 1; break;
             }
         }
-        if (!leaf) throw new IllegalStateException("Exhausted rectangle domain");
+        if (!leaf) {exhausted=true;return 0;}
         long point = ((long)x << 32) | (z & 0xffffffffL);
         // 叶内从最接近查询的行开始，每行也从近到远。没有圆环、条带或平方根游标。
         if (leftX >= leafMinX || rightX <= leafMaxX) {
@@ -158,8 +167,8 @@ public final class RectFrontier {
         } else leaf = false;
         return point;
     }
-    public boolean inRange(int x, int z) { return geometry.lowerBound(x, z, x, z) <= maximum; }
-    public boolean inRange(int x, int z, long verifiedUpper) { return geometry.lowerBound(x,z,x,z) <= Math.min(maximum, verifiedUpper); }
+    public boolean inRange(int x, int z) { return inRange(x,z,maximum); }
+    public boolean inRange(int x, int z, long verifiedUpper) { if(exhausted)return false;long d=geometry.lowerBound(x,z,x,z);return d>innerSquared && d<=Math.min(maximum,verifiedUpper); }
     public static long gap(long value, long min, long max) {
         return value < min ? min - value : value > max ? value - max : 0;
     }

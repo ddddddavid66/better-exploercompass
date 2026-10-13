@@ -15,8 +15,8 @@ public final class ConfigMigration {
     static {
         DEFAULTS.put("asyncBiomeSearch", "true"); DEFAULTS.put("asyncStructureSearch", "true");
         DEFAULTS.put("searchThreads", "0"); DEFAULTS.put("maxSearchTimePerTick", "2");
-        DEFAULTS.put("searchRadius", "40000"); DEFAULTS.put("maxStructureSamples", "25000000");
-        DEFAULTS.put("maxBiomeSamples", "8000000"); DEFAULTS.put("biomeSampleSpacing", "32");
+        DEFAULTS.put("searchRadius", "80000"); DEFAULTS.put("maxStructureSamples", "100000000");
+        DEFAULTS.put("maxBiomeSamples", "32000000"); DEFAULTS.put("biomeSampleSpacing", "32");
         DEFAULTS.put("biomeVerticalSampleSpacing", "64"); DEFAULTS.put("biomeDepthSampleInterval", "4");
     }
     private ConfigMigration() {}
@@ -25,7 +25,7 @@ public final class ConfigMigration {
             String text = Files.exists(common) ? Files.readString(common, StandardCharsets.UTF_8) : "";
             var block = Pattern.compile("(?ms)^\\s*\\[Search]\\s*\\R(.*?)(?=^\\s*\\[|\\z)").matcher(text);
             boolean hasBlock = block.find(); String current = hasBlock ? block.group(1) : "";
-            if ("1".equals(value(current, "configVersion"))
+            if ("2".equals(value(current, "configVersion"))
                     && DEFAULTS.keySet().stream().allMatch(key -> value(current, key) != null)) return false;
             String legacy = Files.exists(oldExtension) ? Files.readString(oldExtension, StandardCharsets.UTF_8) : "";
             StringBuilder fields = new StringBuilder(current.replaceAll("(?m)^\\s*configVersion\\s*=.*(?:\\R|$)", "").stripTrailing());
@@ -34,7 +34,15 @@ public final class ConfigMigration {
                 String imported = value(legacy, entry.getKey());
                 fields.append('\n').append(entry.getKey()).append(" = ").append(imported == null ? entry.getValue() : imported);
             }
-            fields.append("\nconfigVersion = 1\n");
+            for(String key:java.util.List.of("searchRadius","maxStructureSamples","maxBiomeSamples")) {
+                String old=value(fields.toString(),key);if(old==null)continue;
+                long n=Long.parseLong(old.replace("_","")),minimum=Long.parseLong(DEFAULTS.get(key));
+                if(n>0 && n<minimum){
+                    String updated=fields.toString().replaceAll("(?m)^\\s*"+key+"\\s*=.*$",key+" = "+minimum);
+                    fields.setLength(0);fields.append(updated);
+                }
+            }
+            fields.append("\nconfigVersion = 2\n");
             String merged = hasBlock ? text.substring(0, block.start(1)) + fields + text.substring(block.end(1))
                     : text.stripTrailing() + "\n\n[Search]\n" + fields;
             AtomicFiles.backup(common); AtomicFiles.write(common, merged.getBytes(StandardCharsets.UTF_8));

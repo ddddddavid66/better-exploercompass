@@ -12,11 +12,11 @@ import net.minecraft.server.level.ServerLevel;
 final class AlexCavesSearch extends SearchJob {
     private final ResourceLocation key;
     private final List<BlockPos> excluded;
-    private final int maximum,spacing;
+    private final long maximum;private final int spacing;
     private final boolean async;
     private final BiomeVerification verification;
     AlexCavesSearch(ServerLevel level,BlockPos start,ResourceLocation key,List<BlockPos> excluded,
-                    int radius,int maximum,int spacing,boolean async,AlexCavesAdapter adapter) {
+                    int radius,long maximum,int spacing,boolean async,AlexCavesAdapter adapter) {
         super(level,start,radius);this.key=key;this.excluded=List.copyOf(excluded);this.maximum=maximum;this.spacing=spacing;this.async=async;
         verification=new BiomeVerification(level);
         var budget=new SamplingBudget(maximum);budgets.add(budget);quotaDisabled=maximum<=0;

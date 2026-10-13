@@ -15,19 +15,24 @@ public final class BiomeSearch extends SearchJob {
             .thenComparingInt(candidate->candidate.position().getZ()).thenComparingInt(candidate->candidate.position().getY());
     private final ResourceLocation target;
     private final List<BlockPos> excluded;
-    private final int maxSamples, spacing, vertical, depthInterval;
+    private final long maxSamples;
+    private final int spacing, vertical, depthInterval, innerRadius;
     private final boolean async,exact;
     private boolean cachedOrigin;
     private WorldgenCache context;
     private List<?> memoKey;
     private WorldgenCache.Prefix memo;
     public BiomeSearch(ServerLevel level, BlockPos start, ResourceLocation target, List<BlockPos> excluded,
-                       int radius, int maxSamples, int spacing, int vertical, int depthInterval, boolean async) {
+                       int radius, long maxSamples, int spacing, int vertical, int depthInterval, boolean async) {
         this(level,start,target,excluded,radius,maxSamples,spacing,vertical,depthInterval,async,false);
     }
     public BiomeSearch(ServerLevel level,BlockPos start,ResourceLocation target,List<BlockPos> excluded,
-                       int radius,int maxSamples,int spacing,int vertical,int depthInterval,boolean async,boolean exact) {
-        super(level, start, radius); this.target = target; this.excluded = List.copyOf(excluded);this.exact=exact;
+                       int radius,long maxSamples,int spacing,int vertical,int depthInterval,boolean async,boolean exact) {
+        this(level,start,target,excluded,radius,maxSamples,spacing,vertical,depthInterval,async,exact,-1);
+    }
+    public BiomeSearch(ServerLevel level,BlockPos start,ResourceLocation target,List<BlockPos> excluded,
+                       int radius,long maxSamples,int spacing,int vertical,int depthInterval,boolean async,boolean exact,int innerRadius) {
+        super(level, start, radius); this.target = target; this.excluded = List.copyOf(excluded);this.exact=exact;this.innerRadius=innerRadius;
         this.maxSamples = maxSamples; this.spacing = spacing; this.vertical = vertical;
         this.depthInterval = depthInterval; this.async = async;
         quotaDisabled = radius > 0 && maxSamples <= 0;
@@ -45,7 +50,7 @@ public final class BiomeSearch extends SearchJob {
         boolean background = async && safeSource;
         var cache = safeSource ? WorldgenCache.get(level) : null;
         SamplingBudget budget = new SamplingBudget(maxSamples); budgets.add(budget);
-        if(background) {
+        if(background && innerRadius<0) {
             context=cache;
             // 精确绑定起点 XYZ、采样设置和完整排除快照，不推断相邻起点的最近群系。
             memoKey=List.of(target,start,spacing,vertical,depthInterval,exact,excluded);
@@ -85,6 +90,7 @@ public final class BiomeSearch extends SearchJob {
                 BlockPos position = new BlockPos(x, y, z);
                 return List.of(new SearchCandidate(position, key, null, null, null, distance(origin, position)));
             });
+            lane.innerRadius(innerRadius);
             if(cache!=null)lane.withCachedSampler((dx,dz,y)-> {
                 // 仅复用零水平距离列，远处群系继续并行，避免将大范围热扫描搬到主线程。
                 if(dx!=0 || dz!=0)return null;
@@ -114,7 +120,7 @@ public final class BiomeSearch extends SearchJob {
     }
     @Override public void prime() {if(memo==null && !cachedOrigin)super.prime();}
     @Override public String mode() {return memo!=null?"async":super.mode();}
-    public SearchJob synchronousFallback() { return new BiomeSearch(level, start, target, excluded, radius, maxSamples, spacing, vertical, depthInterval, false,exact); }
+    public SearchJob synchronousFallback() { return new BiomeSearch(level, start, target, excluded, radius, maxSamples, spacing, vertical, depthInterval, false,exact,innerRadius); }
     public String samplingPlan(){return "spacing="+spacing+";vertical="+vertical+";depth="+depthInterval+";limit="+maxSamples+";exact="+exact+";excluded="+excluded.size();}
     public boolean biome() { return true; }
     public boolean asynchronous() { return async; }

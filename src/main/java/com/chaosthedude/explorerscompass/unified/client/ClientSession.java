@@ -148,6 +148,7 @@ public final class ClientSession {
         return environment == null ? 0 : store.count(environment, id.toString());
     }
 
+    public static List<ResourceLocation> biomesIn(ResourceLocation dimension){return catalog==null?List.of():DimensionFilter.biomes(catalog.biomes(),dimension,catalog.dimensionBiomes());}
     public static boolean ready() { return catalog != null; }
     public static long revision() { return revision; }
     public static ResourceLocation selected() { return selected; }

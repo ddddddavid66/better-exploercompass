@@ -200,5 +200,8 @@
   "entertainment.partial": "旅行已返回；仍有目标未确认到访，详见未完成清单。",
   "entertainment.timeout_limit": "当前群系已达到五次真正超时，已停止并尝试返回。",
   "entertainment.excluded": "确认未参与当前生成：%s（%s）",
-  "entertainment.unresolved": "未完成：%s（%s）"
+  "entertainment.unresolved": "未完成：%s（%s）",
+  "item.explorerscompass.creature_compass": "生物定位指南针",
+  "entertainment.range_failed": "扩大到四倍范围仍未找到群系，旅行结束。",
+  "entertainment.search_failed": "群系定位未完成，旅行结束；详见未完成目标和原因。"
 }
