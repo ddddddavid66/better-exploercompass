@@ -28,6 +28,8 @@ Explorer’s Compass Unified，由 David 维护，基于 ChaosTheDude / MattCzyr
 
 天境群系在移动前核对实际高度，移动后仍复核；不匹配时先对已就绪列上下探测，玩家停留在安全位置。找到真实目标群系且落点安全才移动，失败才换候选。保留3×3支撑、防悬空水、防基岩屋顶；天境落点至少高于最小建造高度4格，不穿墙移动玩家、不修改地形或授予飞行。一次逻辑传送的高度修正只累计一次。宝藏继续固定箱子同列。
 
+高度探测优先消费已就绪区块的完整列，避免准备票据逐高度来回移动。娱乐任务耗尽一段检查预算时保留游标继续，原总期限不重置，也不算搜索失败或真正超时。只有实际穷尽整柱后才排除该柱候选高度；悬空群系体积确实可能没有安全到访位置，不会为完成成就直接送进空气。
+
 “探索的时光”和“跑魂之接力”读取服务器真实成就，只续跑未完成条件，不直接授予；分别限主世界和天境。保留Ancient Aether 0.9.10原成就两处名称与实际群系的错配，不修改第三方成就。最终完成须真实isDone，不能扣除未知或不生成的必要目标后宣称成功。
 
 ## 生物定位指南针与完整目录
@@ -35,6 +37,10 @@ Explorer’s Compass Unified，由 David 维护，基于 ChaosTheDude / MattCzyr
 `explorerscompass:creature_compass`：指南针＋腐肉无序合成。名称、英文、拼音及ID搜索；独立维度／群系筛选；邻区轮数0～32，默认4。卡片悬停显示按维度配对的群系和生成／召唤描述，未知内容明确标注，长介绍可滚动。独立进度区显示阶段、真实采样、实体核对和区块量。
 
 目录以愚者整合包完整运行时EntityType底册为范围，原图鉴不是全集。新版v2使用`appearances`记录每条出现规则，避免两个平铺数组错误配对；旧七字段仍可读取。缺少可靠维度暂缓启用，未知群系只在群系默认显示。格式和工具见[CREATURE_CATALOG.md](CREATURE_CATALOG.md)。生成表参与条件不代表一定有实体，未核实和已核实分别交付。
+
+本轮底册1723类实体＝981类生物＋742类非生物。旧候选保留604类生物，新增377类，排除1类展示实体。目录含1078条已核实自然规则、64条已核实非自然入口及721条未知规则；非自然入口的维度仍未知时保持空值。当前愚者运行时有260类具备可靠维度可显示，其余暂缓，不能把“目录已完整对账”理解成“所有生成资料已核实”。124条旧图鉴文本未匹配行单独保留。
+
+目录网络同步按NBT解码内存分包，并在客户端完整收齐后更新；保留Minecraft默认2MiB解码限制，避免大型目录打开即断连。
 
 搜索只返回真实实体：先查询已加载类型，必要时定位群系锚点并有限加载邻区；每轮最多64个新源区块。等待地形和实体数据就绪后按UUID、种类、实际XYZ及群系复核。允许正常生成，不召唤、不强制刷怪，不扫描整个8万格全部未加载实体。
 
@@ -53,6 +59,7 @@ WorldMap1.39.2没有公开居中setter，版本限定适配仅缓存解析原生
 ```powershell
 .\gradlew.bat assemble checkReleaseSize
 .\gradlew.bat test --tests '*Aether121Test' --tests '*Catalog121Test'
+.\gradlew.bat test --tests '*CatalogPackets121Test'
 python tools/catalog/validate_catalog.py collected-v2.json --registry registry-snapshot.json --evidence evidence-index.json --audit registry-audit.json
 ```
 

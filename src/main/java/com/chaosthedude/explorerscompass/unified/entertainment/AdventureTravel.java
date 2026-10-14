@@ -180,13 +180,17 @@ public final class AdventureTravel {
     }
     private static void land(Task task) {
         task.phase=Phase.LANDING;long epoch=++task.epoch;var key=task.current.biome();
-        if(!TeleportService.travel(task.player,task.stack,result->{
+        if(!TeleportService.travelDetailed(task.player,task.stack,outcome->{
             if(!owns(task,Phase.LANDING,epoch) || !task.current.biome().equals(key))return;
             task.observe();if(advanceVisited(task))return;
+            var result=outcome.result();
+            if(result==TeleportService.TravelResult.NO_POSITION && !outcome.provenUnusable().isEmpty())
+                task.failed.computeIfAbsent(key,k->new LinkedHashSet<>()).addAll(outcome.provenUnusable().stream().filter(p->!p.equals(task.candidate.position())).toList());
             ExplorersCompass.LOGGER.info("TRAVEL {} teleport_terminal biome={} result={} actual={}",task.id,key,result,task.actual);
             switch(result) {
                 case MOVED->beginVisit(task);
                 case TIMED_OUT->{if(timeout(task,"chunks"))task.phase=Phase.LAND;}
+                case BUDGET_EXHAUSTED->{task.detail="继续高度复核";task.phase=Phase.LAND;}
                 case NO_POSITION->failedCandidate(task);
                 case ERROR->defer(task,"TELEPORT_ERROR");
                 case CANCELLED->returnHome(task,"entertainment.interrupted");

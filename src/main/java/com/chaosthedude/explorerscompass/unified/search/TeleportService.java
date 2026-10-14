@@ -18,7 +18,8 @@ import net.minecraft.world.phys.Vec3;
 
 /** 群系/结构统一传送。所有世界读取都在主线程且区块已就绪。 */
 public final class TeleportService {
-    public enum TravelResult { MOVED, NO_POSITION, TIMED_OUT, CANCELLED, ERROR }
+    public enum TravelResult { MOVED, NO_POSITION, BUDGET_EXHAUSTED, TIMED_OUT, CANCELLED, ERROR }
+    public record TravelOutcome(TravelResult result,List<BlockPos> provenUnusable) {}
     private static final TicketType<UUID> PREPARE=TicketType.create("compassfilters_landing",Comparator.<UUID>naturalOrder());
     private static final Map<UUID,Task> tasks=new LinkedHashMap<>();
     private static final Map<UUID,LinkedHashMap<UUID,Long>> requests=new HashMap<>();
@@ -41,8 +42,9 @@ public final class TeleportService {
         boolean heightResolved,alternateSurface; boolean ticket,clicked,fallback,waiting;
         long chunksReady,confirmationUntil;
         Vec3 landing,strictLanding,relaxedLanding,travelAlternate;
-        boolean travel, returning; float returnYaw, returnPitch;
+        boolean travel, returning,budgetPaused; float returnYaw, returnPitch;
         java.util.function.Consumer<TravelResult> completion;
+        java.util.function.Consumer<TravelOutcome> detailedCompletion;
         LocatorTarget external;
         AetherHeightProbe heightProbe;
         Task(ServerPlayer player,ItemStack stack,UUID token) { this(player,stack,token,null); }
@@ -168,12 +170,24 @@ public final class TeleportService {
     }
     /** 自动旅行继承用户模式；默认模式在同一任务内推进降级，保留区块与扫描进度。 */
     public static boolean travel(ServerPlayer player,ItemStack stack,java.util.function.Consumer<TravelResult> completion) {
+        return travel(player,stack,completion,null);
+    }
+    public static boolean travelDetailed(ServerPlayer player,ItemStack stack,java.util.function.Consumer<TravelOutcome> completion) {
+        return travel(player,stack,null,completion);
+    }
+    private static boolean travel(ServerPlayer player,ItemStack stack,java.util.function.Consumer<TravelResult> completion,
+                                  java.util.function.Consumer<TravelOutcome> detailed) {
         UUID token=SearchService.token(stack);
         if(!eligible(player,stack,token))return false;
         Task prepared=tasks.get(player.getUUID());
         if(prepared==null || !prepared.valid() || !prepared.token.equals(token) || prepared.handoffUntil>0)prepare(player,stack,token);
         Task task=tasks.get(player.getUUID());boolean resumed=task.travel;
-        task.travel=true;task.completion=completion;
+        task.travel=true;task.completion=completion;task.detailedCompletion=detailed;
+        if(task.budgetPaused){
+            // 同一逻辑落点任务继续下一段CPU预算；不重置总期限、中心等待或高度游标。
+            task.budgetPaused=false;task.clicked=true;task.waiting=false;task.checkNanos=0;
+            phase(task,"height_probe");return true;
+        }
         beginTravelStage(task,resumed?task.fallback:task.mode==LandingMode.RELAXED_ONLY);return true;
     }
     public static boolean allowedTravel(ServerPlayer player,ItemStack stack) {
@@ -212,7 +226,9 @@ public final class TeleportService {
     }
     private static ItemStack landingStack(Task task){return task.returning?ItemStack.EMPTY:task.stack;}
     private static void completed(Task task,TravelResult result) {
-        var callback=task.completion;task.completion=null;if(callback!=null)callback.accept(result);
+        var callback=task.completion;var detailed=task.detailedCompletion;task.completion=null;task.detailedCompletion=null;
+        var proof=result==TravelResult.NO_POSITION && task.heightProbe!=null?task.heightProbe.provenUnusableColumn():List.<BlockPos>of();
+        if(detailed!=null)detailed.accept(new TravelOutcome(result,proof));else if(callback!=null)callback.accept(result);
     }
     /** 仅读取已经就绪的真实区块；加载期间返回未知，不能用生成预测冒充到访。 */
     public static ResourceLocation loadedBiome(ServerPlayer player) {
@@ -316,10 +332,22 @@ public final class TeleportService {
                         if(!needed.equals(task.center) && task.lastCenterTick!=task.player.getServer().getTickCount())acquire(task,needed);
                         return false;
                     }
-                    if(!task.heightProbe.exhausted() && (!task.clicked || task.checkNanos<(task.fallback?40_000_000L:80_000_000L)))return true;
-                    if(task.clicked && task.checkNanos>=(task.fallback?40_000_000L:80_000_000L)){failed(task,"scan_budget");return true;}
-                    phase(task,"checking");
+                    if(task.heightProbe.exhausted()){
+                        if(task.clicked)failed(task,"no_position");else finish(task,"no_position",0);
+                        return true;
+                    }
+                    if(task.clicked && task.checkNanos>=(task.fallback?40_000_000L:80_000_000L)){
+                        if(task.travel){
+                            summary(task,"probe_budget_yield");task.clicked=false;task.waiting=true;task.budgetPaused=true;
+                            task.confirmationUntil=Long.MAX_VALUE;task.expires=task.player.getServer().getTickCount()+1200;
+                            completed(task,TravelResult.BUDGET_EXHAUSTED);
+                        }else failed(task,"scan_budget");
+                    }
+                    return true;
                 }
+                // 当前模式已完整穷尽，不再由通用扫描重复同一范围。
+                if(task.clicked)failed(task,"no_position");else finish(task,"no_position",0);
+                return true;
             }
             if(task.landing!=null) {
                 if(recheck(task,task.landing,task.fallback) && preferredTravelLanding(task,task.landing)){if(task.clicked)move(task);return false;}
@@ -470,6 +498,7 @@ public final class TeleportService {
         long now=System.nanoTime(),waiting=task.waitNanos+(task.waitStarted==0?0:now-task.waitStarted);
         ExplorersCompass.LOGGER.info("传送 {} 阶段摘要：result={}, phase={}, elapsed_ms={}, waiting_ms={}, checking_ms={}",
                 task.token,result,task.phase,(now-task.attemptStarted)/1e6,waiting/1e6,task.checkNanos/1e6);
+        if(task.heightProbe!=null)ExplorersCompass.LOGGER.info("天境高度复核诊断 {} biome={} {}",task.token,task.key,task.heightProbe.summary());
     }
     public static boolean safe(ServerPlayer player,ServerLevel level,ItemStack stack,BlockPos point) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("落点检查必须在服务端线程");

@@ -29,7 +29,7 @@
 ]
 ```
 
-每条 appearance 仅对应一个维度、一种出现方式。kind支持 `natural_spawn/structure/spawner/summoned/conversion/breeding/event/unknown`；核实状态为 `verified/partial/unverified`。未知维度使用 `null`，未知群系使用 `[]`，不表示任意维度或群系。unverified只能保留未知范围，不把猜测交给筛选器。verified须有来源，来源索引独立保存；发布生成文件可移除来源全文及编号。
+每条 appearance 仅对应一个维度、一种出现方式。kind支持 `natural_spawn/structure/spawner/summoned/conversion/breeding/event/unknown`；核实状态为 `verified/partial/unverified`。未知维度使用 `null`，未知群系使用 `[]`，不表示任意维度或群系。unverified只能保留未知范围，不把猜测交给筛选器。verified须有来源，来源全文独立保存；发布资源保留短来源编号，通过随交付的 `production-source-index.json` 回溯完整研究证据。
 
 新版筛选必须在同一条有效 appearance 内匹配维度与群系，顶层 dimensions/biomes只是兼容镜像。缺少可靠维度暂缓启用；未知群系只在群系默认时显示。运行时只用实际生效出生表补缺失维度，不根据模组名推断。表中可参与生成不保证搜索范围内一定有实体；搜索和传送仍须复核真实UUID。
 
@@ -39,6 +39,7 @@
 
 ```powershell
 python tools/catalog/validate_catalog.py collected-v2.json --registry registry-snapshot.json --evidence evidence-index.json --audit registry-audit.json
+python tools/catalog/prepare_catalog.py collected-v2.json src/main/resources/data/explorerscompass/creature_catalog/user-book.json --evidence evidence-index.json --mapping production-source-index.json
 ```
 
 原图鉴名称导入工具仍保留 `tools/catalog/import_catalog.py`，其输出只是翻译候选，不是完整注册表或已核实生成证明。

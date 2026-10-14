@@ -27,13 +27,24 @@ public final class CreatureClient {
     private static CreatureScreen pendingTeleportScreen;
     private static long pendingTeleportStarted;
     private static final Map<Integer,List<MobPoint>> pendingParts=new HashMap<>();
+    private static final Map<Integer,List<CreatureEntry>> catalogParts=new HashMap<>();
+    private static int catalogPartCount;
     private CreatureClient() {}
-    public static void open(){var mc=Minecraft.getInstance();connection=mc.getConnection();ClientSession.requestCatalog();catalog=UUID.randomUUID();send(base("catalog",catalog));mc.setScreen(new CreatureScreen());}
+    public static void open(){var mc=Minecraft.getInstance();connection=mc.getConnection();ClientSession.requestCatalog();catalog=UUID.randomUUID();catalogParts.clear();catalogPartCount=0;send(base("catalog",catalog));mc.setScreen(new CreatureScreen());}
     public static void accept(CompoundTag n) {
         var mc=Minecraft.getInstance();if(n==null || mc.getConnection()!=connection || !n.hasUUID("request"))return;
         if(n.getString("action").equals("catalog")) {
             if(!n.getUUID("request").equals(catalog))return;
-            entries=n.getList("entries",10).stream().map(t->CreatureCatalog.decode((CompoundTag)t)).toList();canTeleport=n.getBoolean("canTeleport");return;
+            int total=n.getInt("parts"),part=n.getInt("part");
+            if(total<1 || total>1024 || part<0 || part>=total || n.getList("entries",10).size()>24)return;
+            if(catalogPartCount!=0 && total!=catalogPartCount)return;
+            catalogPartCount=total;
+            catalogParts.putIfAbsent(part,n.getList("entries",10).stream().map(t->CreatureCatalog.decode((CompoundTag)t)).toList());
+            if(catalogParts.size()==total){
+                var combined=new ArrayList<CreatureEntry>();for(int i=0;i<total;i++)combined.addAll(catalogParts.get(i));
+                entries=List.copyOf(combined);canTeleport=n.getBoolean("canTeleport");catalogParts.clear();
+            }
+            return;
         }
         if(query==null || !query.equals(n.getUUID("request")))return;
         UUID selected=selected()==null?null:selected().uuid();
@@ -86,7 +97,7 @@ public final class CreatureClient {
     public static void cycle(int delta){if(!points.isEmpty())selection=Math.floorMod(selection+delta,points.size());}
     private static CompoundTag base(String action,UUID id){var n=new CompoundTag();n.putString("action",action);n.putUUID("request",id);return n;}
     private static void send(CompoundTag n){if(Minecraft.getInstance().getConnection()!=null)UnifiedNetwork.CHANNEL.sendToServer(new CreatureRequest(n));}
-    public static void clear(){entries=List.of();points=List.of();pendingParts.clear();pointRevision=0;query=null;catalog=null;connection=null;state="idle";finished=true;confirmation=canTeleport=false;clearPendingTeleport();anchorSamples=anchorLimit=0;anchorMode=anchorStage="";round=rounds=chunks=selection=captured=captureTotal=chunksTotal=0;CreatureScreen.clearPreviews();}
+    public static void clear(){entries=List.of();points=List.of();pendingParts.clear();catalogParts.clear();catalogPartCount=0;pointRevision=0;query=null;catalog=null;connection=null;state="idle";finished=true;confirmation=canTeleport=false;clearPendingTeleport();anchorSamples=anchorLimit=0;anchorMode=anchorStage="";round=rounds=chunks=selection=captured=captureTotal=chunksTotal=0;CreatureScreen.clearPreviews();}
     public static void tick(){
         var mc=Minecraft.getInstance();if(connection!=null && connection!=mc.getConnection())clear();
         if(pendingTeleportRequest!=null && System.nanoTime()-pendingTeleportStarted>10_000_000_000L){clearPendingTeleport();if(mc.player!=null)mc.player.displayClientMessage(net.minecraft.network.chat.Component.literal("生物传送请求尚未确认，可重新尝试。"),true);}

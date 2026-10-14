@@ -36,6 +36,7 @@ def validate(rows, snapshot=None, evidence=None, audit=None):
         for key in ("english", "note"): check(isinstance(row.get(key), str), label + " 缺字符串 " + key)
         aliases = row.get("aliases", [])
         check(isinstance(aliases, list) and all(isinstance(a, str) for a in aliases), label + " 别名格式错误")
+        check(len(set(map(str, aliases))) == len(aliases), label + " 重复别名")
         ids(row.get("dimensions"), label + ".dimensions"); ids(row.get("biomes"), label + ".biomes")
         appearances = row.get("appearances", [])
         check(isinstance(appearances, list), label + " appearances必须为数组")
@@ -49,6 +50,7 @@ def validate(rows, snapshot=None, evidence=None, audit=None):
             check(isinstance(a.get("description"), str), label + " 缺描述")
             refs = a.get("sources", [])
             check(isinstance(refs, list) and all(isinstance(s, str) and s for s in refs), label + " 来源格式错误")
+            check(len(set(map(str, refs))) == len(refs), label + " 重复来源")
             if a.get("verification") == "verified": check(bool(refs), label + " 已核实但无来源")
             if a.get("verification") == "unverified": check(dim is None and not a.get("biomes"), label + " 未核实内容填写了范围")
             if sources is not None:

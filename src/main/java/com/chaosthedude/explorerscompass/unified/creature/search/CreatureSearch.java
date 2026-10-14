@@ -44,9 +44,9 @@ public final class CreatureSearch {
         ItemStack stack=held(player);if(stack.isEmpty() || !n.hasUUID("request"))return;
         UUID token=n.getUUID("request");String action=n.getString("action");
         if(action.equals("catalog")) {
-            var response=new CompoundTag();response.putString("action","catalog");response.putUUID("request",token);var rows=new ListTag();
-            CreatureCatalog.all(player.getServer()).forEach(e->rows.add(CreatureCatalog.encode(e)));response.put("entries",rows);
-            response.putBoolean("canTeleport",com.chaosthedude.explorerscompass.config.ConfigHandler.GENERAL.allowTeleport.get());send(player,response);return;
+            for(var response:CreatureCatalogPackets.encode(token,CreatureCatalog.all(player.getServer()),
+                    com.chaosthedude.explorerscompass.config.ConfigHandler.GENERAL.allowTeleport.get()))send(player,response);
+            return;
         }
         if(action.equals("cancel")){Query q=tasks.get(player.getUUID());if(q!=null && q.token.equals(token))cancel(player.getUUID());return;}
         if(action.equals("teleport")) {
