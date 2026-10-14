@@ -34,7 +34,7 @@ public final class CreatureScreen extends Screen {
     public static void clearPreviews(){previews.clear();previewLevel=null;}
     @Override public boolean isPauseScreen(){return false;}
     @Override protected void init(){
-        tooltipEntry=null;
+        tooltipEntry=null;popup="";popupInput=null;number=null;
         input=new EditBox(font,26,19,Math.max(40,width-198),20,Component.literal("搜索生物"));input.setHint(Component.literal("搜索生物：中文 / English / 拼音"));input.setMaxLength(128);input.setResponder(s->{scroll=0;refresh();});addRenderableWidget(input);
         search=button(width-163,17,68,24,"搜索",b->{if(!CreatureClient.finished)CreatureClient.stop();else if(selected!=null)CreatureClient.search(selected,dimension,biome);});
         teleport=button(width-90,17,66,24,"传送",b->CreatureClient.teleport());
@@ -82,7 +82,7 @@ public final class CreatureScreen extends Screen {
             var e=matches.get(i);int x=left+(i-start)%cols*cell,y=top+(i-start)/cols*cell;panel(g,x,y,cell-6,cell-6,e.entity().equals(selected)?0xff4a432b:0xff77776d);
             g.drawCenteredString(font,clip(e.name(),cell-12),x+(cell-6)/2,y+6,0xff171717);
             int previewTop=Math.max(top,y+18),previewBottom=Math.min(bottom,y+cell-10);
-            if(previewTop<previewBottom){g.enableScissor(x+4,previewTop,x+cell-10,previewBottom);renderPreview(g,e,x+cell/2-3,y+cell-12,cell-24,mx,my);g.disableScissor();}
+            if(popup.isEmpty() && previewTop<previewBottom){g.enableScissor(x+4,previewTop,x+cell-10,previewBottom);try{renderPreview(g,e,x+cell/2-3,y+cell-12,cell-24,mx,my);}finally{g.disableScissor();}}
             if(popup.isEmpty() && mx>=x && mx<x+cell-6 && my>=Math.max(top,y) && my<Math.min(bottom,y+cell-6))hoveredEntry=e;
         }
         g.disableScissor();
@@ -98,6 +98,7 @@ public final class CreatureScreen extends Screen {
         g.drawString(font,clip("状态："+stage(CreatureClient.state)+(mode.isEmpty()?"":"（"+mode+"）"),width-46),23,y,0xffe8ddb3,false);
         String work=CreatureClient.anchorLimit>0?"群系采样："+CreatureClient.anchorSamples+" / "+CreatureClient.anchorLimit+"  "+stage(CreatureClient.anchorStage)
             :"已加载实体核对："+CreatureClient.captured+" / "+CreatureClient.captureTotal;
+        if(!CreatureClient.source.equals("loaded"))work="存档区块："+CreatureClient.storedScanned+" / "+CreatureClient.storedTotal+"  区域："+CreatureClient.storedRegions+" / "+CreatureClient.storedRegionsTotal+"  核实："+CreatureClient.storedVerified;
         g.drawString(font,clip(work,width-46),23,y+10,0xffd9d5c5,false);
         g.drawString(font,clip("邻区轮次："+CreatureClient.round+" / "+CreatureClient.rounds+"  已检查区块："+CreatureClient.chunks+" / "+CreatureClient.chunksTotal,width-46),23,y+20,0xffd9d5c5,false);
         var p=CreatureClient.selected();String result=p==null?"搜索结果："+CreatureClient.points.size()+" 个实例":"实例 "+(CreatureClient.selection+1)+" / "+CreatureClient.points.size()+"  XYZ "+(int)p.x()+", "+(int)p.y()+", "+(int)p.z()+(p.live()?"":"（待复核）");
@@ -140,32 +141,44 @@ public final class CreatureScreen extends Screen {
             else g.drawCenteredString(font,"生",x,y-25,0xffe8ddb3);
         }catch(Exception error){g.drawCenteredString(font,"生",x,y-25,0xffe8ddb3);}
     }
-    private static String stage(String value){return switch(value){case ""->"";case "initial"->"查询已加载生物";case "searching","predicting","sampling"->"正在采样";case "confirming"->"核对目标群系";case "locating_biome"->"定位目标群系";case "loading_chunks"->"等待地形及实体加载";case "found"->"已找到";case "not_found","range_exhausted","biome_range_exhausted"->"本次范围未发现";case "sample_limit","biome_sample_limit"->"达到采样额度";case "idle"->"请选择生物";case "cancelled"->"已停止";case "reload_entity"->"重新核对实体";case "entity_gone"->"实体已离开或不存在";case "teleport_moved"->"传送成功";case "teleport_confirm"->"再次点击可降级传送";case "teleport_waiting_chunks"->"准备落点：等待区块";case "teleport_waiting_slots"->"准备落点：等待调度";case "biome_stalled"->"群系定位无进展超时";case "chunk_timeout","entity_load_timeout"->"区块加载超时";default->value.startsWith("teleport_")?"准备落点："+value.substring(9):value;};}
+    private static String stage(String value){return switch(value){case ""->"";case "initial"->"查询已加载生物";case "scanning_saved"->"异步检索存档实体";case "verifying_saved"->"加载并核实存档候选";case "searching","predicting","sampling"->"正在采样";case "confirming"->"核对目标群系";case "locating_biome"->"定位目标群系";case "loading_chunks"->"等待地形及实体加载";case "found"->"已找到";case "not_found","range_exhausted","biome_range_exhausted"->"本次范围未发现";case "sample_limit","biome_sample_limit"->"达到采样额度";case "idle"->"请选择生物";case "cancelled"->"已停止";case "reload_entity"->"重新核对实体";case "entity_gone"->"实体已离开或不存在";case "teleport_moved"->"传送成功";case "teleport_confirm"->"再次点击可降级传送";case "teleport_waiting_chunks"->"准备落点：等待区块";case "teleport_waiting_slots"->"准备落点：等待调度";case "biome_stalled"->"群系定位无进展超时";case "chunk_timeout","entity_load_timeout"->"区块加载超时";default->value.startsWith("teleport_")?"准备落点："+value.substring(9):value;};}
     private void openPicker(String kind){closePicker();popup=kind;popupScroll=0;int x=sidebar()+18;
-        if(kind.equals("rounds")){number=new EditBox(font,x+12,91,180,20,Component.literal("兜底次数0～32"));number.setValue(Integer.toString(ConfigHandler.CLIENT.creatureRounds.get()));number.setMaxLength(2);number.setFocused(true);addWidget(number);return;}
-        popupInput=new EditBox(font,x+12,70,190,20,Component.literal("搜索"));popupInput.setResponder(s->{popupScroll=0;pickerMatches();});popupInput.setFocused(true);addWidget(popupInput);pickerMatches();
+        if(kind.equals("rounds")){number=new EditBox(font,x+12,91,180,20,Component.literal("兜底次数0～32"));number.setValue(Integer.toString(ConfigHandler.CLIENT.creatureRounds.get()));number.setMaxLength(2);number.setCanLoseFocus(false);addWidget(number);setFocused(number);return;}
+        popupInput=new EditBox(font,x+12,70,190,20,Component.literal("搜索"));popupInput.setResponder(s->{popupScroll=0;pickerMatches();});popupInput.setCanLoseFocus(false);addWidget(popupInput);setFocused(popupInput);pickerMatches();
     }
     private void pickerMatches(){var options=popup.equals("dimension")?ClientSession.dimensions():ClientSession.biomesIn(dimension);popupMatches=options.stream().filter(id->SearchText.of(name(id,popup.equals("dimension")),id.toString()).matches(popupInput.getValue())).sorted(Comparator.<ResourceLocation,Boolean>comparing(id->popup.equals("dimension")&&!id.equals(ClientSession.currentDimension())).thenComparing(id->name(id,popup.equals("dimension")))).toList();}
-    private void renderPopup(GuiGraphics g,int mx,int my,float d){int x=sidebar()+18,w=Math.min(240,width-x-12),h=Math.min(260,height-75);panel(g,x,58,w,h,0xff252627);
-        if(popup.equals("rounds")){g.drawString(font,"初查后的兜底轮数（0～32）",x+12,73,0xffe8ddb3);number.render(g,mx,my,d);g.drawString(font,"Enter 保存；Esc 取消",x+12,122,0xffc8ba92);return;}
-        popupInput.setWidth(w-24);popupInput.render(g,mx,my,d);g.drawString(font,"默认",x+12,100,0xffe8ddb3);int visible=Math.max(1,(h-68)/20);
-        for(int i=popupScroll;i<Math.min(popupMatches.size(),popupScroll+visible);i++){var id=popupMatches.get(i);g.drawString(font,clip(name(id,popup.equals("dimension"))+(popup.equals("dimension")&&id.equals(ClientSession.currentDimension())?"（当前）":""),w-25),x+12,121+(i-popupScroll)*20,0xffe8ddb3);}
+    private int popupVisible(){int h=Math.min(260,height-75);return Math.max(0,(58+h-128)/20);}
+    private void renderPopup(GuiGraphics g,int mx,int my,float d){
+        int x=sidebar()+18,w=Math.min(240,width-x-12),h=Math.min(260,height-75);
+        g.flush();g.pose().pushPose();g.pose().translate(0,0,400);
+        try{
+            g.fill(0,0,width,height,0x99000000);panel(g,x,58,w,h,0xff151719);
+            if(popup.equals("rounds")){number.setWidth(w-24);g.drawString(font,clip("邻区兜底轮数（0～32）",w-24),x+12,73,0xffe8ddb3);number.render(g,mx,my,d);g.drawString(font,clip("Enter 保存；Esc 取消",w-24),x+12,122,0xffc8ba92);return;}
+            popupInput.setWidth(w-24);popupInput.render(g,mx,my,d);g.drawString(font,"默认",x+12,100,0xffe8ddb3);
+            g.enableScissor(x+8,120,x+w-8,58+h-8);
+            try{for(int i=popupScroll;i<Math.min(popupMatches.size(),popupScroll+popupVisible());i++){
+                var id=popupMatches.get(i);g.drawString(font,clip(name(id,popup.equals("dimension"))+(popup.equals("dimension")&&id.equals(ClientSession.currentDimension())?"（当前）":""),w-25),x+12,121+(i-popupScroll)*20,0xffe8ddb3);
+            }}finally{g.disableScissor();}
+        }finally{g.flush();g.pose().popPose();}
     }
-    private void closePicker(){if(popupInput!=null)removeWidget(popupInput);if(number!=null)removeWidget(number);popupInput=null;number=null;popup="";}
+    private void closePicker(){if(popupInput!=null)removeWidget(popupInput);if(number!=null)removeWidget(number);popupInput=null;number=null;popup="";if(input!=null)setFocused(input);}
     @Override public boolean mouseClicked(double x,double y,int b){
-        if(!popup.isEmpty()){int px=sidebar()+18,w=Math.min(240,width-px-12),h=Math.min(260,height-75);if(x<px || x>px+w || y<58 || y>58+h){closePicker();return true;}if(popup.equals("rounds"))return number.mouseClicked(x,y,b);if(popupInput.mouseClicked(x,y,b))return true;
-            ResourceLocation id=null;int at=popupScroll+(int)((y-120)/20);if(y>=120 && at>=0 && at<popupMatches.size())id=popupMatches.get(at);else if(y<96)return true;
+        if(!popup.isEmpty()){int px=sidebar()+18,w=Math.min(240,width-px-12),h=Math.min(260,height-75);if(x<px || x>px+w || y<58 || y>58+h){closePicker();return true;}if(b!=0)return true;if(popup.equals("rounds")){number.mouseClicked(x,y,b);return true;}if(popupInput.mouseClicked(x,y,b))return true;
+            ResourceLocation id=null;int row=(int)((y-120)/20),at=popupScroll+row;
+            if(y>=120 && row<popupVisible() && at>=0 && at<popupMatches.size())id=popupMatches.get(at);else if(!(y>=96 && y<116))return true;
             if(popup.equals("dimension")){dimension=id;ConfigHandler.CLIENT.creatureDimension.set(id==null?"":id.toString());ConfigHandler.CLIENT.creatureDimension.save();if(biome!=null && !ClientSession.biomesIn(dimension).contains(biome))biome=null;}
             else {biome=id;}ConfigHandler.CLIENT.creatureBiome.set(biome==null?"":biome.toString());ConfigHandler.CLIENT.creatureBiome.save();closePicker();scroll=0;refresh();return true;
         }
         if(super.mouseClicked(x,y,b))return true;int left=sidebar()+16,cell=78,cols=Math.max(1,(width-left-20)/cell);if(x>=left && x<width-17 && y>=57 && y<cardsBottom()){int index=scroll*cols+(int)((y-57)/cell)*cols+(int)((x-left)/cell);if(index<matches.size()){selected=matches.get(index).entity();refresh();return true;}}return false;
     }
     @Override public boolean mouseScrolled(double x,double y,double delta){
-        if(!popup.isEmpty()){popupScroll=Math.max(0,Math.min(Math.max(0,popupMatches.size()-3),popupScroll-(int)Math.signum(delta)));return true;}
+        if(!popup.isEmpty()){popupScroll=Math.max(0,Math.min(Math.max(0,popupMatches.size()-popupVisible()),popupScroll-(int)Math.signum(delta)));return true;}
         if(hoveredEntry!=null && tipOverflow>0){tipScroll=Math.max(0,Math.min(tipOverflow,tipScroll-(int)Math.signum(delta)));return true;}
         if(x<sidebar()+10 && y>=55 && y<cardsBottom()){sideScroll+=-(int)Math.signum(delta)*15;updateSideButtons();return true;}
         int cols=Math.max(1,(width-sidebar()-36)/78);scroll=Math.max(0,Math.min(Math.max(0,(matches.size()-1)/cols),scroll-(int)Math.signum(delta)));return true;
     }
-    @Override public boolean keyPressed(int key,int scan,int mods){if(!popup.isEmpty()){if(key==256){closePicker();return true;}if(number!=null){if(key==257){try{int n=Integer.parseInt(number.getValue());if(n>=0&&n<=32){ConfigHandler.CLIENT.creatureRounds.set(n);ConfigHandler.CLIENT.creatureRounds.save();closePicker();}}catch(NumberFormatException ignored){}return true;}return number.keyPressed(key,scan,mods);}return popupInput.keyPressed(key,scan,mods);}return super.keyPressed(key,scan,mods);}
-    @Override public boolean charTyped(char c,int mods){if(number!=null)return number.charTyped(c,mods);if(popupInput!=null)return popupInput.charTyped(c,mods);return super.charTyped(c,mods);}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(!popup.isEmpty()){if(key==256){closePicker();return true;}if(number!=null){if(key==257){try{int n=Integer.parseInt(number.getValue());if(n>=0&&n<=32){ConfigHandler.CLIENT.creatureRounds.set(n);ConfigHandler.CLIENT.creatureRounds.save();closePicker();}}catch(NumberFormatException ignored){}return true;}number.keyPressed(key,scan,mods);return true;}popupInput.keyPressed(key,scan,mods);return true;}return super.keyPressed(key,scan,mods);}
+    @Override public boolean mouseDragged(double x,double y,int button,double dx,double dy){if(!popup.isEmpty()){if(number!=null)number.mouseDragged(x,y,button,dx,dy);else if(popupInput!=null)popupInput.mouseDragged(x,y,button,dx,dy);return true;}return super.mouseDragged(x,y,button,dx,dy);}
+    @Override public boolean mouseReleased(double x,double y,int button){if(!popup.isEmpty())return true;return super.mouseReleased(x,y,button);}
+    @Override public boolean charTyped(char c,int mods){if(number!=null){number.charTyped(c,mods);return true;}if(popupInput!=null){popupInput.charTyped(c,mods);return true;}return super.charTyped(c,mods);}
 }

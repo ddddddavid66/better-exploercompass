@@ -18,7 +18,13 @@
     "AlexLocatorProtectionMixin",
     "ClimateParametersAccessor",
     "ColumnClimateMixin",
-    "DensityAddAccessor"
+    "DensityAddAccessor",
+    "ServerEntityManagerAccessor",
+    "EntitySectionManagerAccessor",
+    "EntityStorageAccessor",
+    "EntityStorageObserverMixin",
+    "EntityIoWorkerAccessor",
+    "EntityRegionStorageAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
