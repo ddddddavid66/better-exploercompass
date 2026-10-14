@@ -215,7 +215,7 @@ public final class TeleportService {
         tasks.put(player.getUUID(),task);beginTravelStage(task,task.mode==LandingMode.RELAXED_ONLY);return true;
     }
     private static void beginTravelStage(Task task,boolean relaxed) {
-        task.fallback=relaxed;task.clicked=true;task.waiting=false;task.phase="";
+        task.budgetPaused=false;task.fallback=relaxed;task.clicked=true;task.waiting=false;task.phase="";
         task.heights=relaxed?task.relaxedHeights:task.strictHeights;task.column=0;
         task.landing=relaxed?task.relaxedLanding:task.strictLanding;
         long now=System.nanoTime();task.requestDeadline=now+REQUEST_NANOS;

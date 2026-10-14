@@ -76,6 +76,7 @@ public final class Aether121Checks {
                 if(mc.screen instanceof net.minecraft.client.gui.screens.AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
                 if(!(mc.screen instanceof TitleScreen))return;
                 mc.options.renderDistance().set(3);mc.options.simulationDistance().set(5);
+                mc.options.pauseOnLostFocus=false;
                 mc.options.guiScale().set(2);mc.resizeDisplay();
                 mc.createWorldOpenFlows().loadLevel(mc.screen,"aether121-save");opened=true;return;
             }
@@ -89,9 +90,12 @@ public final class Aether121Checks {
     }
 
     @SubscribeEvent public static void server(TickEvent.ServerTickEvent event) {
-        if(!Boolean.getBoolean("unified.aether121") || event.phase!=TickEvent.Phase.END || playerId==null || failure!=null || finished!=null)return;
+        if(!Boolean.getBoolean("unified.aether121") || event.phase!=TickEvent.Phase.END || failure!=null || finished!=null)return;
         var server=ServerLifecycleHooks.getCurrentServer();if(server==null)return;
-        var player=server.getPlayerList().getPlayer(playerId);if(player==null)return;
+        if(playerId==null && server.getPlayerList().getPlayers().size()==1)playerId=server.getPlayerList().getPlayers().get(0).getUUID();
+        var player=playerId==null?null:server.getPlayerList().getPlayer(playerId);
+        if(player==null && server.getPlayerList().getPlayers().size()==1)player=server.getPlayerList().getPlayers().get(0);
+        if(player==null)return;
         try {step(player);}catch(Throwable error){failure=error;error.printStackTrace();cleanup(player);}
     }
 
