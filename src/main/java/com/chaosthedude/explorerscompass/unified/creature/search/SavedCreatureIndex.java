@@ -20,11 +20,14 @@ public final class SavedCreatureIndex {
     private record Region(int x,int z) { ChunkPos origin(){return new ChunkPos(x*32,z*32);} }
     private record Dirty(ServerLevel level,ChunkPos chunk) {}
     private record Read(ChunkPos chunk,long version,CompletableFuture<List<Point>> future) {}
+    private record Scan(State state,ChunkPos chunk,CompletableFuture<List<Point>> result) {}
     private static final Pattern REGION=Pattern.compile("r\\.(-?\\d+)\\.(-?\\d+)\\.mca");
     private static final Map<ServerLevel,State> states=new WeakHashMap<>();
     private static final Set<Dirty> dirty=ConcurrentHashMap.newKeySet();
     private static final AtomicInteger inFlight=new AtomicInteger();
-    private static final int MAX_READS=8;
+    private static final int MAX_READS=8,MAX_BUFFERED=64;
+    private static final ArrayDeque<Scan> scheduled=new ArrayDeque<>();
+    private static int peakReads;
     private static volatile boolean enabled;
     private SavedCreatureIndex() {}
 
@@ -36,7 +39,7 @@ public final class SavedCreatureIndex {
         final Map<UUID,Point> byId=new HashMap<>();
         final Map<Long,Read> reading=new HashMap<>();
         final Set<UUID> destroyed=new HashSet<>();
-        long revision;boolean closed;
+        long revision;volatile boolean closed;
         State(ServerLevel level){
             var manager=((ServerEntityManagerAccessor)level).unified$entityManager();
             var persistent=((EntitySectionManagerAccessor)manager).unified$permanentStorage();
@@ -90,11 +93,10 @@ public final class SavedCreatureIndex {
         }
         boolean read(ChunkPos chunk){
             long key=chunk.toLong();if(chunks.containsKey(key) || reading.containsKey(key))return true;
-            if(inFlight.get()>=MAX_READS)return false;
-            var visitor=new SavedEntityVisitor();inFlight.incrementAndGet();
-            var future=worker.scanChunk(chunk,visitor).thenApply(v->visitor.points(chunk));
-            future.whenComplete((v,e)->inFlight.decrementAndGet());
-            reading.put(key,new Read(chunk,versions.getOrDefault(key,0L),future));return true;
+            if(reading.size()>=MAX_BUFFERED)return false;
+            var future=new CompletableFuture<List<Point>>();
+            reading.put(key,new Read(chunk,versions.getOrDefault(key,0L),future));
+            enqueue(new Scan(this,chunk,future));return true;
         }
         void consume(long deadline)throws Exception{
             var iterator=reading.values().iterator();
@@ -120,7 +122,7 @@ public final class SavedCreatureIndex {
                 if(state.chunks.containsKey(key)){work.remove();if(counted.add(key))scanned++;continue;}
                 if(!state.read(chunk))break;
                 // 在途区块保留在本游标中，直到真实扫描完成才计入进度。
-                work.remove();work.addLast(chunk);if(state.reading.size()>=MAX_READS)break;
+                work.remove();work.addLast(chunk);if(state.reading.size()>=MAX_BUFFERED)break;
             }
             if(work.isEmpty() && occupancy==null && regionAt<regions.size())occupancy=state.occupied(regions.get(regionAt),origin,radius);
             if(nearest!=null && nearest.isDone()) {candidates.addAll(nearest.get());nearest=null;}
@@ -137,12 +139,34 @@ public final class SavedCreatureIndex {
         public int regionsDone(){return regionAt;}public int regionsTotal(){return regions==null?0:regions.size();}
         public void close(){closed=true;if(nearest!=null)nearest.cancel(true);candidates.clear();}
     }
+    private static synchronized void enqueue(Scan scan){scheduled.addLast(scan);pump();}
+    private static synchronized void pump(){
+        while(inFlight.get()<MAX_READS && !scheduled.isEmpty()){
+            var scan=scheduled.removeFirst();
+            if(scan.state().closed){scan.result().cancel(false);continue;}
+            int active=inFlight.incrementAndGet();peakReads=Math.max(peakReads,active);
+            // 1.20.1 的 BACKGROUND 优先级为1；让正常加载和已有保存任务先行，防止连续扫描饿死落盘。
+            scan.state().io.unified$mailbox().tell(new net.minecraft.util.thread.StrictQueue.IntRunnable(1,()->read(scan)));
+        }
+    }
+    private static void read(Scan scan){
+        if(scan.state().closed){scan.result().cancel(false);inFlight.decrementAndGet();pump();return;}
+        var visitor=new SavedEntityVisitor();
+        try{
+            scan.state().worker.scanChunk(scan.chunk(),visitor).whenComplete((v,error)->{
+                try{if(error==null)scan.result().complete(visitor.points(scan.chunk()));else scan.result().completeExceptionally(error);}
+                catch(Throwable parse){scan.result().completeExceptionally(parse);}
+                finally{inFlight.decrementAndGet();pump();}
+            });
+        }catch(Throwable error){inFlight.decrementAndGet();scan.result().completeExceptionally(error);pump();}
+    }
+    public static synchronized int peakReads(){return peakReads;}
     public static Cursor open(ServerLevel level,ResourceLocation type,BlockPos origin,int radius){enabled=true;drain();return new Cursor(states.computeIfAbsent(level,State::new),type,origin,radius);}
     public static void stored(ServerLevel level,ChunkPos chunk){if(enabled)dirty.add(new Dirty(level,chunk));}
     private static void drain(){int count=0;var iterator=dirty.iterator();while(iterator.hasNext() && count++<128){var event=iterator.next();iterator.remove();var state=states.get(event.level());if(state==null)continue;long key=event.chunk().toLong();state.versions.merge(key,1L,Long::sum);state.removeChunk(key);}}
     public static void destroyed(ServerLevel level,UUID id){var state=states.get(level);if(state!=null){state.destroyed.add(id);var old=state.byId.remove(id);if(old!=null){state.types.get(old.type()).remove(id);state.revision++;}}}
     public static void clear(){enabled=false;for(var state:states.values())state.closed=true;states.clear();dirty.clear();}
-    public static int inFlight(){return inFlight.get();}
+    public static synchronized int inFlight(){return inFlight.get()+scheduled.size();}
     private static double lower(Region region,BlockPos origin){return lower((long)region.x()*512,(long)region.z()*512,512,origin);}
     private static double lower(ChunkPos chunk,BlockPos origin){return lower(chunk.getMinBlockX(),chunk.getMinBlockZ(),16,origin);}
     private static double lower(long x,long z,int size,BlockPos origin){double dx=Math.max(0,Math.max(x-origin.getX(),origin.getX()-x-size)),dz=Math.max(0,Math.max(z-origin.getZ(),origin.getZ()-z-size));return dx*dx+dz*dz;}

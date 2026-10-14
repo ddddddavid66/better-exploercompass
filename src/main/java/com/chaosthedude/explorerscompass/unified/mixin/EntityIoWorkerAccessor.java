@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.gen.*;
 
 @Mixin(IOWorker.class)
 public interface EntityIoWorkerAccessor {
+    @Accessor("mailbox") net.minecraft.util.thread.ProcessorMailbox<net.minecraft.util.thread.StrictQueue.IntRunnable> unified$mailbox();
     @Accessor("storage") RegionFileStorage unified$storage();
     @Accessor("pendingWrites") Map<ChunkPos,?> unified$pendingWrites();
     @Invoker("submitTask") <T> CompletableFuture<T> unified$submit(Supplier<Either<T,Exception>> task);
