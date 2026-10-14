@@ -99,3 +99,15 @@ Alex Caves 六目标使用相同矩形前沿。每个 X/Z 列先执行官方稀�
 设计参考 Šidlauskas等《Trees or Grids? Indexing Moving Objects in Main Memory》（2009），格网及对象ID索引思路：https://homes.cs.aau.dk/~torp/Teaching/E10/papers/treesgrids.pdf 。本工程独立实现，未采用论文中的性能数字作为本模组速度；没有完整未加载世界最近性的承诺。
 
 Forge EntityJoinLevelEvent警告FULL之前读取世界可能死锁，故事件只登记；实际群系读取及实体复核在服务器线程，且先确认邻近区块就绪。官方依据：https://raw.githubusercontent.com/MinecraftForge/MinecraftForge/1.20.x/src/main/java/net/minecraftforge/event/entity/EntityJoinLevelEvent.java 。
+
+## 1.2.2：保存实体数据源与单元下界检索
+
+区分已加载实体、未加载但已经保存的实体、尚未刷出的生物。空间索引只查询前两者，不能根据种子创造第三者。现有64格网格增加按单元水平距离下界推进的优先队列，UUID固定处理等距；只按不可变真实位置/保存位置检索，不再先展开全部桶全量排序。
+
+保存数据共用ServerLevel的原有EntityStorage.worker，IOWorker.scanChunk先访问pendingWrites再访问已有区域文件。流式visitor只保留id/UUID/Pos/Health并递归Passengers，不调用EntityStorage.loadEntities，后者会反序列化并创建Entity。区域占用快照也在同一I/O邮箱读取，绝不另开正在保存的RegionFileStorage，不盲扫不存在的区域。全局最多8个实体扫描在途；完成回调立即在共享邮箱补给下一个请求，不等待主线程tick。每状态最多64条提交/完成记录作为有界缓冲，缓存合并继续按主线程时间片进行。补给先排入原邮箱BACKGROUND优先级，让正常加载及已有保存获得执行机会，避免连续FOREGROUND扫描饿死落盘。
+
+服务端只合并不可变记录并安排真实核对；存储区块独立保留，不能由乘客Pos猜测。保存后使对应缓存版本失效，迟到的扫描不得覆盖新版本，死亡UUID排除。实时记录优先，保存索引不是全世界原子快照。退出世界仅丢弃自有索引，不关闭Minecraft的共享I/O worker。
+
+找到保存候选后只准备少量区块，必须同时满足FULL地形和实体管理器LOADED，再按UUID检查存活、实际位置、半径及真实群系。旧记录失败继续下一条；默认四轮仅限制新区块兜底，不中断保存实体检索。成功保留核对窗口最多60秒供观察/传送，其他核对排队时提前让出，取消/替换立即释放。未核实记录不作为蓝点或可传送结果，不声明当前返回的是未读取世界的全局最近实体。
+
+此流程不触发额外刷怪、不伪造玩家、不改变玩家位置。新区块生成阶段通常仅产生CREATURE类别；AMBIENT花飘飘与WATER_CREATURE鱿鱼不能依赖远程票据保证出生。若真实实例确实不存在，只能报告本次未发现，出生规则不冒充已找到的生物。
