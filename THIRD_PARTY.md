@@ -45,3 +45,11 @@ Gradle Wrapper 随源码提供，构建工具许可 Apache-2.0；JUnit Jupiter 5
 - 生物格网设计参考Šidlauskas等2009《Trees or Grids? Indexing Moving Objects in Main Memory》，链接见ALGORITHM.md；没有分发论文或第三方算法源码。
 - 用户提供图鉴文字为目录输入，运行时调用现有实体翻译与模型，不复制FoolBook代码、贴图或类。目录不能证明实际刷怪，仍进行注册与实体核对。
 - Xaero WorldMap1.39.2 / Minimap25.0.0仅作可选客户端接口，固定编译期Maven坐标分别为maven.modrinth:NcUtCpym:3Wmpi0tR及maven.modrinth:1bokaNcj:c3BiB41R，不打包其类或资源。地图模组保留各自许可。
+
+
+## 1.2.3 补充
+
+- Alex’s Caves2.0.2：只在指南针搜索作用域重定向官方Voronoi对象读取，完整官方查询仍执行，不复制公式或第三方类。源码/本地字节码核对与四线程一致性记录随交付提供。
+- TerraBlender3.0.1.10：核对本地Area的StampedLock保护、分层随机上下文和初始化后的只读参数树；保留3.0.1.7支持，其他版本仍兼容路径。[官方参数树](https://github.com/Glitchfiend/TerraBlender/blob/1.20.1/Common/src/main/java/terrablender/mixin/MixinParameterList.java)。
+- Apache Commons Compress：Apache-2.0，由Minecraft/Forge运行库提供，构建及加载大目录时调用BZip2接口，不打包其类；源码图鉴是标准JSON，发布资源无损解码后逐字节相同。
+- Chunky仅作为预生成行为与边界的研究参考，没有引入其源码或依赖。预探索的有限任务、进度界面、预算及索引复用在本工程实现。

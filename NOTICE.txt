@@ -1,4 +1,4 @@
-Explorer’s Compass Unified 1.1.1 — 探险者指南针 统一
+Explorer’s Compass Unified 1.2.3 — 探险者指南针 统一
 Original Explorer’s Compass: ChaosTheDude / MattCzyr
 Unified modifications and maintenance: David, 2026
 Upstream: https://github.com/MattCzyr/ExplorersCompass
@@ -21,3 +21,8 @@ YUNG-GANG / YUNG's API 4.0.5, Better Jungle Temples 2.0.5, Better Ocean Monument
 ObscuriaLithium / Aquamirae 6.API15. See THIRD_PARTY.md and SOURCE_AUDIT.md in the source release.
 These mods remain separate optional dependencies under their respective licenses.
 No third-party mod classes, templates or textures are bundled.
+
+1.2.3 search-scoped optional integration: Alex Caves 2.0.2 and TerraBlender 3.0.1.7/3.0.1.10.
+The integration calls the original biome query and official Voronoi objects; no third-party implementation classes are distributed.
+Catalog packing uses Apache Commons Compress supplied by Minecraft/Forge (Apache-2.0), https://commons.apache.org/proper/commons-compress/ .
+No Commons Compress classes are bundled. The user-supplied 981-record catalog is unchanged after lossless decoding.
