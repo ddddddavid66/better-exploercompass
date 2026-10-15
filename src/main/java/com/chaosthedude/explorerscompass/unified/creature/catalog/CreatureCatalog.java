@@ -30,7 +30,7 @@ public final class CreatureCatalog {
         if(entries!=null)return;var parsed=new LinkedHashMap<ResourceLocation,JsonObject>();var deferred=new TreeMap<ResourceLocation,String>();
         var resources=server.getResourceManager().listResources("creature_catalog",key->key.getPath().endsWith(".json"));
         resources.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(resource->{
-            try(var reader=resource.getValue().openAsReader()) {
+            try(var reader=reader(resource.getValue().open())) {
                 for(var row:JsonParser.parseReader(reader).getAsJsonArray()){
                     JsonObject o=row.getAsJsonObject();var id=ResourceLocation.tryParse(text(o,"entity"));
                     if(id==null)continue;
@@ -83,6 +83,15 @@ public final class CreatureCatalog {
         entries=Collections.unmodifiableMap(result);
         pending=Collections.unmodifiableMap(deferred);
         ExplorersCompass.LOGGER.info("生物目录：{} 条已安装类型，{} 条维度已核实，其余暂缓",parsed.size(),entries.size());
+    }
+    /** 发布时无损压缩大目录；数据包仍可用同一路径的普通JSON覆盖。 */
+    private static Reader reader(InputStream input)throws IOException {
+        var stream=new PushbackInputStream(input,3);
+        try{byte[] head=stream.readNBytes(3);stream.unread(head);
+            InputStream decoded=head.length==3 && head[0]=='B' && head[1]=='Z' && head[2]=='h'
+                    ?new org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream(stream):stream;
+            return new InputStreamReader(decoded,java.nio.charset.StandardCharsets.UTF_8);
+        }catch(IOException|RuntimeException e){stream.close();throw e;}
     }
     public static net.minecraft.nbt.CompoundTag encode(CreatureEntry e) {
         var n=new net.minecraft.nbt.CompoundTag();n.putString("id",e.entity().toString());n.putString("name",e.name());n.putString("english",e.english());n.putString("note",e.note());

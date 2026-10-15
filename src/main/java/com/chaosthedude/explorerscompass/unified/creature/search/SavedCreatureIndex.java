@@ -162,6 +162,8 @@ public final class SavedCreatureIndex {
     }
     public static synchronized int peakReads(){return peakReads;}
     public static Cursor open(ServerLevel level,ResourceLocation type,BlockPos origin,int radius){enabled=true;drain();return new Cursor(states.computeIfAbsent(level,State::new),type,origin,radius);}
+    /** 已就绪区块的真实快照直接复用，晚到旧I/O不能覆盖。 */
+    public static void seed(ServerLevel level,ChunkPos chunk,List<Point> points){enabled=true;drain();State state=states.computeIfAbsent(level,State::new);long version=state.versions.merge(chunk.toLong(),1L,Long::sum);state.accept(new Read(chunk,version,CompletableFuture.completedFuture(points)),List.copyOf(points));}
     public static void stored(ServerLevel level,ChunkPos chunk){if(enabled)dirty.add(new Dirty(level,chunk));}
     private static void drain(){int count=0;var iterator=dirty.iterator();while(iterator.hasNext() && count++<128){var event=iterator.next();iterator.remove();var state=states.get(event.level());if(state==null)continue;long key=event.chunk().toLong();state.versions.merge(key,1L,Long::sum);state.removeChunk(key);}}
     public static void destroyed(ServerLevel level,UUID id){var state=states.get(level);if(state!=null){state.destroyed.add(id);var old=state.byId.remove(id);if(old!=null){state.types.get(old.type()).remove(id);state.revision++;}}}

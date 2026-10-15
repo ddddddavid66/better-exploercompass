@@ -16,6 +16,7 @@
     "EndDungeonObserverMixin",
     "TemplatePaletteAccessor",
     "AlexLocatorProtectionMixin",
+    "AlexVoronoiScopeMixin",
     "ClimateParametersAccessor",
     "ColumnClimateMixin",
     "DensityAddAccessor",

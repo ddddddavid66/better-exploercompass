@@ -28,6 +28,7 @@ final class WorldgenCache {
     private final net.minecraft.world.level.biome.BiomeSource biomeSource;
     private final net.minecraft.world.level.biome.Climate.Sampler noise;
     private final ColumnClimate columns;
+    private final AlexBiomeScope.Context alex;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, StartPrediction> dungeons = new IdentityHashMap<>();
     private final Map<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement,Boolean> regionPolicies=new IdentityHashMap<>();
@@ -73,6 +74,7 @@ final class WorldgenCache {
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private WorldgenCache(ServerLevel level) {
+        alex=BiomeSourceSafety.prepare(level).allowed()?AlexBiomeScope.prepare(level.getSeed()):null;
         biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
         noise = level.getChunkSource().randomState().sampler();
         columns=ColumnClimate.prepare(level,noise);
@@ -115,7 +117,7 @@ final class WorldgenCache {
         // 缓存正/负生成预测，绝不缓存真实区块核对；快照失效后旧任务只能写入自己的旧缓存。
         return predictions.get(new PredictionKey(structure, chunk.toLong()), ignored -> {
             try {
-                var point = predictor.predict(structure, biomes, chunk);
+                var point = scoped(()->predictor.predict(structure, biomes, chunk));
                 return new Prediction(point == null ? null : point.immutable());
             }catch(HeightBiomeFilter.Rejected impossible) {
                 // 全高度群系证明同样属于负生成结果；不能让它逃出缓存并在下次重算。
@@ -126,7 +128,7 @@ final class WorldgenCache {
     Biome predictBiome(int x, int y, int z) {
         // Quart 坐标和真实采样器严格隔离；只缓存审核过的不可变生成查询，仍逐点检查。
         long key = net.minecraft.core.BlockPos.asLong(x, y, z);
-        return biomePredictions.get(key, ignored -> biomeSource.getNoiseBiome(x, y, z, noise).value());
+        return biomePredictions.get(key, ignored -> scoped(()->biomeSource.getNoiseBiome(x, y, z, noise).value()));
     }
     final class BiomeColumn {
         private final int x,z;
@@ -138,11 +140,12 @@ final class WorldgenCache {
     <T> T inColumn(int x,int z,java.util.function.Supplier<T> action) {return columns==null?action.get():columns.with(x,z,action);}
     boolean allowedBiome(int x,int y,int z,Predicate<Holder<Biome>> allowed) {
         long key=net.minecraft.core.BlockPos.asLong(x,y,z);
-        Biome biome=biomePredictions.get(key,ignored->biomeSource.getNoiseBiome(x,y,z,noise).value());
+        Biome biome=predictBiome(x,y,z);
         return allowed.test(net.minecraft.core.Holder.direct(biome));
     }
     Biome peekBiome(int x,int y,int z) {
         return biomePredictions.peek(net.minecraft.core.BlockPos.asLong(x,y,z));
     }
-    static void clear() { WORLDS.clear(); BiomeSourceSafety.clear(); }
+    private <T> T scoped(Supplier<T> action){return alex==null?action.get():alex.with(action);}
+    static void clear() { WORLDS.clear(); BiomeSourceSafety.clear(); AlexBiomeScope.clear(); }
 }

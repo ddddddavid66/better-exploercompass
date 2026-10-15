@@ -10,7 +10,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class UnifiedNetwork {
-    public static final String VERSION = "unified-6";
+    public static final String VERSION = "unified-7";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(CompassUnified.MOD_ID, "unified"), () -> VERSION,
             UnifiedNetwork::acceptsVersion, UnifiedNetwork::acceptsVersion);

@@ -25,6 +25,12 @@ public final class BiomeQueryFactory {
         }
     }
     private BiomeQueryFactory() {}
+    public static SearchJob habitats(ServerLevel level,BlockPos origin,java.util.Set<ResourceLocation> targets,
+                                    java.util.Set<Long> excluded,int radius,long quota,boolean async) {
+        var target=targets.stream().sorted().findFirst().orElseThrow();
+        var plan=prepare(level,origin,target);
+        return new HabitatSearch(level,origin,targets,excluded,radius,quota,async,plan.profile);
+    }
     public static Plan prepare(ServerLevel level,BlockPos origin,ResourceLocation target) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("群系计划只能在服务端线程准备");
         BiomeSourceSafety.prepare(level);

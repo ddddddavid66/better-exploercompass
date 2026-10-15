@@ -17,5 +17,7 @@ public final class VerificationSlots {
     public static void release(Object owner) { queued.remove(owner); held.remove(owner); }
     public static int count() { return held.size(); }
     public static int queued() { return queued.size(); }
+    /** 预探索不进入前台等待队列，不能挡住搜索或传送。 */
+    public static boolean acquireBackground(Object owner){if(held.contains(owner))return true;if(!queued.isEmpty() || held.size()>=4)return false;held.add(owner);return true;}
     private VerificationSlots() {}
 }

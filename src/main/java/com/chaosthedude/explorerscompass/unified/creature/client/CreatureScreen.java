@@ -23,7 +23,7 @@ public final class CreatureScreen extends Screen {
     private static Object previewLevel;
     private final Map<ResourceLocation,SearchText> texts=new HashMap<>();
     private EditBox input,popupInput,number;
-    private Button search,teleport,dimensionButton,biomeButton,roundButton;
+    private Button search,teleport,dimensionButton,biomeButton,roundButton,exploreButton;
     private ResourceLocation dimension,biome,selected;
     private String popup="";private int scroll,popupScroll,sideScroll,tipScroll,tipOverflow;
     private CreatureEntry hoveredEntry,tooltipEntry;
@@ -40,6 +40,7 @@ public final class CreatureScreen extends Screen {
         teleport=button(width-90,17,66,24,"传送",b->CreatureClient.teleport());
         int side=sidebar();dimensionButton=button(21,60,side-20,26,"",b->openPicker("dimension"));biomeButton=button(21,90,side-20,26,"",b->openPicker("biome"));
         roundButton=button(21,120,side-20,26,"",b->openPicker("rounds"));
+        exploreButton=button(21,150,side-20,26,"预探索当前维度",b->minecraft.setScreen(new CreaturePreExploreScreen(this)));
         button(21,height-38,side-20,22,"关闭",b->onClose());
         button(width-155,height-38,60,22,"上一只",b->CreatureClient.cycle(-1));button(width-89,height-38,65,22,"下一只",b->CreatureClient.cycle(1));
         refresh();
@@ -47,11 +48,11 @@ public final class CreatureScreen extends Screen {
     private int sidebar(){return Math.max(112,Math.min(155,width/5));}
     private int cardsBottom(){return Math.max(86,height-93);}
     private GoldButton button(int x,int y,int w,int h,String text,Button.OnPress action){GoldButton b=new GoldButton(x,y,w,h,Component.literal(text),action);addRenderableWidget(b);return b;}
-    private static final class GoldButton extends Button {
+    static final class GoldButton extends Button {
         GoldButton(int x,int y,int w,int h,Component text,OnPress action){super(x,y,w,h,text,action,DEFAULT_NARRATION);}
         @Override public void renderWidget(GuiGraphics g,int mx,int my,float delta){panel(g,getX(),getY(),getWidth(),getHeight(),isHoveredOrFocused()?0xff3f3b2d:0xff252627);g.drawCenteredString(Minecraft.getInstance().font,getMessage(),getX()+getWidth()/2,getY()+(getHeight()-8)/2,active?0xffe8ddb3:0xff777777);}
     }
-    private static void panel(GuiGraphics g,int x,int y,int w,int h,int fill){g.fill(x,y,x+w,y+h,0xff57472a);g.fill(x+1,y+1,x+w-1,y+h-1,0xffc5a659);g.fill(x+3,y+3,x+w-3,y+h-3,fill);}
+    static void panel(GuiGraphics g,int x,int y,int w,int h,int fill){g.fill(x,y,x+w,y+h,0xff57472a);g.fill(x+1,y+1,x+w-1,y+h-1,0xffc5a659);g.fill(x+3,y+3,x+w-3,y+h-3,fill);}
     private String name(ResourceLocation key,boolean dim){return key==null?"默认":dim?DimensionNames.name(key):FilterUi.biomeName(key);}
     private void refresh(){
         if(input==null)return;
@@ -67,8 +68,8 @@ public final class CreatureScreen extends Screen {
         updateSideButtons();
     }
     private void updateSideButtons(){
-        sideScroll=Math.max(0,Math.min(sideScroll,Math.max(0,146-cardsBottom())));
-        Button[] buttons={dimensionButton,biomeButton,roundButton};
+        sideScroll=Math.max(0,Math.min(sideScroll,Math.max(0,176-cardsBottom())));
+        Button[] buttons={dimensionButton,biomeButton,roundButton,exploreButton};
         for(int i=0;i<buttons.length;i++){var b=buttons[i];b.setY(60+i*30-sideScroll);b.visible=b.getY()>=57 && b.getY()+b.getHeight()<=cardsBottom();}
     }
     private String clip(String s,int w){return font.width(s)<=w?s:font.plainSubstrByWidth(s,Math.max(0,w-8))+"…";}
@@ -98,7 +99,7 @@ public final class CreatureScreen extends Screen {
         g.drawString(font,clip("状态："+stage(CreatureClient.state)+(mode.isEmpty()?"":"（"+mode+"）"),width-46),23,y,0xffe8ddb3,false);
         String work=CreatureClient.anchorLimit>0?"群系采样："+CreatureClient.anchorSamples+" / "+CreatureClient.anchorLimit+"  "+stage(CreatureClient.anchorStage)
             :"已加载实体核对："+CreatureClient.captured+" / "+CreatureClient.captureTotal;
-        if(!CreatureClient.source.equals("loaded"))work="存档区块："+CreatureClient.storedScanned+" / "+CreatureClient.storedTotal+"  区域："+CreatureClient.storedRegions+" / "+CreatureClient.storedRegionsTotal+"  核实："+CreatureClient.storedVerified;
+        if(CreatureClient.source.equals("saved"))work="存档区块："+CreatureClient.storedScanned+" / "+CreatureClient.storedTotal+"  区域："+CreatureClient.storedRegions+" / "+CreatureClient.storedRegionsTotal+"  核实："+CreatureClient.storedVerified;
         g.drawString(font,clip(work,width-46),23,y+10,0xffd9d5c5,false);
         g.drawString(font,clip("邻区轮次："+CreatureClient.round+" / "+CreatureClient.rounds+"  已检查区块："+CreatureClient.chunks+" / "+CreatureClient.chunksTotal,width-46),23,y+20,0xffd9d5c5,false);
         var p=CreatureClient.selected();String result=p==null?"搜索结果："+CreatureClient.points.size()+" 个实例":"实例 "+(CreatureClient.selection+1)+" / "+CreatureClient.points.size()+"  XYZ "+(int)p.x()+", "+(int)p.y()+", "+(int)p.z()+(p.live()?"":"（待复核）");

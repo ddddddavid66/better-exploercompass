@@ -14,11 +14,13 @@ public final class SearchEvents {
     private SearchEvents() {}
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
+            com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore.maintain(event.getServer());
             SearchService.tick();com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.tick();
         }
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore.cancel(player.getUUID());
             com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.interrupted");
             com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(player.getUUID());
             SearchService.cancel(player, true); TeleportEvents.clear(player.getUUID());
@@ -27,6 +29,7 @@ public final class SearchEvents {
     }
     @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore.cancel(player.getUUID());
             com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.interrupted");
             com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(player.getUUID());
             SearchService.cancel(player, true);

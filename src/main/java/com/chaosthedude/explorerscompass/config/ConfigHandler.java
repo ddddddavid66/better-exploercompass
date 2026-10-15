@@ -21,6 +21,7 @@ public class ConfigHandler {
 
 	public static class General {
 		public final ForgeConfigSpec.BooleanValue allowTeleport;
+        public final ForgeConfigSpec.BooleanValue allowCreaturePreExplore;
 		public final ForgeConfigSpec.IntValue maxNextSearches;
 		public final ForgeConfigSpec.BooleanValue displayCoordinates;
 		public final ForgeConfigSpec.ConfigValue<List<String>> structureBlacklist;
@@ -34,6 +35,7 @@ public class ConfigHandler {
 
 			desc = "Allows all players to use compass teleportation and entertainment travel, without cheats or operator status.";
 			allowTeleport = builder.comment(desc).define("allowTeleport", true);
+            allowCreaturePreExplore=builder.comment("Allow finite creature-compass pregeneration in the current dimension; does not force natural spawning.").define("allowCreaturePreExplore",true);
 
 			desc = "The maximum number of times a player can search for the next instance of a located structure, excluding already-found locations. Set to 0 to disable searching for additional structure instances and make the compass always locate the nearest instance.";
 			maxNextSearches = builder.comment(desc).defineInRange("maxNextSearches", 100, 0, 10000);

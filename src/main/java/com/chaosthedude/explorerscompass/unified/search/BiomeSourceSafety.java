@@ -69,9 +69,15 @@ final class BiomeSourceSafety {
             if (source.getClass() == MultiNoiseBiomeSource.class) {
                 if(ModList.get().isLoaded("alexscaves")) {
                     requireVersion("alexscaves","2.0.2");
-                    // 2.0.2坐标注入先调用全局Voronoi.setSeed/get2，之后才判断维度；禁用当前维度也不安全。
-                    reject("Alex 洞穴 2.0.2 在维度过滤之前访问全局可变 Voronoi；当前维度 "
-                            +level.dimension().location()+" 即使未启用洞穴替换也不能后台调用完整来源，仅专用快照预测可后台运行");
+                    // 官方只在生成新区块时写入；重进旧世界也必须先补齐来源上下文。
+                    Class<?> accessor=Class.forName("com.github.alexmodguy.alexscaves.server.level.biome.MultiNoiseBiomeSourceAccessor");
+                    if(!accessor.isInstance(source))reject("Alex 群系来源接口未应用");
+                    Class<?> mapping=Class.forName("com.github.alexmodguy.alexscaves.server.level.biome.BiomeSourceAccessor");
+                    if(!mapping.isInstance(source) || ((Map<?,?>)mapping.getMethod("getResourceKeyMap").invoke(source)).isEmpty())
+                        reject("Alex 群系来源映射尚未初始化，保留兼容查询");
+                    accessor.getMethod("setLastSampledSeed",long.class).invoke(source,level.getSeed());
+                    accessor.getMethod("setLastSampledDimension",net.minecraft.resources.ResourceKey.class).invoke(source,level.dimension());
+                    AlexBiomeScope.prepare(level.getSeed());
                 }
                 prepareTerraBlender(source); source.possibleBiomes(); return; }
             if (source.getClass() == TheEndBiomeSource.class) { prepareEnd(source); return; }
@@ -95,7 +101,9 @@ final class BiomeSourceSafety {
     }
     private void prepareTerraBlender(BiomeSource source) throws ReflectiveOperationException {
         if (!ModList.get().isLoaded("terrablender")) return;
-        requireVersion("terrablender", "3.0.1.7");
+        String version=ModList.get().getModContainerById("terrablender").orElseThrow().getModInfo().getVersion().toString();
+        // 3.0.1.10 的 Area 仍以 StampedLock 保护缓存与该层随机游标，树在初始化后只读。
+        if(!Set.of("3.0.1.7","3.0.1.10").contains(version))reject("未经核对的 terrablender 版本 "+version);
         Object parameters = call(source, "parameters", "m_274409_");
         Class<?> api = Class.forName("terrablender.worldgen.IExtendedParameterList");
         if (!api.isInstance(parameters)) reject("TerraBlender 参数接口未应用 " + parameters.getClass().getName());

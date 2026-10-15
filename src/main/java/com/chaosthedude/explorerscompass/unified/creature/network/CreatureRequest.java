@@ -9,5 +9,5 @@ import java.util.function.Supplier;
 public record CreatureRequest(CompoundTag data) {
     public static void encode(CreatureRequest p,FriendlyByteBuf b){b.writeNbt(p.data);}
     public static CreatureRequest decode(FriendlyByteBuf b){return new CreatureRequest(b.readNbt());}
-    public static void handle(CreatureRequest p,Supplier<NetworkEvent.Context> c){var ctx=c.get();ctx.enqueueWork(()->{if(ctx.getSender()!=null && p.data!=null)com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.request(ctx.getSender(),p.data);});ctx.setPacketHandled(true);}
+    public static void handle(CreatureRequest p,Supplier<NetworkEvent.Context> c){var ctx=c.get();ctx.enqueueWork(()->{if(ctx.getSender()!=null && p.data!=null){if(p.data.getString("action").startsWith("preexplore_"))com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore.request(ctx.getSender(),p.data);else com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.request(ctx.getSender(),p.data);}});ctx.setPacketHandled(true);}
 }

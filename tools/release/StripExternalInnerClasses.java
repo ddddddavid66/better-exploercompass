@@ -18,6 +18,12 @@ public final class StripExternalInnerClasses {
                     },0);
                     bytes=writer.toByteArray();
                 }
+                if(entry.getName().startsWith("data/explorerscompass/creature_catalog/") && entry.getName().endsWith(".json")
+                        && !(bytes.length>=3 && bytes[0]=='B' && bytes[1]=='Z' && bytes[2]=='h')) {
+                    var compressed=new java.io.ByteArrayOutputStream();
+                    try(var encoder=new org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream(compressed,9)){encoder.write(bytes);}
+                    bytes=compressed.toByteArray();
+                }
                 ZipEntry target=new ZipEntry(entry.getName());target.setTime(entry.getTime());output.putNextEntry(target);output.write(bytes);output.closeEntry();
             }
         }

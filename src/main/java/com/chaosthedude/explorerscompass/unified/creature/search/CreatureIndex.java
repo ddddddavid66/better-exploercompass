@@ -16,6 +16,7 @@ public final class CreatureIndex {
     private static final Map<ServerLevel,Map<ResourceLocation,Map<UUID,Entity>>> levels=new WeakHashMap<>();
     private static final ConcurrentLinkedQueue<Entity> joined=new ConcurrentLinkedQueue<>();
     private CreatureIndex() {}
+    public static void record(Entity e){if(e.level() instanceof ServerLevel level && e.isAlive() && !e.isRemoved())levels.computeIfAbsent(level,k->new HashMap<>()).computeIfAbsent(ForgeRegistries.ENTITY_TYPES.getKey(e.getType()),k->new LinkedHashMap<>()).put(e.getUUID(),e);}
     @SubscribeEvent public static void join(EntityJoinLevelEvent e){if(!e.getLevel().isClientSide())joined.add(e.getEntity());}
     @SubscribeEvent public static void leave(EntityLeaveLevelEvent e){if(e.getLevel() instanceof ServerLevel level){var map=levels.get(level);if(map!=null){var type=map.get(ForgeRegistries.ENTITY_TYPES.getKey(e.getEntity().getType()));if(type!=null)type.remove(e.getEntity().getUUID());}
         // 区块卸载保留待复核条目；死亡或销毁才永久移除结果。

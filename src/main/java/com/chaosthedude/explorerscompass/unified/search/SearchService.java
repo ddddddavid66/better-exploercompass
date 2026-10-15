@@ -294,9 +294,6 @@ public final class SearchService {
         TeleportService.maintain();
         EndDungeonIndex.maintain(Math.min(deadline, System.nanoTime() + 250_000L));
         com.chaosthedude.explorerscompass.unified.creature.search.CreatureIndex.drain(Math.min(deadline,System.nanoTime()+100_000L));
-        if(System.nanoTime()<deadline && com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.active())
-            com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.step();
-        if (sessions.isEmpty() && !TeleportService.active()) return;
         
         List<Session> round = new ArrayList<>();
         for(Session session:sessions.values()) {
@@ -306,13 +303,14 @@ public final class SearchService {
             session.fresh=false;
         }
         int idle = 0;
-        boolean teleportTurn = true;
-        while ((!round.isEmpty() || TeleportService.active()) && System.nanoTime() < deadline && idle < round.size() + 1) {
-            if (TeleportService.active() && (round.isEmpty() || teleportTurn)) {
-                boolean progress = TeleportService.step(); teleportTurn = false;
-                idle = progress ? 0 : idle + 1; continue;
-            }
-            teleportTurn = true;
+        int turn=0;
+        while ((!round.isEmpty() || TeleportService.active() || com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.active())
+                && System.nanoTime()<deadline && idle<3*(round.size()+com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.taskCount()+2)) {
+            int kind=turn++%3;
+            if(kind==0){boolean progress=TeleportService.active() && TeleportService.step();idle=progress?0:idle+1;continue;}
+            if(kind==1){boolean progress=com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.active()
+                    && com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.step(deadline);idle=progress?0:idle+1;continue;}
+            if(round.isEmpty()){idle++;continue;}
             Session session = round.get(Math.floorMod(cursor++, round.size()));
             if (sessions.get(session.player.getUUID()) != session) { idle++; continue; }
             if (!session.valid()) { cancel(session.player, true); idle++; continue; }
@@ -335,6 +333,7 @@ public final class SearchService {
                 idle++;
             }
         }
+        while(System.nanoTime()<deadline && com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore.step(deadline)) { /* 剩余预算只用于低优先级预探索。 */ }
         for (Session session : sessions.values()) if (++session.ticks % 2 == 0
                 && (session.job.samples() != session.lastSamples || !session.job.stage().equals(session.lastStage))) status(session);
     }
