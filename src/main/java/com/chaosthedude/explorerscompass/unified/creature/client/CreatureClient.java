@@ -20,6 +20,7 @@ public final class CreatureClient {
     public static long naturalWaitMillis;public static int spawnPopulation,spawnCapacity;
     public static int round,rounds,chunks,selection;
     public static long anchorSamples,anchorLimit,anchorMillis,storageMillis,chunkWaitMillis;
+    public static String patchKind="";public static int inFlight;
     public static String anchorMode="",anchorStage="";
     public static int captured,captureTotal,chunksTotal,storedVerified,storedRejected,storedRegions,storedRegionsTotal;
     public static long storedScanned,storedTotal;public static String source="loaded";
@@ -63,6 +64,7 @@ public final class CreatureClient {
         if(n.contains("anchorLimit"))anchorLimit=n.getLong("anchorLimit");
         if(n.contains("anchorMode"))anchorMode=n.getString("anchorMode");
         if(n.contains("anchorStage"))anchorStage=n.getString("anchorStage");
+        if(n.contains("patchKind")){patchKind=n.getString("patchKind");inFlight=n.getInt("inFlight");}
         if(n.contains("storedScanned")){storedScanned=n.getLong("storedScanned");storedTotal=n.getLong("storedTotal");storedVerified=n.getInt("storedVerified");storedRejected=n.getInt("storedRejected");storedRegions=n.getInt("storedRegions");storedRegionsTotal=n.getInt("storedRegionsTotal");source=n.getString("source");}
         if(n.contains("captured"))captured=n.getInt("captured");
         if(n.contains("captureTotal"))captureTotal=n.getInt("captureTotal");

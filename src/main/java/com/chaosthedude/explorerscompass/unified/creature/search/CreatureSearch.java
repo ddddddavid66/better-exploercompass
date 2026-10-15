@@ -28,7 +28,9 @@ public final class CreatureSearch {
         final ResourceLocation type,biome;final int rounds,radius;final BlockPos origin;
         final Map<UUID,MobPoint> points=new LinkedHashMap<>();
         List<Entity> capture;Iterator<Entity> bootstrap;int captureAt;MobGrid grid=new MobGrid();Future<List<MobPoint>> sorted;
-        Future<List<ChunkPos>> plan;List<ChunkPos> chunks;int checked,round,anchorOffset;
+        Future<Boolean> plan;CreatureChunkPlanner.Plan planner;List<ChunkPos> chunks;int checked,round,anchorOffset,plannedAt;
+        final List<ChunkWork> flights=new ArrayList<>();final ArrayDeque<BlockPos> habitatHints=new ArrayDeque<>();
+        final Set<Long> hintChunks=new HashSet<>();CreatureHabitats.Rules rules;String patchKind="";ChunkPos visitCandidate;
         SavedCreatureIndex.Cursor saved;SavedCreatureIndex.Point savedCandidate;boolean savedFinished;
         int storedVerified,storedRejected;long storedScanned,storedTotal,resultLeaseUntil;
         String source="loaded";Set<ResourceLocation> anchorBiomes;
@@ -45,8 +47,13 @@ public final class CreatureSearch {
         String stage="initial";boolean terminal;
         String measuredStage="initial";long stageSince=started;final Map<String,Long> phaseNanos=new HashMap<>();
         List<UUID> refreshing;int refreshAt;
-        Query(ServerPlayer p,ItemStack s,UUID token,ResourceLocation type,ResourceLocation biome,int rounds){player=p;level=p.serverLevel();stack=s;this.token=token;this.type=type;this.biome=biome;this.rounds=rounds;radius=SearchConfig.RADIUS.get();origin=p.blockPosition().immutable();}
+        Query(ServerPlayer p,ItemStack s,UUID token,ResourceLocation type,ResourceLocation biome,int rounds){player=p;level=p.serverLevel();stack=s;this.token=token;this.type=type;this.biome=biome;this.rounds=rounds;radius=SearchConfig.RADIUS.get();origin=p.blockPosition().immutable();rules=CreatureHabitats.get(level,type);anchorBiomes=biome==null?rules.biomes():Set.of(biome);}
         boolean valid(){return held(player)==stack && !player.isRemoved() && player.isAlive() && player.serverLevel()==level;}
+    }
+    private static final class ChunkWork {
+        final ChunkPos center;final UUID ticketId=UUID.randomUUID();final long started=System.nanoTime();
+        boolean ticket;long waiting;List<Entity> entities;int at;Map<ChunkPos,List<SavedCreatureIndex.Point>> snapshots;
+        ChunkWork(ChunkPos center){this.center=center;}
     }
     private CreatureSearch() {}
     public static ItemStack held(ServerPlayer p){if(p.getMainHandItem().getItem()==CreatureItem.INSTANCE)return p.getMainHandItem();if(p.getOffhandItem().getItem()==CreatureItem.INSTANCE)return p.getOffhandItem();return ItemStack.EMPTY;}
@@ -68,8 +75,8 @@ public final class CreatureSearch {
             UUID id=n.getUUID("entity");q.teleportRequest=n.hasUUID("teleportRequest")?n.getUUID("teleportRequest"):null;
             if(!q.points.containsKey(id) || !com.chaosthedude.explorerscompass.config.ConfigHandler.GENERAL.allowTeleport.get()){teleportReceipt(q,false);return;}q.teleport=id;q.fallback=n.getBoolean("fallback");
             Entity entity=q.level.getEntity(id);
-            if(entity!=null){teleport(q);return;}
-            release(q);q.reloading=true;q.stage="reload_entity";q.pending=new ChunkPos(BlockPos.containing(q.points.get(id).x(),q.points.get(id).y(),q.points.get(id).z()));q.waitStarted=System.nanoTime();publish(q);teleportReceipt(q,true);return;
+            if(entity!=null && CreatureIndex.ready(q.level,entity.blockPosition())){teleport(q);return;}
+            release(q);releaseFlights(q);q.reloading=true;q.stage="reload_entity";q.pending=new ChunkPos(entity==null?BlockPos.containing(q.points.get(id).x(),q.points.get(id).y(),q.points.get(id).z()):entity.blockPosition());q.waitStarted=System.nanoTime();publish(q);teleportReceipt(q,true);return;
         }
         if(!action.equals("search"))return;
         ResourceLocation type=parse(n.getString("type")),biome=parse(n.getString("biome")),dimension=parse(n.getString("dimension"));
@@ -109,15 +116,14 @@ public final class CreatureSearch {
             if(q.visit.empty){
                 boolean observed=q.visit.state.startsWith("natural_spawn_");
                 if(observed){
-                    var region=q.visit.center;
-                    for(int x=-16;x<=16;x++)for(int z=-16;z<=16;z++)if(x*x+z*z<=16*16)q.habitatExcluded.add(ChunkPos.asLong(region.x+x,region.z+z));
+                    q.habitatExcluded.add(q.visit.center.toLong());
                     ExplorersCompass.LOGGER.info("CREATURE habitat {} type={} state={} population={}/{}",q.token,q.type,q.visit.state,q.visit.population,q.visit.capacity);
                 }
                 release(q);q.pending=null;q.visit=null;
-                if(observed){q.anchor=null;q.chunks=null;q.plan=null;q.anchorOffset=q.checked;beginCapture(q);}
+                if(observed){q.anchor=null;q.chunks=null;q.plan=null;q.planner=null;q.anchorOffset=q.checked;beginCapture(q);}
                 return true;
             }
-            else {if(q.visit.ready)release(q);return false;}
+            else {if(q.visit.ready){release(q);if(!q.visit.waiting && !q.visit.watching())q.visit.visit(q.visit.confirmation);}return false;}
         }
         if(q.reloading){
             if(!acquire(q))return false;
@@ -126,6 +132,7 @@ public final class CreatureSearch {
         }
         if(q.finished) {
             if(q.ticket && (System.nanoTime()>q.resultLeaseUntil || VerificationSlots.queued()>0))release(q);
+            if(!q.flights.isEmpty() && (System.nanoTime()>q.resultLeaseUntil || VerificationSlots.queued()>0))releaseFlights(q);
             if(q.refreshing==null){if(System.nanoTime()-q.lastUpdate<500_000_000L)return false;q.refreshing=List.copyOf(q.points.keySet());q.refreshAt=0;}
             // 大量结果也按玩家时间片更新，不能每半秒独占主线程。
             while(q.refreshAt<q.refreshing.size() && System.nanoTime()<deadline) {
@@ -146,7 +153,10 @@ public final class CreatureSearch {
             if(q.captureAt<q.capture.size())return true;
             // 补扫实际已加载实体，避免加入事件队列尚未排空时遗漏；不在后台访问 Entity。
             while(q.bootstrap!=null && q.bootstrap.hasNext() && System.nanoTime()<deadline){
-                Entity e=q.bootstrap.next();if(!q.type.equals(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getType())))continue;
+                Entity e=q.bootstrap.next();if(!q.type.equals(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getType()))){
+                    if(e instanceof net.minecraft.world.entity.LivingEntity && q.habitatHints.size()<32){var hint=CreatureIndex.point(q.level,e);if(hint!=null && q.anchorBiomes.contains(hint.biome()) && q.hintChunks.add(new ChunkPos(e.blockPosition()).toLong()))q.habitatHints.addLast(e.blockPosition().immutable());}
+                    continue;
+                }
                 capture(q,e);
             }
             if(q.bootstrap!=null && q.bootstrap.hasNext())return true;q.bootstrap=null;
@@ -187,82 +197,107 @@ public final class CreatureSearch {
             if(!q.saved.exhausted()){q.stage="scanning_saved";return false;}
             q.saved.close();q.savedFinished=true;q.source="neighbor";
         }
-        if(q.anchor==null && q.anchorJob==null){
-            if(q.checked>=q.rounds*ROUND_CHUNKS){done(q,"not_found");return true;}
-            if(q.anchorBiomes==null){
-                q.anchorBiomes=q.biome!=null?Set.of(q.biome):habitats(q.level,q.type);
-            }
-            if(!q.anchorBiomes.isEmpty()){
+        if(q.visitCandidate!=null && q.flights.isEmpty()){
+            q.pending=q.visitCandidate;q.visitCandidate=null;q.guideChecks++;
+            q.visit=new HabitatVisit(q.player,q.stack,q.token,q.type,q.anchorBiomes,q.pending,()->tasks.get(q.player.getUUID())==q && q.valid(),point->accepts(q,point));
+            q.stage="checking_habitat";return true;
+        }
+        if(q.checked>=q.rounds*ROUND_CHUNKS && q.flights.isEmpty()){done(q,"not_found");return true;}
+        if(q.anchor==null){
+            while(!q.habitatHints.isEmpty() && q.anchor==null){var hint=q.habitatHints.removeFirst();if(!excludedHabitats(q).contains(new ChunkPos(hint).toLong()))q.anchor=hint;}
+            if(q.anchor==null && q.anchorJob==null && !q.anchorBiomes.isEmpty()){
                 long remaining=SearchConfig.BIOME_SAMPLES.get()-q.anchorSamples;
                 if(remaining<=0){done(q,"biome_sample_limit");return true;}
                 q.anchorBase=q.anchorSamples;
                 q.anchorJob=BiomeQueryFactory.habitats(q.level,q.origin,q.anchorBiomes,excludedHabitats(q),q.radius,remaining,SearchConfig.ASYNC_BIOMES.get());
-                q.anchorJob.prime();q.stage="locating_biome";q.lastProgress=System.nanoTime();publish(q);return true;
+                q.anchorJob.prime();q.lastProgress=System.nanoTime();
             }
-            q.anchor=q.origin;
-        }
-        if(q.anchorJob!=null){
-            boolean work;
-            try{work=q.anchorJob.step();}catch(Exception error){if(!q.anchorJob.asynchronous())throw error;
-                ExplorersCompass.LOGGER.warn("生物适生区后台查询失败，保留完整来源改为兼容查询",error);
-                q.anchorBase+=q.anchorJob.samples();q.anchorJob.cancel();
-                q.anchorJob=BiomeQueryFactory.habitats(q.level,q.origin,q.anchorBiomes,excludedHabitats(q),q.radius,Math.max(0,SearchConfig.BIOME_SAMPLES.get()-q.anchorBase),false).asFallback();work=true;}
-            long samples=q.anchorBase+q.anchorJob.samples();q.anchorLimit=SearchConfig.BIOME_SAMPLES.get();q.anchorMode=q.anchorJob.mode();q.anchorStage=q.anchorJob.stage();if(samples!=q.anchorSamples){q.lastProgress=System.nanoTime();q.anchorSamples=samples;}
-            if(!q.anchorJob.done()){if(System.nanoTime()-q.lastProgress>40_000_000_000L){q.anchorJob.cancel();q.anchorJob=null;done(q,"biome_stalled");}return work;}
-            var p=q.anchorJob.result();String reason=q.anchorJob.stage();q.anchorJob.cancel();q.anchorJob=null;
-            if(p==null){done(q,"biome_"+reason);return true;}q.anchor=p.position();
-        }
-        if(q.chunks==null) {
-            if(q.anchor==null)q.anchor=q.origin;
-            if(q.plan==null){var anchor=q.anchor;int count=Math.min(ROUND_CHUNKS,q.rounds*ROUND_CHUNKS-q.checked);var excluded=excludedHabitats(q);var origin=q.origin;int radius=q.radius;
-                q.stage="ranking_chunks";try{q.plan=SearchPool.executor().submit(CreatureChunkPlanner.prepare(q.level,anchor,count,excluded,origin,radius,q.type,q.anchorBiomes)::get);}catch(RejectedExecutionException busy){return false;}}
-            if(!q.plan.isDone())return false;q.chunks=q.plan.get();q.stage="loading_chunks";publish(q);
-        }
-        if(q.pending!=null){
-            if(!acquire(q))return false;
-            if(!ready(q)) {if(System.nanoTime()-q.waitStarted>60_000_000_000L){release(q);q.pending=null;done(q,"chunk_timeout");return true;}return false;}
-            CreatureIndex.drain(deadline);
-            var box=new net.minecraft.world.phys.AABB(q.pending.getMinBlockX()-16,q.level.getMinBuildHeight(),q.pending.getMinBlockZ()-16,q.pending.getMaxBlockX()+17,q.level.getMaxBuildHeight(),q.pending.getMaxBlockZ()+17);
-            for(var entity:q.level.getEntities((Entity)null,box,e->q.type.equals(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getType())))) {
-                var p=CreatureIndex.point(q.level,entity);
-                if(accepts(q,p))q.points.put(p.uuid(),p);
+            if(q.anchor==null && q.anchorJob!=null){
+                q.stage="locating_biome";boolean work;
+                try{work=q.anchorJob.step();}catch(Exception error){
+                    if(!q.anchorJob.asynchronous())throw error;
+                    ExplorersCompass.LOGGER.warn("生物适生区后台查询失败，保留完整来源改为兼容查询",error);
+                    q.anchorBase=q.anchorSamples;q.anchorJob.cancel();
+                    q.anchorJob=BiomeQueryFactory.habitats(q.level,q.origin,q.anchorBiomes,excludedHabitats(q),q.radius,Math.max(0,SearchConfig.BIOME_SAMPLES.get()-q.anchorBase),false).asFallback();return true;
+                }
+                long samples=q.anchorBase+q.anchorJob.samples();q.anchorLimit=q.anchorJob.sampleLimit();q.anchorMode=q.anchorJob.mode();q.anchorStage=q.anchorJob.stage();
+                if(samples!=q.anchorSamples){q.lastProgress=System.nanoTime();q.anchorSamples=samples;}
+                var candidate=q.anchorJob.nextCandidate();
+                if(candidate!=null){if(!excludedHabitats(q).contains(new ChunkPos(candidate.position()).toLong()))q.anchor=candidate.position();return true;}
+                if(q.anchorJob.done()){done(q,"biome_"+q.anchorJob.stage());return true;}
+                if(System.nanoTime()-q.lastProgress>40_000_000_000L){done(q,"biome_stalled");return true;}
+                return work;
             }
-            q.checkedChunks.add(q.pending.toLong());q.checked++;q.lastProgress=System.nanoTime();
-            if(!q.points.isEmpty()){q.round=(q.checked+ROUND_CHUNKS-1)/ROUND_CHUNKS;done(q,"found");return true;}
-            var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(q.type);
-            // 非初始动物不能靠远程生成保证出生；先提供真实生境的确认选项。
-            if(com.chaosthedude.explorerscompass.config.ConfigHandler.GENERAL.allowTeleport.get() && q.guideChecks<8 && !q.anchorBiomes.isEmpty() && type!=null && (type.getCategory()!=net.minecraft.world.entity.MobCategory.CREATURE || q.checked>=q.rounds*ROUND_CHUNKS)){
-                q.guideChecks++;q.visit=new HabitatVisit(q.player,q.stack,q.token,q.type,q.anchorBiomes,q.pending,()->tasks.get(q.player.getUUID())==q && q.valid(),point->accepts(q,point));
-                q.stage="checking_habitat";return true;
+            if(q.anchor==null){
+                if(q.rules.feature()){done(q,"biome_rules_unavailable");return true;}
+                q.anchor=q.origin;
             }
-            release(q);q.pending=null;
-            if(q.checked%ROUND_CHUNKS==0 || q.checked-q.anchorOffset==q.chunks.size()) {q.round++;beginCapture(q);publish(q);return true;}
         }
-        if(q.checked-q.anchorOffset>=q.chunks.size()){
-            if(q.checked<q.rounds*ROUND_CHUNKS && !q.chunks.isEmpty()){
-                q.anchor=null;q.chunks=null;q.plan=null;q.anchorOffset=q.checked;return true;
-            }
-            done(q,"not_found");return true;
+        if(q.chunks==null){
+            q.stage="ranking_chunks";
+            if(q.planner==null)q.planner=CreatureChunkPlanner.prepare(q.level,q.anchor,Math.min(ROUND_CHUNKS,q.rounds*ROUND_CHUNKS-q.checked),excludedHabitats(q),q.origin,q.radius,q.type,q.anchorBiomes);
+            if(q.planner.asynchronous()){
+                if(q.plan==null){try{q.plan=SearchPool.executor().submit(()->q.planner.step(4_000_000L));}catch(RejectedExecutionException busy){return false;}return true;}
+                if(!q.plan.isDone())return false;q.plan.get();q.plan=null;
+            }else q.planner.step(Math.max(1,deadline-System.nanoTime()));
+            if(!q.planner.done())return true;
+            q.chunks=q.planner.result();q.plannedAt=0;q.patchKind=q.planner.kind();
+            ExplorersCompass.LOGGER.info("CREATURE_PATCH {} type={} kind={} centers={}",q.token,q.type,q.patchKind,q.chunks.size());publish(q);
         }
-        q.pending=q.chunks.get(q.checked-q.anchorOffset);q.waitStarted=System.nanoTime();return acquire(q);
+        return neighborStep(q,deadline);
     }
+    private static boolean neighborStep(Query q,long deadline){
+        boolean progress=false;q.stage="loading_chunks";
+        for(var work:List.copyOf(q.flights)){
+            if(!work.ticket){if(!VerificationSlots.acquire(work))continue;q.level.getChunkSource().addRegionTicket(TICKET,work.center,1,work.ticketId);work.ticket=true;work.waiting=System.nanoTime();progress=true;}
+            if(!CreaturePreExplore.ready(q.level,work.center)){
+                if(System.nanoTime()-work.waiting>60_000_000_000L){done(q,"chunk_timeout");return true;}continue;
+            }
+            if(work.entities==null){
+                work.snapshots=new HashMap<>();for(int x=work.center.x-1;x<=work.center.x+1;x++)for(int z=work.center.z-1;z<=work.center.z+1;z++)work.snapshots.put(new ChunkPos(x,z),new ArrayList<>());
+                var box=new net.minecraft.world.phys.AABB(work.center.getMinBlockX()-16,q.level.getMinBuildHeight(),work.center.getMinBlockZ()-16,work.center.getMaxBlockX()+17,q.level.getMaxBuildHeight(),work.center.getMaxBlockZ()+17);
+                work.entities=q.level.getEntities((Entity)null,box,e->!(e instanceof net.minecraft.world.entity.player.Player));
+            }
+            while(work.at<work.entities.size() && System.nanoTime()<deadline){
+                Entity e=work.entities.get(work.at++);if(!e.isAlive() || e.isRemoved() || e.level()!=q.level)continue;
+                CreatureIndex.record(e);var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getType());var chunk=new ChunkPos(e.blockPosition());
+                var rows=work.snapshots.get(chunk);if(rows!=null && type!=null)rows.add(new SavedCreatureIndex.Point(e.getUUID(),type,e.getX(),e.getY(),e.getZ(),chunk));
+                if(q.type.equals(type)){var p=CreatureIndex.point(q.level,e);if(accepts(q,p))q.points.put(p.uuid(),p);}
+            }
+            if(work.at<work.entities.size())return true;
+            for(var row:work.snapshots.entrySet()){SavedCreatureIndex.seed(q.level,row.getKey(),row.getValue());q.checkedChunks.add(row.getKey().toLong());}
+            q.checked++;q.round=(q.checked+ROUND_CHUNKS-1)/ROUND_CHUNKS;q.lastProgress=System.nanoTime();progress=true;
+            if(!q.points.isEmpty()){
+                for(var other:List.copyOf(q.flights))if(other!=work){release(q,other);q.flights.remove(other);}
+                q.source="neighbor";done(q,"found");return true;
+            }
+            if(q.rules.natural() && q.guideChecks<q.rounds && q.visitCandidate==null && com.chaosthedude.explorerscompass.config.ConfigHandler.GENERAL.allowTeleport.get()){
+                var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(q.type);
+                if(type!=null && (type.getCategory()!=net.minecraft.world.entity.MobCategory.CREATURE || q.checked>=q.rounds*ROUND_CHUNKS))q.visitCandidate=work.center;
+            }
+            release(q,work);q.flights.remove(work);
+        }
+        if(q.visitCandidate!=null)return progress;
+        while(q.flights.size()<2 && q.plannedAt<q.chunks.size() && q.checked+q.flights.size()<q.rounds*ROUND_CHUNKS){
+            var next=q.chunks.get(q.plannedAt++);if(q.checkedChunks.contains(next.toLong()))continue;
+            if(q.flights.stream().anyMatch(w->w.center.equals(next)))continue;
+            q.flights.add(new ChunkWork(next));progress=true;
+        }
+        if(q.flights.isEmpty() && q.plannedAt>=q.chunks.size()){
+            q.habitatExcluded.add(new ChunkPos(q.anchor).toLong());
+            if(q.patchKind.equals("small"))q.habitatExcluded.addAll(q.planner.covered());
+            if(q.anchorJob!=null)q.anchorJob.excludeCenters(excludedHabitats(q));
+            q.anchor=null;q.chunks=null;q.planner=null;q.plan=null;q.anchorOffset=q.checked;return true;
+        }
+        return progress;
+    }
+    private static void release(Query q,ChunkWork work){if(work.ticket){q.level.getChunkSource().removeRegionTicket(TICKET,work.center,1,work.ticketId);work.ticket=false;}VerificationSlots.release(work);}
+    private static void releaseFlights(Query q){for(var work:q.flights)release(q,work);q.flights.clear();}
     private static Set<Long> excludedHabitats(Query q){var excluded=new HashSet<>(q.checkedChunks);excluded.addAll(q.habitatExcluded);return Set.copyOf(excluded);}
     private static void capture(Query q,Entity e){
         MobPoint p=CreatureIndex.point(q.level,e);
         if(p!=null){if(q.biome==null || q.biome.equals(p.biome()))q.grid.put(p);}
         else if(e.isAlive() && !e.isRemoved() && e.level()==q.level && e.distanceToSqr(q.origin.getX(),e.getY(),q.origin.getZ())<=(double)q.radius*q.radius && !q.deferred.contains(e))q.deferred.addLast(e);
-    }
-    private static Set<ResourceLocation> habitats(ServerLevel level,ResourceLocation type) {
-        var entity=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(type);if(entity==null)return Set.of();
-        var allowed=new HashSet<ResourceLocation>();
-        // Forge 的生效出生表已包含群系修饰器；它仅用于选区，不证明实体一定出生。
-        for(var biome:level.getChunkSource().getGenerator().getBiomeSource().possibleBiomes())
-            for(var spawn:biome.value().getMobSettings().getMobs(entity.getCategory()).unwrap())
-                if(spawn.type==entity && spawn.getWeight().asInt()>0 && spawn.maxCount>0)biome.unwrapKey().ifPresent(key->allowed.add(key.location()));
-        var entry=CreatureCatalog.get(level.getServer(),type);
-        if(entry!=null)for(var appearance:entry.appearances())if(appearance.kind().equals("natural_spawn") && appearance.verification().equals("verified") && level.dimension().location().equals(appearance.dimension()))
-            for(var id:appearance.biomes())if(level.getChunkSource().getGenerator().getBiomeSource().possibleBiomes().stream().anyMatch(b->b.unwrapKey().map(k->k.location().equals(id)).orElse(false)))allowed.add(id);
-        return Set.copyOf(allowed);
     }
     private static boolean accepts(Query q,MobPoint point){return point!=null && point.type().equals(q.type) && (q.biome==null || q.biome.equals(point.biome())) && point.distance(q.origin.getX(),q.origin.getZ())<=(double)q.radius*q.radius;}
     private static void rejectSaved(Query q){q.storedRejected++;q.saved.rejected();release(q);q.pending=null;q.savedCandidate=null;q.stage="scanning_saved";}
@@ -281,17 +316,20 @@ public final class CreatureSearch {
     private static boolean ready(Query q){for(int x=q.pending.x-1;x<=q.pending.x+1;x++)for(int z=q.pending.z-1;z<=q.pending.z+1;z++)if(q.level.getChunkSource().getChunkNow(x,z)==null || !q.level.areEntitiesLoaded(ChunkPos.asLong(x,z)))return false;return true;}
     private static void release(Query q){if(q.ticket){q.level.getChunkSource().removeRegionTicket(TICKET,q.pending,1,q.token);q.ticket=false;}VerificationSlots.release(q);}
     private static void done(Query q,String stage){
-        if(stage.equals("found") && q.ticket)q.resultLeaseUntil=System.nanoTime()+60_000_000_000L;else release(q);
-        if(q.saved!=null)q.saved.close();q.finished=true;q.stage=stage;publish(q);if(!q.terminal){q.terminal=true;ExplorersCompass.LOGGER.info("CREATURE {} type={} biome={} state={} rounds={}/{} chunks={} count={} source={} stored={}/{} verified={} rejected={} elapsed_ms={}",q.token,q.type,q.biome,stage,q.round,q.rounds,q.checked,q.points.size(),q.source,q.storedScanned,q.storedTotal,q.storedVerified,q.storedRejected,(System.nanoTime()-q.started)/1e6);}}
+        if(stage.equals("found"))q.resultLeaseUntil=System.nanoTime()+60_000_000_000L;else {release(q);releaseFlights(q);}
+        if(q.anchorJob!=null)q.anchorJob.cancel();if(q.saved!=null)q.saved.close();q.finished=true;q.stage=stage;publish(q);if(!q.terminal){q.terminal=true;ExplorersCompass.LOGGER.info("CREATURE {} type={} biome={} state={} rounds={}/{} chunks={} count={} source={} stored={}/{} verified={} rejected={} elapsed_ms={}",q.token,q.type,q.biome,stage,q.round,q.rounds,q.checked,q.points.size(),q.source,q.storedScanned,q.storedTotal,q.storedVerified,q.storedRejected,(System.nanoTime()-q.started)/1e6);}}
     private static void teleport(Query q) {
         UUID id=q.teleport;var e=q.level.getEntity(id);var point=CreatureIndex.point(q.level,e);
         if(point==null || !point.type().equals(q.type) || q.biome!=null && !q.biome.equals(point.biome())){q.points.remove(id);q.stage="entity_gone";publish(q);teleportReceipt(q,false);return;}
         q.points.put(id,point);
         boolean accepted=TeleportService.requestLocator(q.player,q.stack,q.token,new LocatorTarget(){
+            public Object identity(){return id;}
+            public boolean creature(){return true;}
+            public List<Vec3> relaxedCandidates(ServerPlayer player){return CreatureLanding.candidates(player,e);}
             public BlockPos position(){return e.blockPosition();}
-            public boolean valid(){return tasks.get(q.player.getUUID())==q && q.valid() && q.level.getEntity(id)==e && e.isAlive() && !e.isRemoved() && CreatureIndex.ready(q.level,e.blockPosition()) && (q.biome==null || q.level.getBiome(e.blockPosition()).unwrapKey().map(k->k.location().equals(q.biome)).orElse(false));}
-            public boolean accepts(Vec3 landing){return valid() && e.distanceToSqr(landing)<144 && !e.getBoundingBox().intersects(q.player.getDimensions(net.minecraft.world.entity.Pose.STANDING).makeBoundingBox(landing));}
-            public void state(String phase,boolean confirmation){q.stage="teleport_"+phase;q.confirmation=confirmation;send(q.player,base(q));}
+            public boolean valid(){return tasks.get(q.player.getUUID())==q && q.valid() && q.level.getEntity(id)==e && e.isAlive() && !e.isRemoved() && (q.biome==null || !CreatureIndex.ready(q.level,e.blockPosition()) || q.level.getBiome(e.blockPosition()).unwrapKey().map(k->k.location().equals(q.biome)).orElse(false));}
+            public boolean accepts(Vec3 landing){double reach=Math.max(e.getBbWidth(),12)+2;return valid() && CreatureIndex.ready(q.level,e.blockPosition()) && e.distanceToSqr(landing)<reach*reach && !e.getBoundingBox().intersects(q.player.getDimensions(net.minecraft.world.entity.Pose.STANDING).makeBoundingBox(landing));}
+            public void state(String phase,boolean confirmation){q.stage=phase.equals("moved") || phase.endsWith("_moved")?"teleport_moved":"teleport_"+phase;q.confirmation=confirmation;send(q.player,base(q));}
             public void moved(){q.stage="teleport_moved";q.confirmation=false;publish(q);}
         },q.fallback);
         teleportReceipt(q,accepted);
@@ -299,15 +337,15 @@ public final class CreatureSearch {
     private static void teleportReceipt(Query q,boolean accepted){var n=base(q);if(q.teleportRequest!=null)n.putUUID("teleportRequest",q.teleportRequest);n.putBoolean("teleportAccepted",accepted);send(q.player,n);if(!accepted)q.player.displayClientMessage(net.minecraft.network.chat.Component.literal("生物传送请求未被接受，请检查目标和传送总开关。"),false);}
     private static void measure(Query q){long now=System.nanoTime();q.phaseNanos.merge(q.measuredStage,now-q.stageSince,Long::sum);q.stageSince=now;q.measuredStage=q.stage;}
     private static void phaseTimes(Query q,CompoundTag n){measure(q);n.putLong("anchorMillis",q.phaseNanos.getOrDefault("locating_biome",0L)/1_000_000L);n.putLong("storageMillis",q.phaseNanos.getOrDefault("scanning_saved",0L)/1_000_000L);long wait=0;for(String phase:List.of("loading_chunks","verifying_saved","verifying_loaded","reload_entity"))wait+=q.phaseNanos.getOrDefault(phase,0L);n.putLong("chunkWaitMillis",wait/1_000_000L);}
-    private static CompoundTag base(Query q){var n=new CompoundTag();phaseTimes(q,n);n.putBoolean("habitatReady",q.visit!=null && q.visit.ready && !q.visit.waiting && !q.visit.watching());n.putLong("naturalWaitMillis",q.visit==null?0:q.visit.waitedMillis());n.putInt("spawnPopulation",q.visit==null?0:q.visit.population);n.putInt("spawnCapacity",q.visit==null?0:q.visit.capacity);n.putString("action","results");n.putUUID("request",q.token);n.putString("state",q.stage);n.putInt("round",q.round);n.putInt("rounds",q.rounds);n.putInt("chunks",q.checked);n.putBoolean("finished",q.finished);n.putBoolean("confirmation",q.visit==null?q.confirmation:q.visit.confirmation);n.putLong("anchorSamples",q.anchorSamples);n.putLong("anchorLimit",q.anchorLimit);n.putString("anchorMode",q.anchorMode);n.putString("anchorStage",q.anchorStage);n.putInt("captured",q.captureAt);n.putInt("captureTotal",q.capture==null?q.captureAt:q.capture.size());n.putInt("chunksTotal",q.rounds*ROUND_CHUNKS);n.putLong("storedScanned",q.storedScanned);n.putLong("storedTotal",q.storedTotal);n.putInt("storedVerified",q.storedVerified);n.putInt("storedRejected",q.storedRejected);n.putString("source",q.source);if(q.saved!=null){n.putInt("storedRegions",q.saved.regionsDone());n.putInt("storedRegionsTotal",q.saved.regionsTotal());}return n;}
+    private static CompoundTag base(Query q){var n=new CompoundTag();phaseTimes(q,n);n.putBoolean("habitatReady",q.visit!=null && q.visit.ready && !q.visit.waiting && !q.visit.watching());n.putLong("naturalWaitMillis",q.visit==null?0:q.visit.waitedMillis());n.putInt("spawnPopulation",q.visit==null?0:q.visit.population);n.putInt("spawnCapacity",q.visit==null?0:q.visit.capacity);n.putString("action","results");n.putUUID("request",q.token);n.putString("state",q.stage);n.putInt("round",q.round);n.putInt("rounds",q.rounds);n.putInt("chunks",q.checked);n.putBoolean("finished",q.finished);n.putBoolean("confirmation",q.visit==null?q.confirmation:q.visit.confirmation);n.putLong("anchorSamples",q.anchorSamples);n.putLong("anchorLimit",q.anchorLimit);n.putString("anchorMode",q.anchorMode);n.putString("anchorStage",q.anchorStage);n.putInt("captured",q.captureAt);n.putInt("captureTotal",q.capture==null?q.captureAt:q.capture.size());n.putInt("chunksTotal",q.rounds*ROUND_CHUNKS);n.putLong("storedScanned",q.storedScanned);n.putLong("storedTotal",q.storedTotal);n.putInt("storedVerified",q.storedVerified);n.putInt("storedRejected",q.storedRejected);n.putString("source",q.source);n.putString("patchKind",q.patchKind);n.putInt("inFlight",q.flights.size());if(q.saved!=null){n.putInt("storedRegions",q.saved.regionsDone());n.putInt("storedRegionsTotal",q.saved.regionsTotal());}return n;}
     private static void publish(Query q){
         var values=q.points.values().stream().sorted(Comparator.<MobPoint>comparingDouble(p->p.distance(q.origin.getX(),q.origin.getZ())).thenComparing(p->p.uuid().toString())).toList();
         int parts=Math.max(1,(values.size()+255)/256);long revision=++q.resultRevision;
         for(int part=0;part<parts;part++) {var n=base(q);var rows=new ListTag();for(int i=part*256;i<Math.min(values.size(),(part+1)*256);i++)rows.add(values.get(i).encode());n.put("points",rows);n.putInt("part",part);n.putInt("parts",parts);n.putLong("revision",revision);send(q.player,n);}
     }
     private static void send(ServerPlayer p,CompoundTag n){UnifiedNetwork.send(p,new CreatureUpdate(n));}
-    public static void cancel(UUID player){Query q=tasks.remove(player);if(q==null)return;if(q.anchorJob!=null)q.anchorJob.cancel();if(q.sorted!=null)q.sorted.cancel(true);if(q.plan!=null)q.plan.cancel(true);if(q.saved!=null)q.saved.close();release(q);TeleportService.cancel(player);q.stage="cancelled";q.finished=true;publish(q);}
-    public static void clear(){CreaturePreExplore.clear();for(var id:List.copyOf(tasks.keySet()))cancel(id);CreatureIndex.clear();SavedCreatureIndex.clear();CreatureCatalog.clear();}
+    public static void cancel(UUID player){Query q=tasks.remove(player);if(q==null)return;if(q.anchorJob!=null)q.anchorJob.cancel();if(q.sorted!=null)q.sorted.cancel(true);if(q.plan!=null)q.plan.cancel(true);if(q.saved!=null)q.saved.close();release(q);releaseFlights(q);TeleportService.cancel(player);q.stage="cancelled";q.finished=true;publish(q);}
+    public static void clear(){CreaturePreExplore.clear();for(var id:List.copyOf(tasks.keySet()))cancel(id);CreatureIndex.clear();SavedCreatureIndex.clear();CreatureHabitats.clear();CreatureCatalog.clear();}
     public static void destroyed(ServerLevel level,UUID entity){SavedCreatureIndex.destroyed(level,entity);for(var q:tasks.values())if(q.level==level && q.points.remove(entity)!=null){q.lastUpdate=0;}}
-    public static int tickets(){return (int)tasks.values().stream().filter(q->q.ticket).count();}
+    public static int tickets(){return tasks.values().stream().mapToInt(q->(q.ticket?1:0)+(int)q.flights.stream().filter(w->w.ticket).count()).sum();}
 }

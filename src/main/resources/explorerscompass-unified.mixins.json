@@ -9,6 +9,7 @@
     "BackgroundTemplateGuardMixin",
     "PredictionHeightMixin",
     "ChunkMapAccessor",
+    "ChunkStorageAccessor",
     "StructureManagerAccessor",
     "StructureCheckAccessor",
     "LeviathanPrecheckMixin",

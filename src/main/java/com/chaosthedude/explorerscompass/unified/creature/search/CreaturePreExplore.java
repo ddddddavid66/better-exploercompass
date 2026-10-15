@@ -104,7 +104,8 @@ public final class CreaturePreExplore {
         }
         result.sort(Comparator.<ChunkPos>comparingLong(c->{long x=(long)c.getMiddleBlockX()-origin.getX(),z=(long)c.getMiddleBlockZ()-origin.getZ();return x*x+z*z;}).thenComparingInt(c->c.x).thenComparingInt(c->c.z));return List.copyOf(result);
     }
-    private static boolean ready(Task q){for(int x=q.pending.x-1;x<=q.pending.x+1;x++)for(int z=q.pending.z-1;z<=q.pending.z+1;z++)if(q.level.getChunkSource().getChunkNow(x,z)==null || !q.level.areEntitiesLoaded(ChunkPos.asLong(x,z)))return false;return true;}
+    private static boolean ready(Task q){return ready(q.level,q.pending);}
+    public static boolean ready(ServerLevel level,ChunkPos center){for(int x=center.x-1;x<=center.x+1;x++)for(int z=center.z-1;z<=center.z+1;z++)if(level.getChunkSource().getChunkNow(x,z)==null || !level.areEntitiesLoaded(ChunkPos.asLong(x,z)))return false;return true;}
     private static void release(Task q){if(q.ticket){q.level.getChunkSource().removeRegionTicket(TICKET,q.pending,1,q.id);q.ticket=false;}VerificationSlots.release(q);}
     private static void finish(String state){if(task==null)return;release(task);if(task.planning!=null)task.planning.cancel(true);task.capture=null;task.snapshots=null;task.plan=null;task.planning=null;task.finished=true;task.state=state;send(task.player,null);}
     public static void cancel(UUID owner){if(task!=null && task.player.getUUID().equals(owner) && !task.finished)finish("cancelled");}

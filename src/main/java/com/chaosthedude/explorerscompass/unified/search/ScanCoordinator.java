@@ -62,6 +62,8 @@ public final class ScanCoordinator<T> {
     private boolean unconditionalConfirmation;
     private boolean customVerification;
     private boolean firstConfirmed;
+    private java.util.ArrayDeque<T> candidateStream;
+    private int streamCapacity;
     private int schedulingStep;
     private long coveredFloor;
     private java.util.function.Supplier<List<Lane<T>>> deferred;
@@ -75,6 +77,7 @@ public final class ScanCoordinator<T> {
     }
     public boolean step(ExecutorService executor) throws Exception {
         if (done || cancelled.get()) return false;
+        if(candidateStream!=null && candidateStream.size()>=streamCapacity)return false;
         prepareQueue();
         for (Work item : work) if (item.failure != null) throw new ExecutionException(item.failure);
         boolean progress = false;
@@ -95,6 +98,8 @@ public final class ScanCoordinator<T> {
                 pending.remove(); progress = true;
                 if (outcome == Confirmation.ACCEPT) {
                     T actual = resolved.apply(next);
+                    // 选区没有“已核实的最近实体”，流式输出不能收紧永久剪枝上界。
+                    if(candidateStream!=null){candidateStream.addLast(actual);return true;}
                     if (distance.applyAsLong(actual) <= maximum && (accepted == null || order.compare(actual, accepted) < 0))
                         { accepted = actual; verifiedUpper.accumulateAndGet(distance.applyAsLong(actual), Math::min); }
                     if(firstConfirmed && accepted!=null){result=accepted;done=true;return true;}
@@ -269,6 +274,11 @@ public final class ScanCoordinator<T> {
     public ScanCoordinator<T> withEagerCandidates(boolean eager) { eagerCandidates = eager; return this; }
     /** 仅供选区锚点；普通指南针仍执行完整最近性证明。 */
     public ScanCoordinator<T> withFirstConfirmed(){firstConfirmed=true;return this;}
+    public ScanCoordinator<T> withCandidateStream(int capacity){
+        if(capacity<1 || unconditionalConfirmation || customVerification || firstConfirmed)throw new IllegalArgumentException("Invalid hint stream");
+        candidateStream=new java.util.ArrayDeque<>();streamCapacity=capacity;return this;
+    }
+    public T pollCandidate(){return candidateStream==null?null:candidateStream.pollFirst();}
     /** 历史位置只是候选：重新核对前只能暂停远处工作，绝不能构成剪枝或完成证明。 */
     public ScanCoordinator<T> withCandidateHint(T candidate) {
         customVerification();

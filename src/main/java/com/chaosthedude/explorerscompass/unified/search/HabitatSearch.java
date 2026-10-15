@@ -17,7 +17,7 @@ final class HabitatSearch extends SearchJob {
     private final BiomeSamplingProfile profile;
     HabitatSearch(ServerLevel level,BlockPos origin,Set<ResourceLocation> targets,Set<Long> excluded,
                   int radius,long quota,boolean async,BiomeSamplingProfile profile) {
-        super(level,origin,radius);this.targets=Set.copyOf(targets);this.excluded=Set.copyOf(excluded);
+        super(level,origin,radius);this.targets=Set.copyOf(targets);this.excluded=java.util.concurrent.ConcurrentHashMap.newKeySet();this.excluded.addAll(excluded);
         this.quota=quota;this.async=async;this.profile=profile;
         boolean safe=BiomeSourceSafety.prepare(level).allowed(),background=async && safe;
         var source=level.getChunkSource().getGenerator().getBiomeSource();var noise=level.getChunkSource().randomState().sampler();
@@ -39,8 +39,9 @@ final class HabitatSearch extends SearchJob {
             lanes.add(new BiomeColumnLane(geometry,partition,(long)radius*radius,budget,profile.heights(),profile.depthInterval(),background,sampler).withPrimaryHeights(profile.primaryHeights()));
         }
         scan=new ScanCoordinator<>(lanes,SearchCandidate::distanceSquared,c->true,(long)radius*radius,async)
-                .withBatch(1024,4_000_000L).withUnconditionalConfirmation().withFirstConfirmed();
+                .withBatch(256,4_000_000L).withCandidateStream(16);
     }
+    public void excludeCenters(Collection<Long> centers){excluded.addAll(centers);}
     public SearchJob synchronousFallback(){return new HabitatSearch(level,start,targets,excluded,radius,quota,false,profile).asFallback();}
     public boolean biome(){return true;}
     public boolean asynchronous(){return async;}

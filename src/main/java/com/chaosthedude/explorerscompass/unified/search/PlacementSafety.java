@@ -28,10 +28,11 @@ final class PlacementSafety {
             boolean jungle=placement.getClass().getName().equals(
                     "com.yungnickyoung.minecraft.betterjungletemples.world.placement.BetterJungleTemplePlacement")
                     && version("betterjungletemples","1.20-Forge-2.0.5") && version("yungsapi","1.20-Forge-4.0.5");
-            if(!vanilla && !jungle)return false;
+            boolean cataclysm=placement.getClass().getName().equals("com.github.L_Ender.cataclysm.world.structures.placements.CataclysmRandomSpread") && version("cataclysm","3.16");
+            if(!vanilla && !jungle && !cataclysm)return false;
             var json=StructurePlacement.CODEC.encodeStart(RegistryOps.create(JsonOps.INSTANCE,level.registryAccess()),placement)
                     .result().orElseThrow().getAsJsonObject();
-            for(String field:java.util.List.of("exclusion_zone","enhanced_exclusion_zone"))
+            for(String field:java.util.List.of("exclusion_zone","enhanced_exclusion_zone","super_exclusion_zone"))
                 if(json.has(field) && !references(level,json.getAsJsonObject(field).get("other_set"),path))return false;
             return true;
         } finally {path.remove(placement);}

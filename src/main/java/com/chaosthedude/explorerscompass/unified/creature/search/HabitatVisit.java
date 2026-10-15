@@ -87,6 +87,7 @@ final class HabitatVisit {
             public void state(String phase,boolean confirm){
                 confirmation=confirm;state=watching()?"waiting_natural_spawn":"habitat_"+phase;
                 waiting=!watching() && !confirm && (phase.equals("waiting_chunks") || phase.equals("waiting_slots") || phase.equals("checking") || phase.equals("checking_surface"));
+                if(!watching() && !waiting && !confirm && !phase.equals("mode_changed")){ready=false;empty=true;}
             }
             public void moved(){watchingSince=System.nanoTime();lastPoll=0;waiting=false;confirmation=false;state="waiting_natural_spawn";}
         },fallback);

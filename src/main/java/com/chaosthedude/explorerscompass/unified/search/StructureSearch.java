@@ -138,6 +138,7 @@ public final class StructureSearch extends SearchJob {
             Set<Long> visited = gel==null?null:java.util.concurrent.ConcurrentHashMap.newKeySet();
             var generator = level.getChunkSource().getGenerator();
             boolean supported = PlacementSafety.supported(level,placement);
+            if(async && !supported)com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.info("结构放置兼容验证 {}：未审核放置类或排斥依赖 {}",keys,placement.getClass().getName());
             boolean predict = async && !compatiblePrediction && supported && sourceSafe;
             SamplingBudget budget=outerReady?budgets.get(0):new SamplingBudget(maximumSamples);
             if(!outerReady)budgets.add(budget);
