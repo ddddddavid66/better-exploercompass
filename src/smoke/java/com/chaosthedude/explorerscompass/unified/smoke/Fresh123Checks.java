@@ -103,7 +103,7 @@ public final class Fresh123Checks {
                 case 32->{check(CreaturePreExploreClient.finished && CreaturePreExplore.tickets()==0,"stop releases task ticket");notes.add("STOP tickets=0");next(6,10);}
                 case 33->{checked=false;server.execute(()->guard(()->{var p=server.getPlayerList().getPlayer(uuid);var l=p.serverLevel();var at=p.blockPosition();var id=l.getChunkSource().getGenerator().getBiomeSource().getNoiseBiome(at.getX()>>2,at.getY()>>2,at.getZ()>>2,l.getChunkSource().randomState().sampler()).unwrapKey().orElseThrow().location();
                     probeJob=BiomeQueryFactory.habitats(l,at,Set.of(id),Set.of(),512,10000,true);probeJob.prime();}));next(34,5);}
-                case 34->{if(checked){next(30,5);return;}server.execute(()->guard(()->{if(checked || probeJob==null)return;probeJob.step();if(probeJob.done()){check(probeJob.result()!=null && probeJob.mode().equals("async"),"scoped normal habitat entry");notes.add("HABITAT_PROBE mode=async found=true samples="+probeJob.samples());probeJob.cancel();checked=true;}}));}
+                case 34->{if(checked){next(30,5);return;}server.execute(()->guard(()->{if(checked || probeJob==null)return;probeJob.step();if(probeJob.nextCandidate()!=null){check(probeJob.mode().equals("async"),"scoped normal habitat entry");notes.add("HABITAT_PROBE mode=async found=true samples="+probeJob.samples());probeJob.cancel();checked=true;}}));}
             }
         }catch(Throwable e){e.printStackTrace();finish(mc,"FAILED phase="+phase+" "+e);}
     }
