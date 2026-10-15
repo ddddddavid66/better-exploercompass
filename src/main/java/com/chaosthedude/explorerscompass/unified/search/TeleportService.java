@@ -31,7 +31,7 @@ public final class TeleportService {
     private static final class Task {
         final ServerPlayer player; final ServerLevel level; final ItemStack stack;
         final UUID token,ticketId=UUID.randomUUID(); final ResourceLocation key;
-        final boolean biome,legacyHeight,treasure; LandingMode mode; final int x,z,sourceY;
+        final boolean biome,legacyHeight,treasure; LandingMode mode; int x,z,sourceY;
         BlockPos origin; ChunkPos center;
         final int[] strictHeights=new int[LandingColumns.STRICT.size()], relaxedHeights=new int[LandingColumns.RELAXED.size()];
         int[] heights=strictHeights;
@@ -47,6 +47,7 @@ public final class TeleportService {
         java.util.function.Consumer<TravelOutcome> detailedCompletion;
         LocatorTarget external;
         AetherHeightProbe heightProbe;
+        long progressAt;int readyCount;
         Task(ServerPlayer player,ItemStack stack,UUID token) { this(player,stack,token,null); }
         Task(ServerPlayer player,ItemStack stack,UUID token,BlockPos returnPoint) {
             returning=returnPoint!=null;
@@ -75,10 +76,11 @@ public final class TeleportService {
     public static boolean requestLocator(ServerPlayer player,ItemStack stack,UUID token,LocatorTarget target,boolean fallback) {
         if(!target.valid() || !ConfigHandler.GENERAL.allowTeleport.get())return false;
         Task task=tasks.get(player.getUUID());
-        if(task==null || task.external==null || !task.token.equals(token) || !task.valid() || task.handoffUntil>0) {
+        if(task==null || task.external==null || !task.token.equals(token) || !task.external.identity().equals(target.identity()) || !task.valid() || task.handoffUntil>0) {
             cancel(player.getUUID());task=new Task(player,stack,token,target.position());task.external=target;
             task.returnYaw=player.getYRot();task.returnPitch=player.getXRot();tasks.put(player.getUUID(),task);
         }
+        task.external=target;
         if(task.clicked)return true;
         if(task.mode==LandingMode.SAFE_ONLY)fallback=false;
         if(task.mode==LandingMode.RELAXED_ONLY)fallback=true;
@@ -88,7 +90,7 @@ public final class TeleportService {
         task.clicked=true;task.waiting=false;task.fallback=fallback;task.phase="";task.column=0;
         task.heights=fallback?task.relaxedHeights:task.strictHeights;task.landing=fallback?task.relaxedLanding:task.strictLanding;
         long now=System.nanoTime();task.attemptStarted=now;task.waitStarted=now;task.checkNanos=0;task.waitNanos=0;
-        task.requestDeadline=now+REQUEST_NANOS;task.centerDeadline=now+WAIT_NANOS;task.expires=player.getServer().getTickCount()+200;
+        task.progressAt=now;task.requestDeadline=now+(target.creature()?60_000_000_000L:REQUEST_NANOS);task.centerDeadline=task.requestDeadline;task.expires=player.getServer().getTickCount()+1200;
         phase(task,"waiting_chunks");return true;
     }
     public static LandingMode mode(UUID player) {return modes.getOrDefault(player,LandingMode.DEFAULT);}
@@ -270,7 +272,11 @@ public final class TeleportService {
                 else if(task.player.getServer().getTickCount()>=task.expires)release(task);
                 continue;
             }
-            if(task.clicked && System.nanoTime()>=task.requestDeadline) {
+            if(task.clicked && aetherBiome(task)) {
+                long now=System.nanoTime();int count=readyCount(task);
+                if(task.progressAt==0 || count>task.readyCount){task.progressAt=now;task.readyCount=count;}
+                if(now-task.progressAt>=(count==9?40_000_000_000L:60_000_000_000L))failed(task,count==9?"timeout":"chunks_not_ready");
+            } else if(task.clicked && System.nanoTime()>=task.requestDeadline) {
                 failed(task,!task.ticket?"waiting_slots":!windowReady(task)?"chunks_not_ready":"timeout");
             } else if(!task.clicked && task.player.getServer().getTickCount()>=task.expires) finish(task,"timeout",0);
         }
@@ -282,13 +288,18 @@ public final class TeleportService {
         }
     }
     private static void acquire(Task task,ChunkPos center) {
-        release(task);task.center=center;task.centerDeadline=System.nanoTime()+(task.travel?60_000_000_000L:WAIT_NANOS);task.chunksReady=0;
+        if(task.ticket && task.center.equals(center))return;
+        boolean changed=!task.center.equals(center);if(task.ticket)release(task);task.center=center;
+        if(changed || task.progressAt==0){task.progressAt=System.nanoTime();task.readyCount=0;}
+        if(!(task.clicked?VerificationSlots.acquire(task):VerificationSlots.acquireBackground(task))){if(task.clicked)phase(task,"waiting_slots");return;}
+        task.centerDeadline=System.nanoTime()+(task.travel || aetherBiome(task) || task.external!=null && task.external.creature()?60_000_000_000L:WAIT_NANOS);task.chunksReady=0;
         if(task.clicked && task.waitStarted==0)task.waitStarted=System.nanoTime();
         if(task.clicked)phase(task,"waiting_chunks");
         task.lastCenterTick=task.player.getServer().getTickCount();task.level.getChunkSource().addRegionTicket(PREPARE,center,1,task.ticketId);task.ticket=true;
     }
     private static void release(Task task) {
         if(task.ticket){task.level.getChunkSource().removeRegionTicket(PREPARE,task.center,1,task.ticketId);task.ticket=false;}
+        VerificationSlots.release(task);
     }
     private static boolean windowReady(Task task) {
         for(int x=task.center.x-1;x<=task.center.x+1;x++)
@@ -296,12 +307,14 @@ public final class TeleportService {
                 if(task.level.getChunkSource().getChunkNow(x,z)==null)return false;
         return true;
     }
+    private static int readyCount(Task task){int count=0;for(int x=task.center.x-1;x<=task.center.x+1;x++)for(int z=task.center.z-1;z<=task.center.z+1;z++)if(task.level.getChunkSource().getChunkNow(x,z)!=null)count++;return count;}
     public static boolean step() {
         List<Task> choices=tasks.values().stream().filter(t->!t.waiting && t.handoffUntil==0 && t.clicked).toList();
         if(choices.isEmpty())choices=tasks.values().stream().filter(t->!t.waiting && t.handoffUntil==0 && t.landing==null).toList();
         if(choices.isEmpty())return false;
         Task task=choices.get(Math.floorMod(cursor++,choices.size()));
         if(!task.valid()){finish(task,"cancelled",0);return true;}
+        if(task.external!=null && task.external.creature())refreshCreature(task);
         if(!task.ticket)return false;
         // 等待中心固定，不能在生成线程尚未推进前反复搬走同一组票据。
         if(!windowReady(task)) {
@@ -315,6 +328,7 @@ public final class TeleportService {
         }
         long quantum=System.nanoTime()+250_000L;
         try {
+            if(task.external!=null && task.external.creature() && task.fallback)return creatureStep(task);
             if(task.treasure)return treasureStep(task);
             if(task.legacyHeight && !task.heightResolved) {
                 var chunk=task.level.getChunkSource().getChunkNow(task.x>>4,task.z>>4);
@@ -325,7 +339,8 @@ public final class TeleportService {
                 if(task.heightProbe==null)task.heightProbe=new AetherHeightProbe(task.player,task.stack,task.key,task.origin,task.fallback);
                 if(task.heightProbe.pending(task.fallback)) {
                     phase(task,"height_probe");long before=System.nanoTime();
-                    Vec3 found=task.heightProbe.step(quantum,task.fallback);task.checkNanos+=System.nanoTime()-before;
+                    int checked=task.heightProbe.checked();Vec3 found=task.heightProbe.step(quantum,task.fallback);task.checkNanos+=System.nanoTime()-before;
+                    if(task.heightProbe.checked()!=checked)task.progressAt=System.nanoTime();
                     if(found!=null){task.landing=found;if(task.clicked)move(task);return true;}
                     if(task.heightProbe.waiting!=null) {
                         ChunkPos needed=new ChunkPos(task.heightProbe.waiting);
@@ -336,13 +351,7 @@ public final class TeleportService {
                         if(task.clicked)failed(task,"no_position");else finish(task,"no_position",0);
                         return true;
                     }
-                    if(task.clicked && task.checkNanos>=(task.fallback?40_000_000L:80_000_000L)){
-                        if(task.travel){
-                            summary(task,"probe_budget_yield");task.clicked=false;task.waiting=true;task.budgetPaused=true;
-                            task.confirmationUntil=Long.MAX_VALUE;task.expires=task.player.getServer().getTickCount()+1200;
-                            completed(task,TravelResult.BUDGET_EXHAUSTED);
-                        }else failed(task,"scan_budget");
-                    }
+                    // 高度游标有限；批次只让出调度权，不把累计CPU用量当成失败。
                     return true;
                 }
                 // 当前模式已完整穷尽，不再由通用扫描重复同一范围。
@@ -378,6 +387,7 @@ public final class TeleportService {
                 long before=System.nanoTime();Vec3 landing;
                 try {
                     point=point.atY(y);progress[index]++;
+                    if(task.external!=null && !task.external.accepts(Vec3.atBottomCenterOf(point))){if(System.nanoTime()>=quantum)return true;continue;}
                     landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback);
                     if(landing==null && surface && task.fallback)landing=LandingChecks.waterSurface(task.player,task.level,landingStack(task),point);
                     if(landing!=null && (!travelBiome(task,landing) || !preferredTravelLanding(task,landing)))landing=null;
@@ -439,8 +449,23 @@ public final class TeleportService {
         if(task.clicked)move(task);return true;
     }
     private static boolean recheck(Task task,Vec3 point,boolean relaxed) {
+        if(task.external!=null && task.external.creature() && relaxed)return task.external.accepts(point) && CreatureLanding.allowed(task.player,task.level,point);
         return (task.external==null || task.external.accepts(point)) && travelBiome(task,point) && (LandingChecks.standing(task.player,task.level,landingStack(task),point,relaxed)
                 || relaxed && LandingChecks.waterStanding(task.player,task.level,landingStack(task),point));
+    }
+    private static void refreshCreature(Task task){
+        BlockPos current=task.external.position();
+        if(current.equals(task.origin))return;
+        task.origin=current;task.x=current.getX();task.z=current.getZ();task.sourceY=current.getY();
+        task.landing=task.strictLanding=task.relaxedLanding=null;task.column=0;
+        Arrays.fill(task.strictHeights,0);Arrays.fill(task.relaxedHeights,0);Arrays.fill(task.surfaceHeights,0);
+        ChunkPos center=new ChunkPos(current);if(!center.equals(task.center))acquire(task,center);
+    }
+    private static boolean creatureStep(Task task){
+        for(Vec3 point:task.external.relaxedCandidates(task.player))if(recheck(task,point,true)){
+            task.landing=point;if(task.clicked)move(task);return true;
+        }
+        failed(task,"no_position");return true;
     }
     private static void failed(Task task,String reason) {
         if(task.travel) {
@@ -484,7 +509,7 @@ public final class TeleportService {
             phase(task,"height_probe");return;
         }
         task.level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT,new ChunkPos(BlockPos.containing(point)),1,task.player.getId());
-        if(!task.returning)TeleportEvents.succeeded(task.player,task.biome?TeleportSucceededPacket.Kind.BIOME:TeleportSucceededPacket.Kind.STRUCTURE,task.key,task.level.dimension().location(),point.x,point.y,point.z);
+        if(!task.returning && task.external==null)TeleportEvents.succeeded(task.player,task.biome?TeleportSucceededPacket.Kind.BIOME:TeleportSucceededPacket.Kind.STRUCTURE,task.key,task.level.dimension().location(),point.x,point.y,point.z);
         if(task.external!=null)task.external.moved();
         boolean water=LandingChecks.waterStanding(task.player,task.level,task.stack,point);
         if(water)message(task.player,"filters.teleport_water_surface");

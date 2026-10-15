@@ -46,6 +46,7 @@ final class AetherHeightProbe {
         groups=List.copyOf(byChunk.values());active=null;
     }
     boolean exhausted(){return groups.stream().allMatch(Group::done);}
+    int checked(){return checked;}
     boolean pending(boolean mode){return mode!=relaxed || !exhausted();}
     List<BlockPos> provenUnusableColumn(){
         if(!exhausted())return List.of();
