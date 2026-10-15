@@ -28,6 +28,20 @@ import net.minecraftforge.fml.ModList;
 
 public class StructureUtils {
 
+    /** 保留原版公开签名供整合包的Mixin注入；数据仍复用统一目录，不另建旧缓存。 */
+    public static com.google.common.collect.ListMultimap<ResourceLocation,ResourceLocation> getGeneratingDimensionsForAllowedStructures(ServerLevel level) {
+        var result=com.google.common.collect.ArrayListMultimap.<ResourceLocation,ResourceLocation>create();
+        var catalog=com.chaosthedude.explorerscompass.unified.network.CatalogService.snapshot(level,new java.util.UUID(0,0));
+        catalog.dimensionStructures().forEach((dimension,structures)->structures.forEach(structure->result.put(structure,dimension)));
+        return result;
+    }
+    public static List<ResourceLocation> getGeneratingDimensionKeys(ServerLevel level,Structure structure) {
+        ResourceLocation key=getKeyForStructure(level,structure);
+        if(key==null)return List.of();
+        var catalog=com.chaosthedude.explorerscompass.unified.network.CatalogService.snapshot(level,new java.util.UUID(0,0));
+        return catalog.dimensionStructures().entrySet().stream().filter(entry->entry.getValue().contains(key)).map(Map.Entry::getKey).sorted().toList();
+    }
+
 	public static Map<ResourceLocation, ResourceLocation> getStructureKeysToTypeKeys(ServerLevel level) {
         return com.chaosthedude.explorerscompass.unified.network.CatalogService.groups(level);
     }

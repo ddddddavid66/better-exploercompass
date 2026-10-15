@@ -28,6 +28,6 @@ public final class CreatureIndex {
         for(int x=(p.getX()-4)>>4;x<=(p.getX()+4)>>4;x++)for(int z=(p.getZ()-4)>>4;z<=(p.getZ()+4)>>4;z++)if(level.getChunkSource().getChunkNow(x,z)==null)return false;
         return level.areEntitiesLoaded(new net.minecraft.world.level.ChunkPos(p).toLong());
     }
-    public static MobPoint point(ServerLevel level,Entity e){if(e==null || e.isRemoved() || !e.isAlive() || e.level()!=level || !ready(level,e.blockPosition()))return null;var biome=level.getBiome(e.blockPosition()).unwrapKey().map(k->k.location()).orElse(null);if(biome==null)return null;return new MobPoint(e.getUUID(),ForgeRegistries.ENTITY_TYPES.getKey(e.getType()),level.dimension().location(),biome,e.getX(),e.getY(),e.getZ(),true);}
+    public static MobPoint point(ServerLevel level,Entity e){if(e==null || e.isRemoved() || !e.isAlive() || e.level()!=level || level.getEntity(e.getUUID())!=e || !ready(level,e.blockPosition()))return null;var biome=level.getBiome(e.blockPosition()).unwrapKey().map(k->k.location()).orElse(null);if(biome==null)return null;return new MobPoint(e.getUUID(),ForgeRegistries.ENTITY_TYPES.getKey(e.getType()),level.dimension().location(),biome,e.getX(),e.getY(),e.getZ(),true);}
     public static void clear(){levels.clear();joined.clear();}
 }

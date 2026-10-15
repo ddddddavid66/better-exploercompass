@@ -52,8 +52,9 @@ public final class CreatureSearch {
     }
     private static final class ChunkWork {
         final ChunkPos center;final UUID ticketId=UUID.randomUUID();final long started=System.nanoTime();
+        ChunkPos retainedCenter;
         boolean ticket;long waiting;List<Entity> entities;int at;Map<ChunkPos,List<SavedCreatureIndex.Point>> snapshots;
-        ChunkWork(ChunkPos center){this.center=center;}
+        ChunkWork(ChunkPos center){this.center=center;retainedCenter=center;}
     }
     private CreatureSearch() {}
     public static ItemStack held(ServerPlayer p){if(p.getMainHandItem().getItem()==CreatureItem.INSTANCE)return p.getMainHandItem();if(p.getOffhandItem().getItem()==CreatureItem.INSTANCE)return p.getOffhandItem();return ItemStack.EMPTY;}
@@ -259,7 +260,12 @@ public final class CreatureSearch {
                 work.entities=q.level.getEntities((Entity)null,box,e->!(e instanceof net.minecraft.world.entity.player.Player));
             }
             while(work.at<work.entities.size() && System.nanoTime()<deadline){
-                Entity e=work.entities.get(work.at++);if(!e.isAlive() || e.isRemoved() || e.level()!=q.level)continue;
+                Entity e=work.entities.get(work.at);var candidateType=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getType());
+                // 新生成实体的区段先出现，UUID可访问索引可能在下一tick才接管；不能提前报告成功或丢掉它。
+                if(e.isAlive() && !e.isRemoved() && e.level()==q.level && q.type.equals(candidateType) && q.level.getEntity(e.getUUID())!=e){
+                    q.stage="verifying_loaded";if(System.nanoTime()-work.waiting>60_000_000_000L){done(q,"entity_load_timeout");return true;}return false;
+                }
+                work.at++;if(!e.isAlive() || e.isRemoved() || e.level()!=q.level)continue;
                 CreatureIndex.record(e);var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getType());var chunk=new ChunkPos(e.blockPosition());
                 var rows=work.snapshots.get(chunk);if(rows!=null && type!=null)rows.add(new SavedCreatureIndex.Point(e.getUUID(),type,e.getX(),e.getY(),e.getZ(),chunk));
                 if(q.type.equals(type)){var p=CreatureIndex.point(q.level,e);if(accepts(q,p))q.points.put(p.uuid(),p);}
@@ -268,6 +274,13 @@ public final class CreatureSearch {
             for(var row:work.snapshots.entrySet()){SavedCreatureIndex.seed(q.level,row.getKey(),row.getValue());q.checkedChunks.add(row.getKey().toLong());}
             q.checked++;q.round=(q.checked+ROUND_CHUNKS-1)/ROUND_CHUNKS;q.lastProgress=System.nanoTime();progress=true;
             if(!q.points.isEmpty()){
+                // AABB可能碰到邻窗中的大型实体；先将票据接到实际目标，再释放其它窗口。
+                MobPoint nearest=nearest(q);ChunkPos actual=new ChunkPos(BlockPos.containing(nearest.x(),nearest.y(),nearest.z()));
+                if(!actual.equals(work.retainedCenter)){
+                    q.level.getChunkSource().addRegionTicket(TICKET,actual,1,work.ticketId);
+                    q.level.getChunkSource().removeRegionTicket(TICKET,work.retainedCenter,1,work.ticketId);
+                    ExplorersCompass.LOGGER.info("CREATURE_PIN {} source={} actual={} uuid={}",q.token,work.retainedCenter,actual,nearest.uuid());work.retainedCenter=actual;
+                }
                 for(var other:List.copyOf(q.flights))if(other!=work){release(q,other);q.flights.remove(other);}
                 q.source="neighbor";done(q,"found");return true;
             }
@@ -291,7 +304,7 @@ public final class CreatureSearch {
         }
         return progress;
     }
-    private static void release(Query q,ChunkWork work){if(work.ticket){q.level.getChunkSource().removeRegionTicket(TICKET,work.center,1,work.ticketId);work.ticket=false;}VerificationSlots.release(work);}
+    private static void release(Query q,ChunkWork work){if(work.ticket){q.level.getChunkSource().removeRegionTicket(TICKET,work.retainedCenter,1,work.ticketId);work.ticket=false;}VerificationSlots.release(work);}
     private static void releaseFlights(Query q){for(var work:q.flights)release(q,work);q.flights.clear();}
     private static Set<Long> excludedHabitats(Query q){var excluded=new HashSet<>(q.checkedChunks);excluded.addAll(q.habitatExcluded);return Set.copyOf(excluded);}
     private static void capture(Query q,Entity e){
@@ -316,8 +329,13 @@ public final class CreatureSearch {
     private static boolean ready(Query q){for(int x=q.pending.x-1;x<=q.pending.x+1;x++)for(int z=q.pending.z-1;z<=q.pending.z+1;z++)if(q.level.getChunkSource().getChunkNow(x,z)==null || !q.level.areEntitiesLoaded(ChunkPos.asLong(x,z)))return false;return true;}
     private static void release(Query q){if(q.ticket){q.level.getChunkSource().removeRegionTicket(TICKET,q.pending,1,q.token);q.ticket=false;}VerificationSlots.release(q);}
     private static void done(Query q,String stage){
+        if(stage.equals("found") && q.ticket && !q.points.isEmpty()){
+            var point=nearest(q);var actual=new ChunkPos(BlockPos.containing(point.x(),point.y(),point.z()));
+            if(!actual.equals(q.pending)){q.level.getChunkSource().addRegionTicket(TICKET,actual,1,q.token);q.level.getChunkSource().removeRegionTicket(TICKET,q.pending,1,q.token);q.pending=actual;}
+        }
         if(stage.equals("found"))q.resultLeaseUntil=System.nanoTime()+60_000_000_000L;else {release(q);releaseFlights(q);}
         if(q.anchorJob!=null)q.anchorJob.cancel();if(q.saved!=null)q.saved.close();q.finished=true;q.stage=stage;publish(q);if(!q.terminal){q.terminal=true;ExplorersCompass.LOGGER.info("CREATURE {} type={} biome={} state={} rounds={}/{} chunks={} count={} source={} stored={}/{} verified={} rejected={} elapsed_ms={}",q.token,q.type,q.biome,stage,q.round,q.rounds,q.checked,q.points.size(),q.source,q.storedScanned,q.storedTotal,q.storedVerified,q.storedRejected,(System.nanoTime()-q.started)/1e6);}}
+    private static MobPoint nearest(Query q){return q.points.values().stream().min(Comparator.<MobPoint>comparingDouble(p->p.distance(q.origin.getX(),q.origin.getZ())).thenComparing(p->p.uuid().toString())).orElseThrow();}
     private static void teleport(Query q) {
         UUID id=q.teleport;var e=q.level.getEntity(id);var point=CreatureIndex.point(q.level,e);
         if(point==null || !point.type().equals(q.type) || q.biome!=null && !q.biome.equals(point.biome())){q.points.remove(id);q.stage="entity_gone";publish(q);teleportReceipt(q,false);return;}
