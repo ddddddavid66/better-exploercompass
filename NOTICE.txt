@@ -1,4 +1,4 @@
-Explorer’s Compass Unified 1.2.3 — 探险者指南针 统一
+Explorer’s Compass Unified — 探险者指南针 统一
 Original Explorer’s Compass: ChaosTheDude / MattCzyr
 Unified modifications and maintenance: David, 2026
 Upstream: https://github.com/MattCzyr/ExplorersCompass
