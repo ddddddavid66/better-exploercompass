@@ -33,7 +33,7 @@ public final class Fresh123Checks {
     private static volatile Throwable failure;
     private static volatile boolean prepared,checked,scopeDone;
     private static int phase,ticks,wait,index,pauseCount;
-    private static boolean second;
+    private static boolean retestFlutter; private static boolean second; private static int visits; private static boolean declined; private static long lastGuide;
     private static SearchJob probeJob;
     private static long started,overall=System.nanoTime(),lastWrite;
     private Fresh123Checks() {}
@@ -47,15 +47,17 @@ public final class Fresh123Checks {
                 if(mc.screen instanceof net.minecraftforge.client.gui.LoadingErrorScreen screen){check(((List<?>)field(screen,"modLoadErrors")).isEmpty(),"startup errors");mc.setScreen(new TitleScreen());}
                 if(mc.screen instanceof AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());if(!(mc.screen instanceof TitleScreen))return;
                 mc.options.pauseOnLostFocus=false;mc.options.framerateLimit().set(60);mc.options.renderDistance().set(3);mc.options.simulationDistance().set(5);mc.options.guiScale().set(2);mc.options.languageCode="zh_cn";mc.resizeDisplay();
+                if(MODE.equals("guide124verify")){mc.createWorldOpenFlows().loadLevel(new TitleScreen(),"fresh-creature123-guide124fix");next(1,120);return;}
+                if(MODE.contains("turtle")){index=2;mc.createWorldOpenFlows().loadLevel(new TitleScreen(),"fresh-creature123-guide124fix");next(1,120);return;}
                 if(MODE.equals("probe")){mc.createWorldOpenFlows().loadLevel(new TitleScreen(),"fresh-creature123-compare-preexplore");next(1,120);return;}
                 mc.createWorldOpenFlows().createFreshLevel("fresh-creature123-"+MODE+(second?"-preexplore":""),new LevelSettings("Fresh 1.2.3 "+MODE,GameType.SURVIVAL,false,Difficulty.NORMAL,false,new GameRules(),WorldDataConfiguration.DEFAULT),new WorldOptions(-3744940466531364533L,true,false),WorldPresets::createNormalWorldDimensions);next(1,120);return;
             }
             if(mc.player==null || mc.getSingleplayerServer()==null)return;
-            var server=mc.getSingleplayerServer();var uuid=mc.player.getUUID();
-            if(System.nanoTime()-lastWrite>2_000_000_000L){lastWrite=System.nanoTime();write("RUNNING phase="+phase+" target="+TARGETS[Math.min(index,4)]+" state="+CreatureClient.state+" source="+CreatureClient.source+" chunks="+CreatureClient.chunks+" anchor="+CreatureClient.anchorSamples+" mode="+CreatureClient.anchorMode+" pre="+CreaturePreExploreClient.state+" "+CreaturePreExploreClient.prepared+"/"+CreaturePreExploreClient.total+"\n"+String.join("\n",notes),"progress");}
+            var server=mc.getSingleplayerServer();var uuid=mc.player.getUUID();if(MODE.startsWith("guide124") && !mc.player.isAlive()){finish(mc,"FAILED player died during observation");return;}
+            if(System.nanoTime()-lastWrite>2_000_000_000L){lastWrite=System.nanoTime();write("RUNNING phase="+phase+" target="+TARGETS[Math.min(index,4)]+" state="+CreatureClient.state+" source="+CreatureClient.source+" chunks="+CreatureClient.chunks+" anchor="+CreatureClient.anchorSamples+" mode="+CreatureClient.anchorMode+" cap="+CreatureClient.spawnPopulation+"/"+CreatureClient.spawnCapacity+" player="+mc.player.position()+" pre="+CreaturePreExploreClient.state+" "+CreaturePreExploreClient.prepared+"/"+CreaturePreExploreClient.total+"\n"+String.join("\n",notes),"progress");}
             switch(phase){
-                case 1->{server.execute(()->guard(()->{var p=server.getPlayerList().getPlayer(uuid);p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(CreatureItem.INSTANCE));p.teleportTo(-5.5,87,-9.5);
-                    notes.add("WORLD preexplored="+second+" seed="+p.serverLevel().getSeed()+" origin="+p.position()+" mods="+net.minecraftforge.fml.ModList.get().size()+" loaded_chunks="+p.serverLevel().getChunkSource().getLoadedChunksCount());scopeCheck(p.serverLevel());prepared=true;}));next(2,5);}
+                case 1->{server.execute(()->guard(()->{var p=server.getPlayerList().getPlayer(uuid);p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(CreatureItem.INSTANCE));if(!MODE.contains("turtle") && !MODE.equals("guide124verify"))p.teleportTo(-5.5,87,-9.5);
+                    notes.add("WORLD preexplored="+second+" seed="+p.serverLevel().getSeed()+" origin="+p.position()+" mods="+net.minecraftforge.fml.ModList.get().size()+" loaded_chunks="+p.serverLevel().getChunkSource().getLoadedChunksCount());if(MODE.contains("turtle") || MODE.equals("guide124verify"))scopeDone=true;else scopeCheck(p.serverLevel());prepared=true;}));next(2,5);}
                 case 2->{if(!prepared || !scopeDone)return;ConfigHandler.CLIENT.creatureDimension.set("minecraft:overworld");ConfigHandler.CLIENT.creatureBiome.set("");ConfigHandler.CLIENT.creatureRounds.set(4);CreatureClient.open();next(MODE.equals("probe")?33:MODE.equals("preexplore") || second?20:3,10);}
                 case 3->{if(CreatureClient.entries.isEmpty())return;checked=false;int current=index;server.execute(()->guard(()->{
                     var p=server.getPlayerList().getPlayer(uuid);var type=new ResourceLocation(TARGETS[current]);var loaded=new ArrayList<String>();
@@ -64,13 +66,26 @@ public final class Fresh123Checks {
                 case 8->{if(!checked)return;checked=false;var screen=(CreatureScreen)mc.screen;var target=new ResourceLocation(TARGETS[index]);
                     ((EditBox)field(screen,"input")).setValue(target.toString());screen.tick();var rows=(List<?>)field(screen,"matches");check(rows.size()==1,"unique card "+target);
                     int left=(int)method(screen,"sidebar")+16;screen.mouseClicked(left+36,93,0);((Button)field(screen,"search")).onPress();started=System.nanoTime();next(4,1);}
-                case 4->{long elapsed=System.nanoTime()-started;if(!CreatureClient.finished && elapsed<60_000_000_000L)return;
-                    boolean limited=!CreatureClient.finished;String state=limited?"OBSERVATION_LIMIT_60S":CreatureClient.state;var points=List.copyOf(CreatureClient.points);int current=index;
-                    String info="RESULT preexplored="+second+" type="+TARGETS[current]+" state="+state+" elapsed_ms="+elapsed/1e6+" source="+CreatureClient.source+" samples="+CreatureClient.anchorSamples+" mode="+CreatureClient.anchorMode+" stored="+CreatureClient.storedScanned+"/"+CreatureClient.storedTotal+" chunks="+CreatureClient.chunks+" points="+points.size()+" anchor_ms="+CreatureClient.anchorMillis+" storage_ms="+CreatureClient.storageMillis+" chunk_wait_ms="+CreatureClient.chunkWaitMillis;
+                case 4->{long elapsed=System.nanoTime()-started;
+                    if(MODE.startsWith("guide124") && CreatureClient.habitatReady && System.nanoTime()-lastGuide>1_000_000_000L){
+                        if(!(mc.screen instanceof CreatureScreen))CreatureClient.open();
+                        notes.add("HABITAT type="+TARGETS[index]+" elapsed_ms="+elapsed/1e6+" state="+CreatureClient.state+" confirmation="+CreatureClient.confirmation+" player="+mc.player.position());
+                        check(CreatureClient.points.isEmpty(),"habitat not fake entity");Screenshot.grab(mc.gameDirectory,"guide124-habitat-"+index+".png",mc.getMainRenderTarget(),m->{});((Button)field(mc.screen,"teleport")).onPress();
+                        check(mc.screen instanceof ConfirmScreen,"explicit visit consent UI");
+                        var buttons=mc.screen.children().stream().filter(c->c instanceof Button).map(c->(Button)c).toList();
+                        check(buttons.size()==2,"yes/no confirmation");buttons.get(declined?0:1).onPress();
+                        if(!declined){declined=true;check(CreatureClient.habitatReady,"decline keeps waiting");}
+                        else visits++;
+                        lastGuide=System.nanoTime();return;
+                    }
+                    long max=MODE.startsWith("guide124")?360_000_000_000L:60_000_000_000L;
+                    if(!CreatureClient.finished && elapsed<max)return;
+                    boolean limited=!CreatureClient.finished;String state=limited?"OBSERVATION_LIMIT":CreatureClient.state;var points=List.copyOf(CreatureClient.points);int current=index;
+                    String info="RESULT visits="+visits+" preexplored="+second+" type="+TARGETS[current]+" state="+state+" elapsed_ms="+elapsed/1e6+" source="+CreatureClient.source+" samples="+CreatureClient.anchorSamples+" mode="+CreatureClient.anchorMode+" stored="+CreatureClient.storedScanned+"/"+CreatureClient.storedTotal+" chunks="+CreatureClient.chunks+" points="+points.size()+" anchor_ms="+CreatureClient.anchorMillis+" storage_ms="+CreatureClient.storageMillis+" chunk_wait_ms="+CreatureClient.chunkWaitMillis;
                     if(state.equals("found")){server.execute(()->guard(()->{var p=server.getPlayerList().getPlayer(uuid);var real=CreatureIndex.point(p.serverLevel(),p.serverLevel().getEntity(points.get(0).uuid()));check(real!=null && real.type().toString().equals(TARGETS[current]),"real UUID target");notes.add(info+" uuid="+real.uuid()+" xyz="+real.x()+","+real.y()+","+real.z()+" biome="+real.biome());checked=true;}));}
                     else{notes.add(info);checked=true;}CreatureClient.stop();next(5,10);}
-                case 5->{if(!checked)return;checked=false;index++;if(index<TARGETS.length){CreatureClient.open();next(3,10);}else next(MODE.equals("preexplore") || second?30:6,20);}
-                case 6->{server.execute(()->guard(()->{check(CreatureSearch.tickets()==0 && CreaturePreExplore.tickets()==0,"all tickets released");notes.add("CLEANUP tickets=0 reads="+SavedCreatureIndex.inFlight());checked=true;}));next(7,5);}
+                case 5->{if(!checked)return;checked=false;visits=0;index++;if(MODE.contains("turtle") && MODE.contains("flutter")){if(retestFlutter)index=5;else if(index==3){index=0;retestFlutter=true;}}if(index<(MODE.contains("turtle")?3:TARGETS.length)){CreatureClient.open();next(3,10);}else next(MODE.equals("preexplore") || second?30:6,20);}
+                case 6->{if(MODE.equals("guide124verify"))check(notes.stream().filter(n->n.startsWith("RESULT") && n.contains("state=found ")).count()==5,"all five real creature results");server.execute(()->guard(()->{check(CreatureSearch.tickets()==0 && CreaturePreExplore.tickets()==0,"all tickets released");notes.add("CLEANUP tickets=0 reads="+SavedCreatureIndex.inFlight());checked=true;}));next(7,5);}
                 case 7->{if(!checked)return;if(MODE.equals("compare") && !second){second=true;checked=prepared=scopeDone=false;index=0;mc.level.disconnect();mc.clearLevel(new TitleScreen());next(0,40);}else finish(mc,"MEASURED");}
                 case 20->{if(CreatureClient.entries.isEmpty())return;((Button)field(mc.screen,"exploreButton")).onPress();next(21,10);}
                 case 21->{check(mc.screen instanceof CreaturePreExploreScreen,"settings UI");check(((EditBox)field(mc.screen,"radius")).getValue().equals("512"),"default radius512");((Button)field(mc.screen,"start")).onPress();started=System.nanoTime();next(22,1);}
