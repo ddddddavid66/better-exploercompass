@@ -17,7 +17,7 @@ public final class CreatureClient {
     public static List<MobPoint> points=List.of();
     public static UUID query,catalog;
     public static String state="idle";public static boolean finished=true,confirmation,canTeleport,habitatReady;
-    public static long naturalWaitMillis;
+    public static long naturalWaitMillis;public static int spawnPopulation,spawnCapacity;
     public static int round,rounds,chunks,selection;
     public static long anchorSamples,anchorLimit,anchorMillis,storageMillis,chunkWaitMillis;
     public static String anchorMode="",anchorStage="";
@@ -52,7 +52,7 @@ public final class CreatureClient {
         if(query==null || !query.equals(n.getUUID("request")))return;
         UUID selected=selected()==null?null:selected().uuid();
         if(n.contains("habitatReady"))habitatReady=n.getBoolean("habitatReady");
-        if(n.contains("naturalWaitMillis"))naturalWaitMillis=n.getLong("naturalWaitMillis");
+        if(n.contains("naturalWaitMillis")){naturalWaitMillis=n.getLong("naturalWaitMillis");spawnPopulation=n.getInt("spawnPopulation");spawnCapacity=n.getInt("spawnCapacity");}
         if(n.contains("state"))state=n.getString("state");
         if(n.contains("finished"))finished=n.getBoolean("finished");
         if(n.contains("round"))round=n.getInt("round");

@@ -46,4 +46,7 @@ final class StructurePredictor {
         return heights.with(() -> LeviathanPrecheck.validate(structure.findValidGenerationPoint(context)
                 .map(Structure.GenerationStub::position).orElse(null)));
     }
+    int initialSpawnHeight(int x,int z,net.minecraft.world.level.levelgen.Heightmap.Types type){
+        return heights.with(()->generator.getBaseHeight(x,z,type,height,noise));
+    }
 }

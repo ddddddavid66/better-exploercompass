@@ -20,24 +20,25 @@ final class HabitatVisit {
     private final UUID request;
     private final EntityType<?> type;
     private final Set<ResourceLocation> biomes;
-    private final ChunkPos center;
+    final ChunkPos center;
     private final BooleanSupplier valid;
+    private final java.util.function.Predicate<MobPoint> accepts;
     private final RandomSource diagnosticRandom=RandomSource.create(0);
     private BlockPos spawn,observer;
     private int cell,preferredY;
     private boolean searchingObserver;
-    private long watchingSince,lastPoll;
+    private long watchingSince,lastPoll,cappedSince;
+    int population,capacity;
     String state="checking_habitat";
     boolean ready,empty,waiting,confirmation;
 
     HabitatVisit(ServerPlayer player,ItemStack stack,UUID request,ResourceLocation type,
-                 Set<ResourceLocation> biomes,ChunkPos center,BooleanSupplier valid){
+                 Set<ResourceLocation> biomes,ChunkPos center,BooleanSupplier valid,java.util.function.Predicate<MobPoint> accepts){
         this.player=player;this.stack=stack;this.request=request;
         this.type=ForgeRegistries.ENTITY_TYPES.getValue(type);this.biomes=Set.copyOf(biomes);
-        this.center=center;this.valid=valid;
+        this.center=center;this.valid=valid;this.accepts=accepts;
         var level=player.serverLevel();preferredY=level.getHeight(SpawnPlacements.getHeightmapType(this.type),center.getMiddleBlockX(),center.getMiddleBlockZ());
     }
-    BlockPos position(){return observer;}
     boolean watching(){return watchingSince!=0;}
     long waitedMillis(){return watchingSince==0?0:(System.nanoTime()-watchingSince)/1_000_000;}
     /** 只读取外层已经准备好的 3×3 区块；扫描与落点检查均让出共享主线程预算。 */
@@ -45,7 +46,7 @@ final class HabitatVisit {
         if(ready || empty || waiting || watching())return false;
         var level=player.serverLevel();int height=level.getHeight(),total=12*12*height;
         while(cell<total && System.nanoTime()<deadline){
-            int at=cell++,column=at/height,n=at%height;
+            int at=cell++,column=at%144,n=at/144;
             // 先看地表附近，随后覆盖全部有效高度，避免无约束飞行生物把观察者带到深层洞穴。
             int y=preferredY+((n&1)==0?n/2:-(n+1)/2);
             int minimum=level.getMinBuildHeight();y=minimum+Math.floorMod(y-minimum,height);
@@ -68,7 +69,9 @@ final class HabitatVisit {
     static boolean observerDistance(double squared){return squared>=28*28 && squared<=112*112;}
     private boolean eligible(BlockPos pos){
         var level=player.serverLevel();
-        if(!level.getBiome(pos).unwrapKey().map(k->biomes.contains(k.location())).orElse(false))return false;
+        var biome=level.getBiome(pos);
+        if(!biome.unwrapKey().map(k->biomes.contains(k.location())).orElse(false))return false;
+        if(biome.value().getMobSettings().getMobs(type.getCategory()).unwrap().stream().noneMatch(s->s.type==type && s.getWeight().asInt()>0 && s.maxCount>0))return false;
         if(!NaturalSpawner.isSpawnPositionOk(SpawnPlacements.getPlacementType(type),level,pos,type))return false;
         if(!level.noCollision(type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5)))return false;
         // 调用登记的放置谓词做选址，不创建实体、不消费世界随机数、不调用任何出生方法。
@@ -97,7 +100,18 @@ final class HabitatVisit {
         for(var entity:CreatureIndex.entities(level,ForgeRegistries.ENTITY_TYPES.getKey(type))){
             if(System.nanoTime()>=deadline)break;
             var point=CreatureIndex.point(level,entity);
-            if(point!=null && entity.distanceToSqr(player)<128*128 && biomes.contains(point.biome()))result.add(point);
+            if(point!=null && entity.distanceToSqr(player)<128*128 && accepts.test(point))result.add(point);
+        }
+        var spawning=level.getChunkSource().getLastSpawnState();
+        if(spawning!=null){
+            population=spawning.getMobCategoryCounts().getInt(type.getCategory());
+            capacity=(int)((long)type.getCategory().getMaxInstancesPerChunk()*spawning.getSpawnableChunkCount()/289);
+            if(capacity>0 && population>=capacity){if(cappedSince==0)cappedSince=System.nanoTime();}
+            else cappedSince=0;
+        }
+        // 真实分类额度持续已满时不空等一分钟；换生境仍需用户重新确认，不能清除或强刷生物。
+        if(result.isEmpty() && cappedSince!=0 && System.nanoTime()-cappedSince>5_000_000_000L){
+            state="natural_spawn_capped";watchingSince=0;ready=false;empty=true;
         }
         if(result.isEmpty() && waitedMillis()>60_000){state="natural_spawn_not_found";watchingSince=0;ready=false;empty=true;}
         return List.copyOf(result);

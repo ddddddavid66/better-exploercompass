@@ -12,6 +12,12 @@ public final class StripExternalInnerClasses {
                 if(entry.getName().endsWith(".class")) {
                     ClassReader reader=new ClassReader(bytes);ClassWriter writer=new ClassWriter(0);
                     reader.accept(new ClassVisitor(Opcodes.ASM9,writer) {
+                        @Override public MethodVisitor visitMethod(int access,String name,String descriptor,String signature,String[] exceptions){
+                            return new MethodVisitor(Opcodes.ASM9,super.visitMethod(access,name,descriptor,signature,exceptions)){
+                                // 局部变量名仅用于调试；保留源码文件、行号、参数、栈帧和全部执行指令。
+                                @Override public void visitLocalVariable(String name,String descriptor,String signature,Label start,Label end,int index){}
+                            };
+                        }
                         @Override public void visitInnerClass(String name,String outer,String simple,int access) {
                             if(name.equals(reader.getClassName()) || reader.getClassName().equals(outer))super.visitInnerClass(name,outer,simple,access);
                         }
