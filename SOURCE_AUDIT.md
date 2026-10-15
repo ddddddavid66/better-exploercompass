@@ -50,3 +50,14 @@ Xaero适配按已安装WorldMap1.39.2与Minimap25.0.0公开扩展接口编写，
 Alex适配仅在搜索线程绑定官方Voronoi实例，通过可选Mixin重定向官方字段读取；保留官方群系注入、条件与来源审核。当前支持2.0.2，关闭作用域后恢复原共享对象。TerraBlender实际3.0.1.10经匹配字节码核对，不仅因接口同名就放行。768点串行/并行一致性记录与原始日志留在仓库外验证材料。
 
 981条目录没有重新合并外部研究数据。发布构建使用运行环境已有Commons Compress无损压缩资源，标准JSON源码与解码内容SHA-256一致；原文件路径保持不变，数据包普通JSON覆盖仍有效。
+
+
+## 1.2.4 增补
+
+CreatureChunkPlanner/HabitatVisit根据匹配版Minecraft的NoiseBasedChunkGenerator.spawnOriginalMobs、NaturalSpawner.spawnMobsForChunkGeneration、BiomeManager及SpawnPlacements接口核对实现。只重放首组抽签作为加载排序线索，真实出生由游戏正常生成/自然刷新执行。花飘飘条件另对照Alex’s Mobs1.22.9本地类与官方1.20分支EntityFlutter。
+
+网络原始参考：
+- https://raw.githubusercontent.com/MinecraftForge/MinecraftForge/1.20.1/patches/minecraft/net/minecraft/world/level/NaturalSpawner.java.patch
+- https://raw.githubusercontent.com/AlexModGuy/AlexsMobs/1.20/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityFlutter.java
+
+已有格网/增量最近邻论文仅用于真实已有对象索引和距离剪枝，不推断未来出生。新代码没有使用Enhance作为输入或复制其类；历史参考说明保留，不把改写表述为法律结论。
