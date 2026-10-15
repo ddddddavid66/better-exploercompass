@@ -16,7 +16,8 @@ public final class CreatureClient {
     public static List<CreatureEntry> entries=List.of();
     public static List<MobPoint> points=List.of();
     public static UUID query,catalog;
-    public static String state="idle";public static boolean finished=true,confirmation,canTeleport;
+    public static String state="idle";public static boolean finished=true,confirmation,canTeleport,habitatReady;
+    public static long naturalWaitMillis;
     public static int round,rounds,chunks,selection;
     public static long anchorSamples,anchorLimit,anchorMillis,storageMillis,chunkWaitMillis;
     public static String anchorMode="",anchorStage="";
@@ -50,6 +51,8 @@ public final class CreatureClient {
         }
         if(query==null || !query.equals(n.getUUID("request")))return;
         UUID selected=selected()==null?null:selected().uuid();
+        if(n.contains("habitatReady"))habitatReady=n.getBoolean("habitatReady");
+        if(n.contains("naturalWaitMillis"))naturalWaitMillis=n.getLong("naturalWaitMillis");
         if(n.contains("state"))state=n.getString("state");
         if(n.contains("finished"))finished=n.getBoolean("finished");
         if(n.contains("round"))round=n.getInt("round");
@@ -75,18 +78,26 @@ public final class CreatureClient {
         acceptTeleport(n);
     }
     public static void search(ResourceLocation type,ResourceLocation dimension,ResourceLocation biome) {
-        clearPendingTeleport();query=UUID.randomUUID();pendingParts.clear();pointRevision=0;points=List.of();state="initial";finished=false;confirmation=false;selection=0;
+        clearPendingTeleport();habitatReady=false;naturalWaitMillis=0;query=UUID.randomUUID();pendingParts.clear();pointRevision=0;points=List.of();state="initial";finished=false;confirmation=false;selection=0;
         storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";captured=captureTotal=chunks=round=0;rounds=ConfigHandler.CLIENT.creatureRounds.get();chunksTotal=rounds*64;
         var n=base("search",query);n.putString("type",type.toString());n.putString("dimension",dimension==null?"":dimension.toString());n.putString("biome",biome==null?"":biome.toString());n.putInt("rounds",ConfigHandler.CLIENT.creatureRounds.get());send(n);
     }
     public static void stop(){clearPendingTeleport();if(query!=null)send(base("cancel",query));finished=true;state="cancelled";}
     public static void teleport(){
+        if(habitatReady){
+            var mc=Minecraft.getInstance();var parent=mc.screen;var token=query;
+            mc.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(yes->{
+                mc.setScreen(parent);if(yes && habitatReady && Objects.equals(query,token))visitHabitat();
+            },net.minecraft.network.chat.Component.literal("前往生境并等待自然刷新？"),net.minecraft.network.chat.Component.literal("该处尚未发现目标生物。确认后会把你送到安全观察位置，等待最多60秒正常刷新；不保证必定出现，也不会召唤生物。")));
+            return;
+        }
         var mc=Minecraft.getInstance();MobPoint p=selected();
         if(p==null || query==null || !finished || !canTeleport || pendingTeleportRequest!=null || mc.getConnection()==null)return;
         pendingTeleportRequest=UUID.randomUUID();pendingTeleportQuery=query;
         pendingTeleportScreen=mc.screen instanceof CreatureScreen screen?screen:null;pendingTeleportStarted=System.nanoTime();
         var n=base("teleport",query);n.putUUID("entity",p.uuid());n.putUUID("teleportRequest",pendingTeleportRequest);n.putBoolean("fallback",confirmation);send(n);
     }
+    private static void visitHabitat(){var n=base("habitat_visit",query);n.putBoolean("fallback",confirmation);send(n);habitatReady=false;}
     public static boolean teleportPending(){return pendingTeleportRequest!=null;}
     private static void acceptTeleport(CompoundTag n){
         if(pendingTeleportRequest==null || !n.hasUUID("teleportRequest") || !pendingTeleportRequest.equals(n.getUUID("teleportRequest"))
@@ -101,7 +112,7 @@ public final class CreatureClient {
     public static void cycle(int delta){if(!points.isEmpty())selection=Math.floorMod(selection+delta,points.size());}
     private static CompoundTag base(String action,UUID id){var n=new CompoundTag();n.putString("action",action);n.putUUID("request",id);return n;}
     private static void send(CompoundTag n){if(Minecraft.getInstance().getConnection()!=null)UnifiedNetwork.CHANNEL.sendToServer(new CreatureRequest(n));}
-    public static void clear(){CreaturePreExploreClient.clear();entries=List.of();points=List.of();pendingParts.clear();catalogParts.clear();catalogPartCount=0;pointRevision=0;query=null;catalog=null;connection=null;state="idle";finished=true;confirmation=canTeleport=false;clearPendingTeleport();storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";round=rounds=chunks=selection=captured=captureTotal=chunksTotal=0;CreatureScreen.clearPreviews();}
+    public static void clear(){CreaturePreExploreClient.clear();entries=List.of();points=List.of();pendingParts.clear();catalogParts.clear();catalogPartCount=0;pointRevision=0;habitatReady=false;naturalWaitMillis=0;query=null;catalog=null;connection=null;state="idle";finished=true;confirmation=canTeleport=false;clearPendingTeleport();storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";round=rounds=chunks=selection=captured=captureTotal=chunksTotal=0;CreatureScreen.clearPreviews();}
     public static void tick(){
         var mc=Minecraft.getInstance();if(connection!=null && connection!=mc.getConnection())clear();
         if(pendingTeleportRequest!=null && System.nanoTime()-pendingTeleportStarted>10_000_000_000L){clearPendingTeleport();if(mc.player!=null)mc.player.displayClientMessage(net.minecraft.network.chat.Component.literal("生物传送请求尚未确认，可重新尝试。"),true);}
