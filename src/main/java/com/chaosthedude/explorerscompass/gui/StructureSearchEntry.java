@@ -80,9 +80,11 @@ public class StructureSearchEntry extends ObjectSelectionList.Entry<StructureSea
         }
         boolean popup = minecraft.screen instanceof FilterScreenAccess access && access.popupOpen();
         if (!popup && mouseX >= x && mouseX < x + nameWidth && mouseY >= y && mouseY < y + font.lineHeight
-                && (!shown.equals(name) || structureKey.equals(new ResourceLocation("stalwart_dungeons:end_dungeon")))) {
+                && (!shown.equals(name) || structureKey.equals(new ResourceLocation("stalwart_dungeons:end_dungeon")) || structureKey.equals(com.chaosthedude.explorerscompass.unified.search.GoldenCrateAdapter.KEY))) {
             if (structureKey.equals(new ResourceLocation("stalwart_dungeons:end_dungeon"))) graphics.renderTooltip(font,
                     java.util.List.of(Component.literal(name),Component.literal(structureKey.toString()),Component.translatable("filters.end_feature_hint")),java.util.Optional.empty(),mouseX,mouseY);
+            else if (structureKey.equals(com.chaosthedude.explorerscompass.unified.search.GoldenCrateAdapter.KEY)) graphics.renderTooltip(font,
+                    java.util.List.of(Component.literal(name),Component.literal(structureKey.toString()),Component.translatable("filters.golden_crate_hint")),java.util.Optional.empty(),mouseX,mouseY);
             else graphics.renderTooltip(font, Component.literal(name), mouseX, mouseY);
         }
         RenderSystem.setShaderColor(1, 1, 1, 1);

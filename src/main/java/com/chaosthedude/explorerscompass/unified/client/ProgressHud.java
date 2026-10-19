@@ -15,7 +15,8 @@ public final class ProgressHud {
         draw(graphics, Component.translatable("filters.sample_progress", String.format("%,d", tag.getLong("ECFiltersSamples")),
                 String.format("%,d", tag.getLong("ECFiltersSampleLimit"))).getString(), row + 1);
         draw(graphics, Component.translatable("filters.stage." + tag.getString("ECFiltersSearchStage")).getString(), row + 2);
-        if ("feature".equals(tag.getString("ECFiltersTargetKind")) && "found".equals(tag.getString("ECFiltersSearchStage")))
+        if ("feature".equals(tag.getString("ECFiltersTargetKind")) && "found".equals(tag.getString("ECFiltersSearchStage"))
+                && new net.minecraft.resources.ResourceLocation("stalwart_dungeons:end_dungeon").equals(com.chaosthedude.explorerscompass.ExplorersCompass.explorersCompass.getStructureKey(stack)))
             draw(graphics, Component.translatable(tag.getBoolean("ECUnifiedFeatureExpanded")
                     ? "filters.end_expanded" : "filters.end_pending").getString(), row + 3);
     }

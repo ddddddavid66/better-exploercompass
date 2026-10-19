@@ -1,0 +1,15 @@
+gradle.projectsEvaluated {
+ def p=rootProject
+ p.sourceSets.create('castle126') {
+  java.srcDir('tools/testing/castle126/src')
+  resources.srcDir('tools/testing/castle126/resources')
+  compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+ }
+ p.tasks.register('castle126Jar',Jar) {
+  archiveBaseName='castle126-checks';archiveVersion='1.0'
+  from p.sourceSets.castle126.output
+  dependsOn 'castle126Classes'
+ }
+ p.reobf.create('castle126Jar')
+ p.tasks.named('reobfCastle126Jar').configure {libraries.from(p.sourceSets.main.output)}
+}

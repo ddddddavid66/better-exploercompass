@@ -108,6 +108,7 @@ public final class SearchService {
             if (!biomes.containsKey(biome)) return false;
             keys = keys.stream().filter(key -> {
                 if (EndDungeonAdapter.special(player.serverLevel(), key)) return EndDungeonAdapter.biomes(player.serverLevel()).contains(biome);
+                if (GoldenCrateAdapter.special(player.serverLevel(),key)) return GoldenCrateAdapter.biomes(player.serverLevel()).contains(biome);
                 var structure = StructureUtils.getStructureForKey(player.serverLevel(), key);
                 return structure != null && structure.biomes().stream().anyMatch(holder -> biome.equals(biomes.getKey(holder.value())));
             }).toList();
@@ -134,15 +135,18 @@ public final class SearchService {
         int radius = SearchConfig.RADIUS.get(); long samples = SearchConfig.STRUCTURE_SAMPLES.get();
         boolean feature = keys.size() == 1 && EndDungeonAdapter.special(player.serverLevel(), keys.get(0));
         if (feature && !player.serverLevel().dimension().equals(net.minecraft.world.level.Level.END)) return false;
+        boolean crate=keys.size()==1 && GoldenCrateAdapter.special(player.serverLevel(),keys.get(0));
+        if (crate && !GoldenCrateAdapter.DIMENSION.equals(player.serverLevel().dimension().location())) return false;
         SearchJob job;
-        if (feature) {
+        if (feature || crate) {
             Set<Long> anchors = new HashSet<>(featureHistory.getOrDefault(player.getUUID(), Set.of()));
             if (next) for (var value : stack.getOrCreateTag().getList("PrevPos", net.minecraft.nbt.Tag.TAG_COMPOUND)) {
                 var point = (CompoundTag)value;
                 anchors.add(new BlockPos(point.getInt("X"),point.getInt("Y"),point.getInt("Z")).asLong());
             }
             // Feature 不受原版“生成结构”开关控制，不能沿用 Structure 的半径截断。
-            job = new EndDungeonSearch(player.serverLevel(), player.blockPosition(), anchors, radius, samples, SearchConfig.ASYNC_STRUCTURES.get());
+            job = crate ? new GoldenCrateSearch(player.serverLevel(),player.blockPosition(),anchors,radius,samples,SearchConfig.ASYNC_STRUCTURES.get())
+                    : new EndDungeonSearch(player.serverLevel(), player.blockPosition(), anchors, radius, samples, SearchConfig.ASYNC_STRUCTURES.get());
         } else job = new StructureSearch(player.serverLevel(), player.blockPosition(), keys, previous,
                 player.getServer().getWorldData().worldGenOptions().generateStructures() ? radius : 0,
                 samples, SearchConfig.ASYNC_STRUCTURES.get());
@@ -264,7 +268,7 @@ public final class SearchService {
         com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(session.player.getUUID());
         CompoundTag tag = session.stack.getOrCreateTag();
         tag.remove(KIND); tag.remove(BIOME_KEY); tag.remove(FOUND_Y); tag.remove(TARGET_DIMENSION); tag.remove("ECUnifiedFeatureExpanded");
-        if (session.job instanceof EndDungeonSearch) tag.putString(KIND,"feature");
+        if (session.job instanceof EndDungeonSearch || session.job instanceof GoldenCrateSearch) tag.putString(KIND,"feature");
         tag.putString(TARGET_DIMENSION, session.level.dimension().location().toString());
         if (session.job.biome()) {
             tag.putString(KIND, "biome"); tag.putString(BIOME_KEY, session.category.toString());
@@ -293,6 +297,7 @@ public final class SearchService {
         long deadline=System.nanoTime()+Math.max(0,budget-preparation);
         TeleportService.maintain();
         EndDungeonIndex.maintain(Math.min(deadline, System.nanoTime() + 250_000L));
+        GoldenCrateIndex.maintain(Math.min(deadline, System.nanoTime() + 100_000L));
         com.chaosthedude.explorerscompass.unified.creature.search.CreatureIndex.drain(Math.min(deadline,System.nanoTime()+100_000L));
         
         List<Session> round = new ArrayList<>();
@@ -356,6 +361,8 @@ public final class SearchService {
                 if (session.job instanceof EndDungeonSearch featureJob) {
                     session.stack.getOrCreateTag().putBoolean("ECUnifiedFeatureExpanded", featureJob.expanded());
                     featureHistory.computeIfAbsent(session.player.getUUID(), ignored -> new HashSet<>()).add(candidate.position().asLong());
+                } else if (session.job instanceof GoldenCrateSearch) {
+                    featureHistory.computeIfAbsent(session.player.getUUID(), ignored -> new HashSet<>()).add(candidate.position().asLong());
                 } else structureHistory.computeIfAbsent(new StructureCacheKey(session.player.getUUID(), session.level.dimension().location()),
                         ignored -> new HashSet<>()).add(candidate.chunk().toLong());
                 SearchRules.found(session.stack);
@@ -412,7 +419,7 @@ public final class SearchService {
         data.putUUID("player",session.player.getUUID());data.putLong("startedAt",session.startedAt);
         data.putString("category",session.category.toString());data.putString("kind",session.job.biome()?"biome":"structure");
         data.putString("dimension",session.level.dimension().location().toString());
-        if (session.job instanceof EndDungeonSearch) data.putString("targetImplementation","feature");
+        if (session.job instanceof EndDungeonSearch || session.job instanceof GoldenCrateSearch) data.putString("targetImplementation","feature");
         data.putString("requestKind",session.travel?"entertainment":session.next?"next":session.group?"group":"normal");
         data.putIntArray("origin",new int[]{session.job.start.getX(),session.job.start.getY(),session.job.start.getZ()});
         var targets=new net.minecraft.nbt.ListTag();for(var key:session.requested)targets.add(net.minecraft.nbt.StringTag.valueOf(key.toString()));
@@ -460,7 +467,7 @@ public final class SearchService {
         pendingPreparationNanos=0;
         TeleportService.clear();
         for (Session session : List.copyOf(sessions.values())) cancel(session.player, true);
-        WorldgenCache.clear(); EndDungeonAdapter.clear(); EndDungeonIndex.clearRuntime();
+        WorldgenCache.clear(); EndDungeonAdapter.clear(); EndDungeonIndex.clearRuntime(); GoldenCrateAdapter.clear(); GoldenCrateIndex.clearRuntime();
     }
     public static void shutdown() { stopAll(); TeleportService.shutdown(); biomeHistory.clear(); structureHistory.clear(); featureHistory.clear(); TeleportEvents.clear(); SearchPool.shutdown(); cursor = 0; }
     public static boolean isBiome(ItemStack stack) { return stack.getTag() != null && "biome".equals(stack.getTag().getString(KIND)); }

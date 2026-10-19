@@ -62,6 +62,14 @@ public final class CatalogService {
             mapping.put(featureKey, com.chaosthedude.explorerscompass.unified.search.EndDungeonAdapter.biomes(end));
             costs.put(featureKey, cost(featureKey, rules, key.defaultCost));
         }
+        var crateLevel=level.getServer().getLevel(net.minecraft.resources.ResourceKey.create(Registries.DIMENSION,
+                com.chaosthedude.explorerscompass.unified.search.GoldenCrateAdapter.DIMENSION));
+        var crateKey=com.chaosthedude.explorerscompass.unified.search.GoldenCrateAdapter.KEY;
+        boolean crateFeature=crateLevel!=null && com.chaosthedude.explorerscompass.unified.search.GoldenCrateAdapter.special(crateLevel,crateKey);
+        if (crateFeature && blacklists.stream().noneMatch(rule -> rule.matcher(crateKey.toString()).matches())) {
+            mapping.put(crateKey,com.chaosthedude.explorerscompass.unified.search.GoldenCrateAdapter.biomes(crateLevel));
+            costs.put(crateKey,cost(crateKey,rules,key.defaultCost));
+        }
         Map<ResourceLocation, ResourceLocation> groups = new LinkedHashMap<>();
         var sets = level.registryAccess().registryOrThrow(Registries.STRUCTURE_SET);
         // 扫描一次建立反向索引，避免每个结构重新遍历全部结构组。
@@ -73,6 +81,7 @@ public final class CatalogService {
             }
         }
         if (endFeature && mapping.containsKey(featureKey)) groups.put(featureKey, featureKey);
+        if (crateFeature && mapping.containsKey(crateKey)) groups.put(crateKey,crateKey);
         mapping.keySet().forEach(id -> groups.putIfAbsent(id, new ResourceLocation("explorerscompass:none")));
         Map<ResourceLocation, Set<ResourceLocation>> dimensionBiomes = new LinkedHashMap<>();
         Map<ResourceLocation, Set<ResourceLocation>> dimensionStructures = new LinkedHashMap<>();
@@ -88,6 +97,10 @@ public final class CatalogService {
                 
                 if (endFeature && entry.getKey().equals(featureKey)) {
                     if (dimension.dimension().equals(net.minecraft.world.level.Level.END) && entry.getValue().stream().anyMatch(available::contains)) placed.add(featureKey);
+                    continue;
+                }
+                if (crateFeature && entry.getKey().equals(crateKey)) {
+                    if (dimension==crateLevel && entry.getValue().stream().anyMatch(available::contains)) placed.add(crateKey);
                     continue;
                 }
                 var holder = structures.getHolderOrThrow(net.minecraft.resources.ResourceKey.create(Registries.STRUCTURE, entry.getKey()));

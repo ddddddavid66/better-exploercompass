@@ -53,3 +53,7 @@ Gradle Wrapper 随源码提供，构建工具许可 Apache-2.0；JUnit Jupiter 5
 - TerraBlender3.0.1.10：核对本地Area的StampedLock保护、分层随机上下文和初始化后的只读参数树；保留3.0.1.7支持，其他版本仍兼容路径。[官方参数树](https://github.com/Glitchfiend/TerraBlender/blob/1.20.1/Common/src/main/java/terrablender/mixin/MixinParameterList.java)。
 - Apache Commons Compress：Apache-2.0，由Minecraft/Forge运行库提供，构建及加载大目录时调用BZip2接口，不打包其类；源码图鉴是标准JSON，发布资源无损解码后逐字节相同。
 - Chunky仅作为预生成行为与边界的研究参考，没有引入其源码或依赖。预探索的有限任务、进度界面、预算及索引复用在本工程实现。
+
+## Infinite Abyss 1.8.4 可选互操作（1.2.6）
+
+作者 Dreamcritting / MCreator；安装包声明 All Rights Reserved。仅核对用户提供 jar 的公开注册 ID、运行时序列化配置、模板几何和必要调用契约；本工程不分发第三方类、模板、贴图或反编译文本。候选位置由 Minecraft 官方装饰随机数接口及本工程的矩形调度计算，真实方块读取在服务端线程执行；不会主动调用 CastleConditionProcedure、Feature.place 或模板放置方法。第三方原有许可继续适用于其自身内容。
