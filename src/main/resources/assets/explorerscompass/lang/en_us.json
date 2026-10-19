@@ -206,5 +206,7 @@
   "filters.teleport_reason_biome_mismatch": "Checking actual biome height",
   "entertainment.phase.height_probe": "Checking biome height",
   "structure.infinite_abyss.castle_feature": "Golden Crate (Castle)",
-  "filters.golden_crate_hint": "Special feature in Infinite Abyss layer 4. Locates an existing golden crate; does not place crates or castles."
+  "filters.golden_crate_hint": "Special feature in Infinite Abyss layer 4. Locates an existing golden crate; does not place crates or castles.",
+  "filters.stage.crate_prioritizing": "Prioritizing castle candidates (fast mode)",
+  "filters.stage.crate_waiting": "Preparing and verifying actual crates"
 }

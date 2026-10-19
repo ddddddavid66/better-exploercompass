@@ -22,17 +22,21 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 public final class Castle126Checks {
  private boolean opened,closed;private long screenAt;private static volatile String done;private static volatile UUID player;
  private static final net.minecraft.server.level.TicketType<UUID> VERIFY=net.minecraft.server.level.TicketType.create("crate_check",Comparator.<UUID>naturalOrder());
- private static final UUID verifyId=UUID.randomUUID();private static BlockPos verifying;
+ private static final UUID verifyId=UUID.randomUUID();private static BlockPos verifying;private static long verificationBegin;
  private static int phase;private static long begin,lastLog;private static ItemStack stack;private static BlockPos first;
  public Castle126Checks(){MinecraftForge.EVENT_BUS.register(this);}
  @SubscribeEvent public void client(TickEvent.ClientTickEvent e){
   if(e.phase!=TickEvent.Phase.END)return;var mc=Minecraft.getInstance();
+  if(mc.screen instanceof ConfirmScreen confirm && Boolean.getBoolean("castle126.resume")){
+   var buttons=confirm.children().stream().filter(value->value instanceof net.minecraft.client.gui.components.Button).map(value->(net.minecraft.client.gui.components.Button)value).toList();
+   if(!buttons.isEmpty()){log("CONFIRM "+confirm.getNarrationMessage().getString());buttons.get(0).onPress();return;}
+  }
   if(done!=null){if(!closed){closed=true;log(done);mc.stop();}return;}
   if(!opened){
    if(mc.screen instanceof AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
    if(!(mc.screen instanceof TitleScreen))return;opened=true;mc.options.pauseOnLostFocus=false;
    mc.options.renderDistance().set(2);mc.options.simulationDistance().set(5);mc.options.framerateLimit().set(20);
-   if(Boolean.getBoolean("castle126.resume")){mc.createWorldOpenFlows().loadLevel(new TitleScreen(),"castle126");return;}
+   if(Boolean.getBoolean("castle126.resume")){mc.createWorldOpenFlows().loadLevel(new TitleScreen(),System.getProperty("castle126.world","castle126"));return;}
    mc.createWorldOpenFlows().createFreshLevel(System.getProperty("castle126.world","castle126"),
     new LevelSettings("Golden Crate natural generation",GameType.CREATIVE,false,Difficulty.PEACEFUL,false,new GameRules(),WorldDataConfiguration.DEFAULT),
     new net.minecraft.world.level.levelgen.WorldOptions(789123L,true,false),net.minecraft.world.level.levelgen.presets.WorldPresets::createNormalWorldDimensions);return;
@@ -51,7 +55,7 @@ public final class Castle126Checks {
      first=new BlockPos(previous.getInt("X"),previous.getInt("Y"),previous.getInt("Z"));
      phase=2;begin=System.nanoTime();log("RESUME only failed post-result block verification");return;
     }
-    officialRandomParity();
+    if(!Boolean.getBoolean("castle126.optimized"))officialRandomParity();
     var level=server.getLevel(ResourceKey.create(Registries.DIMENSION,GoldenCrateAdapter.DIMENSION));check(level!=null,"layer 4 exists");
     p.teleportTo(level,8.5,64,8.5,Set.of(),0,0);p.setInvulnerable(true);
     stack=new ItemStack(ExplorersCompass.explorersCompass);p.setItemInHand(InteractionHand.MAIN_HAND,stack);
@@ -70,14 +74,15 @@ public final class Castle126Checks {
    var pos=new BlockPos(ExplorersCompass.explorersCompass.getFoundStructureX(stack),stack.getTag().getInt(SearchService.FOUND_Y),ExplorersCompass.explorersCompass.getFoundStructureZ(stack));
    // 使用搜索已经完成的地物阶段区块，不同步加载其他区域。
    // 找到与最近性证明结束之间，候选可能正常卸载；验收自身也应非阻塞重新准备。
-   if(verifying==null){verifying=pos;TeleportService.cancel(p.getUUID());for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)p.serverLevel().getChunkSource().chunkMap.getDistanceManager().addTicket(VERIFY,new ChunkPos(new ChunkPos(pos).x+dx,new ChunkPos(pos).z+dz),net.minecraft.server.level.ChunkLevel.byStatus(net.minecraft.world.level.chunk.ChunkStatus.FEATURES),verifyId);return;}
+   if(verifying==null){verifying=pos;verificationBegin=System.nanoTime();TeleportService.cancel(p.getUUID());p.serverLevel().getChunkSource().chunkMap.getDistanceManager().addTicket(VERIFY,new ChunkPos(pos),net.minecraft.server.level.ChunkLevel.byStatus(net.minecraft.world.level.chunk.ChunkStatus.FEATURES),verifyId);return;}
    var holder=((com.chaosthedude.explorerscompass.unified.mixin.ChunkMapAccessor)p.serverLevel().getChunkSource().chunkMap).unified$getUpdatingChunkIfPresent(new ChunkPos(pos).toLong());
-   if(holder==null)return;
-   var ready=holder.getFutureIfPresentUnchecked(net.minecraft.world.level.chunk.ChunkStatus.FEATURES).getNow(null);
-   if(ready==null)return;
-   check(ready.left().isPresent() && ready.left().get().getBlockState(pos).is(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(GoldenCrateAdapter.BLOCK)),"real golden crate block exists");
-   log("PASS mode="+stack.getTag().getString("ECFiltersSearchMode")+" phase="+phase+" xyz="+pos+" elapsed_ms="+(System.nanoTime()-begin)/1e6);
-   for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)p.serverLevel().getChunkSource().chunkMap.getDistanceManager().removeTicket(VERIFY,new ChunkPos(new ChunkPos(verifying).x+dx,new ChunkPos(verifying).z+dz),net.minecraft.server.level.ChunkLevel.byStatus(net.minecraft.world.level.chunk.ChunkStatus.FEATURES),verifyId);
+   check(System.nanoTime()-verificationBegin<60_000_000_000L,"test result chunk reload deadline");
+   if(holder==null || holder.getTicketLevel()>net.minecraft.server.level.ChunkLevel.byStatus(net.minecraft.world.level.chunk.ChunkStatus.FEATURES))return;
+   var ready=holder.getOrScheduleFuture(net.minecraft.world.level.chunk.ChunkStatus.FEATURES,p.serverLevel().getChunkSource().chunkMap).getNow(null);
+   if(ready==null || ready.left().isEmpty())return;
+   check(ready.left().get().getBlockState(pos).is(net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(GoldenCrateAdapter.BLOCK)),"real golden crate block exists; actual="+ready.left().get().getBlockState(pos));
+   log("PASS verify_reloaded=true mode="+stack.getTag().getString("ECFiltersSearchMode")+" phase="+phase+" xyz="+pos+" elapsed_ms="+(System.nanoTime()-begin)/1e6);
+   p.serverLevel().getChunkSource().chunkMap.getDistanceManager().removeTicket(VERIFY,new ChunkPos(verifying),net.minecraft.server.level.ChunkLevel.byStatus(net.minecraft.world.level.chunk.ChunkStatus.FEATURES),verifyId);
    verifying=null;TeleportService.cancel(p.getUUID());
    if(phase==1){first=pos;check(SearchService.requestStructures(p,stack,GoldenCrateAdapter.KEY,false,true,null),"find-next accepted");phase=2;begin=System.nanoTime();return;}
    check(!first.equals(pos),"find-next excludes previous anchor");SearchService.cancel(p,false);check(VerificationSlots.count()==0,"all verification slots released");done="PASS natural generation and find-next; no template placement by helper";

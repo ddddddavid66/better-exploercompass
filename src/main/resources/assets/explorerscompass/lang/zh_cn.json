@@ -208,5 +208,7 @@
   "filters.teleport_reason_biome_mismatch": "实际落点群系不符，正在复核高度",
   "entertainment.phase.height_probe": "核对目标群系高度",
   "structure.infinite_abyss.castle_feature": "金色板条箱（城堡）",
-  "filters.golden_crate_hint": "特殊地物：诱惑之森（第4层）的城堡。定位真实金色板条箱，不生成或补放箱子。"
+  "filters.golden_crate_hint": "特殊地物：诱惑之森（第4层）的城堡。定位真实金色板条箱，不生成或补放箱子。",
+  "filters.stage.crate_prioritizing": "评估城堡候选（速度优先）",
+  "filters.stage.crate_waiting": "准备并核对真实箱子"
 }
