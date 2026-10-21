@@ -47,7 +47,7 @@ public final class XaeroWaypoints {
         return dimension.equals(((net.minecraft.resources.ResourceKey<?>)key).location())?world:null;
     }
     public static void accept(Connection source,SearchLifecyclePacket packet) {
-        var mc=Minecraft.getInstance();var data=packet.data();
+        var mc=Minecraft.getInstance();var data=packet.data();if(data.getBoolean("reportOnly"))return;
         if(mc.getConnection()==null || source!=mc.getConnection().getConnection() || mc.player==null
                 || !data.hasUUID("player") || !mc.player.getUUID().equals(data.getUUID("player")))return;
         if(connection!=source){clear();connection=source;}

@@ -44,6 +44,9 @@ public final class AdventureTravel {
         long epoch,visitDeadline;
         int visitTicks,requests,expansion;
         long coveredSamples;
+        final long startedAt=System.currentTimeMillis(),startedNanos=System.nanoTime();
+        String travelException="";boolean reported;
+        net.minecraft.nbt.CompoundTag lastFailure=new net.minecraft.nbt.CompoundTag();
         boolean completed,finalPass,awaited;
         String detail="";
         Task(ServerPlayer player,ItemStack stack,Advancement advancement,List<AdventureRequirements.Visit> visits,EntertainmentFeature feature) {
@@ -95,6 +98,7 @@ public final class AdventureTravel {
                 step(task);
                 if(tasks.get(task.player.getUUID())==task && task.player.getServer().getTickCount()%10==0)publish(task,true);
             }catch(Exception error) {
+                task.travelException=com.chaosthedude.explorerscompass.unified.data.FailureReportText.exception(error);
                 ExplorersCompass.LOGGER.error("自动旅行 {} 异常",task.id,error);
                 if(task.phase==Phase.RETURN || task.phase==Phase.RETURNING)finish(task,false);else returnHome(task,"entertainment.error");
             }
@@ -157,6 +161,7 @@ public final class AdventureTravel {
         var state=task.request.state();
         if(state==SearchService.BiomeRequest.State.RUNNING) {
             if(task.request.stalled()) {
+                task.lastFailure=task.request.failureDetails();
                 task.request.cancel("travel_timeout");
                 // 取消前可能已完成，只有本请求真正按超时取消才消耗额度。
                 if(task.request.state()==SearchService.BiomeRequest.State.CANCELLED && task.request.reason().equals("travel_timeout"))
@@ -165,6 +170,7 @@ public final class AdventureTravel {
             return;
         }
         ExplorersCompass.LOGGER.info("TRAVEL {} search_terminal biome={} state={} reason={} samples={} token={}",task.id,task.current.biome(),state,task.request.reason(),task.request.samples(),task.request.token());
+        if(state!=SearchService.BiomeRequest.State.FOUND)task.lastFailure=task.request.failureDetails();
         switch(state) {
             case FOUND->{task.candidate=task.request.candidate();task.phase=Phase.LAND;}
             case RANGE_EXHAUSTED->{
@@ -230,7 +236,29 @@ public final class AdventureTravel {
     }
     private static boolean owns(Task task,Phase phase,long epoch){return tasks.get(task.player.getUUID())==task && task.phase==phase && task.epoch==epoch;}
     private static void returnHome(Task task,String reason) {
+        if(!reason.equals("entertainment.stopped") && !reason.equals("entertainment.completed") && !reason.equals("entertainment.interrupted"))reportFailure(task,reason);
         task.epoch++;task.phase=Phase.RETURN;task.detail=reason;SearchService.cancel(task.player,true);publish(task,true);
+    }
+    /** 内部扩圈/重试只有最终失败才报告；返程和手动停止不产生虚假的搜索终态。 */
+    private static void reportFailure(Task task,String reason) {
+        if(task.reported)return;task.reported=true;
+        var data=new net.minecraft.nbt.CompoundTag();var details=task.lastFailure.copy();
+        var key=task.current==null?task.visits.stream().filter(v->!task.visited(v)).map(AdventureRequirements.Visit::biome).findFirst().orElse(task.feature.dimension()):task.current.biome();
+        data.putUUID("player",task.player.getUUID());data.putBoolean("reportOnly",true);data.putLong("startedAt",task.startedAt);
+        data.putString("category",key.toString());data.putString("kind","biome");data.putString("dimension",task.feature.dimension().toString());
+        data.putString("requestKind","entertainment");data.putString("result","travel_failed");
+        var targets=new net.minecraft.nbt.ListTag();for(var visit:task.visits)if(!task.visited(visit))targets.add(net.minecraft.nbt.StringTag.valueOf(visit.biome().toString()));data.put("targets",targets);
+        for(String field:List.of("candidates","checks","chunkRequests","mainNanos","workerNanos","preparationNanos","confirmationNanos","waitingNanos"))if(details.contains(field))data.put(field,details.get(field).copy());
+        data.putIntArray("origin",new int[]{(int)Math.floor(task.origin.x),(int)Math.floor(task.origin.y),(int)Math.floor(task.origin.z)});
+        data.putLong("durationNanos",System.nanoTime()-task.startedNanos);
+        if(task.request!=null)data.putLong("samples",task.request.samples());
+        data.putString("mode",TeleportService.mode(task.player.getUUID()).name());
+        details.putString("travelSummary",com.chaosthedude.explorerscompass.unified.data.FailureReportText.clean(
+            "reason="+reason+"; requests="+task.requests+"; timeouts="+task.timeouts+"; unresolved="+task.unresolved+"; excluded="+task.excluded,6000));
+        if(!task.travelException.isEmpty())details.putString("exceptions",task.travelException);
+        details.putString("mod",net.minecraftforge.fml.ModList.get().getModContainerById("explorerscompass").orElseThrow().getModInfo().getVersion().toString());
+        details.putString("minecraft",net.minecraft.SharedConstants.getCurrentVersion().getName());details.putString("forge",net.minecraftforge.versions.forge.ForgeVersion.getVersion());
+        data.put("failureReport",details);UnifiedNetwork.send(task.player,new SearchLifecyclePacket(task.id,true,data));
     }
     private static void finish(Task task,boolean returned) {
         if(!tasks.remove(task.player.getUUID(),task))return;

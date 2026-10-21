@@ -50,6 +50,8 @@ public final class SearchService {
         long startedAt=System.currentTimeMillis(),startedNanos=System.nanoTime();
         long priorSamples,priorCandidates,priorMain,priorWorker,priorPreparation,priorConfirmation,priorWaiting;int priorChecks,priorChunks;
         boolean terminalSent;
+        String exceptions="";
+        CompoundTag failureDetails=new CompoundTag();
         BiomeRequest request;
         boolean travel;
         long lastSamples = -1;
@@ -254,6 +256,7 @@ public final class SearchService {
         }
         public long elapsed(){return session==null?0:System.nanoTime()-session.startedNanos;}
         public long samples(){return session==null?0:session.priorSamples+session.job.samples();}
+        public CompoundTag failureDetails(){return session==null?new CompoundTag():session.failureDetails.isEmpty()?SearchFailureDetails.snapshot(session.level,session.job,session.requested,session.exceptions):session.failureDetails.copy();}
         public BlockPos origin(){return session==null?null:session.job.start;}
         public String plan(){return session==null?reason:session.job.start+";source="+session.level.getChunkSource().getGenerator().getBiomeSource().getClass().getName()
                 +";mode="+session.job.mode()+";radius="+session.job.radius+";"+(session.job instanceof BiomeSearch biome?biome.samplingPlan():"");}
@@ -323,6 +326,7 @@ public final class SearchService {
                 boolean progress = session.job.step(); idle = progress ? 0 : idle + 1;
                 if (session.job.done()) finish(session);
             } catch (Exception error) {
+                session.exceptions=com.chaosthedude.explorerscompass.unified.data.FailureReportText.clean(session.exceptions+com.chaosthedude.explorerscompass.unified.data.FailureReportText.exception(error),6000);
                 session.job.cancel();
                 if (session.job.asynchronous()) {
                     CompassUnified.LOGGER.warn("搜索 {} 后台预测失败，切换本次请求为兼容验证", session.token, error);
@@ -426,6 +430,10 @@ public final class SearchService {
         data.put("targets",targets);data.putString("mode",session.job.mode());
         if(terminal) {
             session.terminalSent=true;data.putString("result",result);data.putString("foundId",found);
+            if(com.chaosthedude.explorerscompass.unified.data.FailureReportText.reportable(result)) {
+                session.failureDetails=SearchFailureDetails.snapshot(session.level,session.job,session.requested,session.exceptions);
+                if(!session.travel)data.put("failureReport",session.failureDetails.copy());
+            }
             if (session.job.result()!=null) {
                 var p=session.job.result().position();data.putIntArray("foundPos",new int[]{p.getX(),p.getY(),p.getZ()});
             }

@@ -11,7 +11,9 @@ import net.minecraftforge.fml.common.Mod;
 public final class SearchLogCommands {
     private SearchLogCommands() {}
     @SubscribeEvent public static void register(RegisterClientCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("david").then(Commands.literal("log")
+        event.getDispatcher().register(Commands.literal("david").then(Commands.literal("report")
+            .then(Commands.argument("id",net.minecraft.commands.arguments.UuidArgument.uuid()).executes(ctx->{FailureReports.open(net.minecraft.commands.arguments.UuidArgument.getUuid(ctx,"id"));return 1;})))
+            .then(Commands.literal("log")
             .executes(ctx->{SearchLogClient.status();return 1;})
             .then(Commands.literal("open").executes(ctx->{SearchLogClient.enabled(true);return 1;}))
             .then(Commands.literal("close").executes(ctx->{SearchLogClient.enabled(false);return 1;}))

@@ -32,7 +32,7 @@ public final class SearchLogClient {
     public static void accept(Connection source,SearchLifecyclePacket packet) {
         var mc=Minecraft.getInstance();if(mc.getConnection()==null || source!=mc.getConnection().getConnection())return;
         if(connection!=source){disconnect();connection=source;}
-        var data=packet.data();
+        var data=packet.data();if(data.getBoolean("reportOnly"))return;
         if(mc.player==null || !data.hasUUID("player") || !mc.player.getUUID().equals(data.getUUID("player")))return;
         if(!packet.terminal()) {
             if(!ConfigHandler.CLIENT.searchLogEnabled.get() || writer().paused() || active.containsKey(packet.token()) || finished.contains(packet.token()))return;
