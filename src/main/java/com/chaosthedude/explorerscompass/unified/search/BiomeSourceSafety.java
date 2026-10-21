@@ -107,7 +107,15 @@ final class BiomeSourceSafety {
         Object parameters = call(source, "parameters", "m_274409_");
         Class<?> api = Class.forName("terrablender.worldgen.IExtendedParameterList");
         if (!api.isInstance(parameters)) reject("TerraBlender 参数接口未应用 " + parameters.getClass().getName());
-        if (!Boolean.TRUE.equals(method(api, "isInitialized").invoke(parameters))) reject("TerraBlender 参数树尚未完成初始化");
+        if (!Boolean.TRUE.equals(method(api, "isInitialized").invoke(parameters))) {
+            // 官方只为带区域标签的维度初始化；天境无标签时保留原版不可变参数树。
+            Object region=Class.forName("terrablender.util.LevelUtils").getMethod("getRegionTypeForDimension",net.minecraft.core.Holder.class)
+                .invoke(null,level.dimensionTypeRegistration());
+            if(region==null && Boolean.FALSE.equals(field(parameters,"initialized"))) {
+                chain.add("TerraBlender:unassigned-region-vanilla-parameters");return;
+            }
+            reject("TerraBlender 参数树尚未完成初始化");
+        }
     }
     private void prepareEnd(BiomeSource source) throws ReflectiveOperationException {
         // possibleBiomes 同时完成 Fabric 的 Overrides 和布尔标识懒初始化。

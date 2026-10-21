@@ -35,7 +35,11 @@ final class StartPrediction {
     private Map<ResourceLocation, StructureTemplate> snapshot = Map.of();
     private int index;
     private boolean allowed = true;
+    private String reason="";
+    String reason(){return reason;}
     private Object deferredLeviathan;
+    private int anchorPadding;
+    int anchorPadding(){return anchorPadding;}
     private StartPrediction(ServerLevel level, ResourceLocation key, Structure structure) {
         this.level = level; this.key = key;
         try { inspect(structure); }
@@ -47,6 +51,13 @@ final class StartPrediction {
     private void inspect(Structure structure) throws ReflectiveOperationException {
         var source = BiomeSourceSafety.prepare(level);
         if (!source.allowed()) { reject(source.reason()); return; }
+        if(AetherStructures.base(structure)) {
+            if(AetherStructures.moved(structure)) {pending.add(new ResourceLocation("aether:bronze_dungeon/boss_room"));anchorPadding=32;}
+            return;
+        }
+        if(AetherStructures.platinum(structure))return;
+        boolean ancient=AetherStructures.ancient(structure);
+        if(ancient && AetherStructures.moved(structure)){pending.add(new ResourceLocation("ancient_aether:buried_jigsaw_spawn_radius"));anchorPadding=32;}
         // 原版废弃传送门也会读取模板；只在主线程准备13种模板的几何快照。
         if(structure.getClass()==net.minecraft.world.level.levelgen.structure.structures.RuinedPortalStructure.class) {
             for(int i=1;i<=10;i++)pending.add(new ResourceLocation("minecraft:ruined_portal/portal_"+i));
@@ -58,7 +69,7 @@ final class StartPrediction {
                 && version("yungsapi","1.20-Forge-4.0.5")
                 && (key.getNamespace().equals("betterjungletemples") && version("betterjungletemples","1.20-Forge-2.0.5")
                     || key.getNamespace().equals("betteroceanmonuments") && version("betteroceanmonuments","1.20-Forge-3.0.4"));
-        if(!vanilla && !yung) {
+        if(!vanilla && !yung && !ancient) {
             if(!version("dungeons_plus","1.5.0") || !version("structure_gel","2.16.2")) {reject("未经核对的结构版本");return;}
             String simple=SIMPLE.get(key.getPath());
             if(key.getNamespace().equals("dungeons_plus") && simple!=null && structure.getClass().getName().equals(PREFIX+simple))return;
@@ -76,9 +87,9 @@ final class StartPrediction {
         }).getAsJsonObject();
         // 带命名起始拼接的分支可能更新模板内部方块索引缓存，留在主线程处理。
         named=json.has("start_jigsaw_name");
-        if(named && !yung && !vanilla) {reject("自定义命名起始拼接");return;}
+        if(named && !yung && !vanilla && !ancient) {reject("自定义命名起始拼接");return;}
         var height = json.get("start_height");
-        if (height.isJsonObject() && height.getAsJsonObject().has("type")
+        if (height!=null && height.isJsonObject() && height.getAsJsonObject().has("type")
                 && !Set.of("minecraft:constant", "minecraft:uniform").contains(height.getAsJsonObject().get("type").getAsString())) {
             reject("未经核对的高度提供器"); return;
         }
@@ -87,6 +98,7 @@ final class StartPrediction {
                 && height.getAsJsonObject().has("absolute")
                 && level.getChunkSource().getGenerator().getClass()==net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator.class)
             heightFilter=new HeightBiomeFilter(level,structure,height.getAsJsonObject().get("absolute").getAsInt());
+        if(ancient && AetherStructures.moved(structure) && json.has("max_distance_from_center"))anchorPadding+=json.get("max_distance_from_center").getAsInt();
         var poolKey = new ResourceLocation(json.get("start_pool").getAsString());
         var pool = level.registryAccess().registryOrThrow(Registries.TEMPLATE_POOL).get(poolKey);
         if (pool == null) { reject("起始模板池不存在"); return; }
@@ -109,7 +121,7 @@ final class StartPrediction {
         return ModList.get().getModContainerById(mod).map(container -> expected.equals(container.getModInfo().getVersion().toString())).orElse(false);
     }
     private void reject(String reason) {
-        allowed = false;
+        this.reason=reason;allowed = false;
         ExplorersCompass.LOGGER.info("{} 保留网格候选，转入兼容验证: {}", key, reason);
     }
     boolean preparing() { return allowed && index < pending.size(); }
@@ -123,6 +135,7 @@ final class StartPrediction {
             if (source.isEmpty()) { reject("模板不存在: " + id); return; }
             // 起始片段只查尺寸与包围盒，保存几何即可，不复制整份调色板和实体 NBT。
             loading.put(id, named?new TemplateAnchors(source.get()):new TemplateGeometry(source.get().getSize()));
+            if(anchorPadding>0)anchorPadding=Math.addExact(anchorPadding,Math.max(source.get().getSize().getX(),source.get().getSize().getZ()));
             if (!preparing()) snapshot = Map.copyOf(loading);
         } catch (RuntimeException error) { reject("模板准备失败: " + error); }
     }

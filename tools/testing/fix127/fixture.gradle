@@ -1,0 +1,15 @@
+gradle.projectsEvaluated {
+    def p=rootProject
+    p.sourceSets.create('fix127') {
+        java.srcDir('tools/testing/fix127/src')
+        resources.srcDir('tools/testing/fix127/resources')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+    }
+    p.tasks.register('fix127Jar', Jar) {
+        archiveBaseName='unified127-checks'; archiveVersion='1.0'
+        from p.sourceSets.fix127.output
+        dependsOn 'fix127Classes'
+    }
+    p.reobf.create('fix127Jar')
+    p.tasks.named('reobfFix127Jar').configure { libraries.from(p.sourceSets.main.output) }
+}

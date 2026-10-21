@@ -26,7 +26,8 @@ final class LandingChecks {
                 if (level.getChunkSource().getChunkNow(x,z)==null) return false;
         return true;
     }
-    static Vec3 find(ServerPlayer player, ServerLevel level, ItemStack stack, BlockPos point, boolean relaxed) {
+    static Vec3 find(ServerPlayer player, ServerLevel level, ItemStack stack, BlockPos point, boolean relaxed) { return find(player,level,stack,point,relaxed,true); }
+    static Vec3 find(ServerPlayer player, ServerLevel level, ItemStack stack, BlockPos point, boolean relaxed, boolean requireBiome) {
         if (!ready(player,level,point,!relaxed && SearchService.isBiome(stack))) return null;
         for (int drop=0;drop<=(relaxed?3:0);drop++) {
             BlockPos support=point.below(drop+1); var floor=level.getBlockState(support);
@@ -37,11 +38,12 @@ final class LandingChecks {
                 if(shape.minX<=.5 && shape.maxX>=.5 && shape.minZ<=.5 && shape.maxZ>=.5) top=Math.max(top,shape.maxY);
             if(top<0) continue;
             Vec3 landing=new Vec3(point.getX()+.5,support.getY()+top,point.getZ()+.5);
-            if(valid(player,level,stack,landing,relaxed)) return landing;
+            if(valid(player,level,stack,landing,relaxed,requireBiome)) return landing;
         }
         return null;
     }
-    static boolean valid(ServerPlayer player, ServerLevel level, ItemStack stack, Vec3 landing, boolean relaxed) {
+    static boolean valid(ServerPlayer player, ServerLevel level, ItemStack stack, Vec3 landing, boolean relaxed) { return valid(player,level,stack,landing,relaxed,true); }
+    static boolean valid(ServerPlayer player, ServerLevel level, ItemStack stack, Vec3 landing, boolean relaxed, boolean requireBiome) {
         BlockPos point=BlockPos.containing(landing);
         if(!ready(player,level,point,!relaxed && SearchService.isBiome(stack))) return false;
         var box=player.getDimensions(Pose.STANDING).makeBoundingBox(landing.x,landing.y,landing.z);
@@ -53,13 +55,14 @@ final class LandingChecks {
             if(!state.getFluidState().isEmpty() && (!relaxed || !state.getFluidState().is(FluidTags.WATER))) return false;
         }
         if(!level.getFluidState(BlockPos.containing(landing.x,box.maxY-.05,landing.z)).isEmpty()) return false;
-        if(!relaxed && SearchService.isBiome(stack) && !level.getBiome(point).unwrapKey().map(key->key.location().toString().equals(stack.getTag().getString(SearchService.BIOME_KEY))).orElse(false)) return false;
+        if(requireBiome && !relaxed && SearchService.isBiome(stack) && !level.getBiome(point).unwrapKey().map(key->key.location().toString().equals(stack.getTag().getString(SearchService.BIOME_KEY))).orElse(false)) return false;
         var vehicle=player.getRootVehicle();
         return (vehicle==player || !vehicle.getBoundingBox().intersects(box)) && level.noCollision(player,box)
                 && LandingSafety.allowed(level,landing,level.getFluidState(point).is(FluidTags.WATER));
     }
-    static boolean standing(ServerPlayer player,ServerLevel level,ItemStack stack,Vec3 landing,boolean relaxed) {
-        if(!valid(player,level,stack,landing,relaxed))return false;
+    static boolean standing(ServerPlayer player,ServerLevel level,ItemStack stack,Vec3 landing,boolean relaxed) { return standing(player,level,stack,landing,relaxed,true); }
+    static boolean standing(ServerPlayer player,ServerLevel level,ItemStack stack,Vec3 landing,boolean relaxed, boolean requireBiome) {
+        if(!valid(player,level,stack,landing,relaxed,requireBiome))return false;
         BlockPos feet=BlockPos.containing(landing);
         // 落地和缓存复核使用真实小数 Y；半砖和超过一格的碰撞面不能按整数格截断。
         for(int dy=0;dy<=2;dy++) {

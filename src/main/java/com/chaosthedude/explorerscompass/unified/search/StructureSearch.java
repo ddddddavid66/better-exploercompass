@@ -52,7 +52,7 @@ public final class StructureSearch extends SearchJob {
     private final List<StartPrediction> preparations = new ArrayList<>();
     private boolean deferredPlacement;
     private final HeightBiomeFilter.Metrics prefilter=new HeightBiomeFilter.Metrics();
-    @Override public String diagnostics(){return "biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum();}
+    @Override public String diagnostics(){return "biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum()+", policies="+preparations.stream().map(StartPrediction::reason).filter(r->!r.isEmpty()).toList();}
     private WorldgenCache context;
     private final List<SearchCandidate> hints = new ArrayList<>();
     private java.util.concurrent.ConcurrentLinkedQueue<SearchCandidate> predictedPrefix;
@@ -61,6 +61,8 @@ public final class StructureSearch extends SearchJob {
     private Group prefixGroup;
     private boolean prefixEligible,outerReady;
     private volatile boolean prefixStored;
+    private boolean rebuildAfterTemplates;
+    private final Map<Structure,Integer> anchorBounds=new java.util.IdentityHashMap<>();
     public StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
                            Set<Long> excluded, int radius, long maximumSamples, boolean async) {
         this(level, start, keys, excluded, radius, maximumSamples, async, false);
@@ -72,12 +74,16 @@ public final class StructureSearch extends SearchJob {
         this.compatiblePrediction = compatiblePrediction;
         verification = new StructureVerification(level, start);
         quotaDisabled = radius > 0 && maximumSamples <= 0;
+        initializeScan();
+        rebuildAfterTemplates=hasMovedAnchors() && preparations.stream().anyMatch(StartPrediction::preparing);
+    }
+    private void initializeScan() {
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
                 (long)radius * radius, async).withTieBreaker(TIE)
                 .withBatch(256, 4_000_000L).withEagerCandidates(false).withConfirmation(this::confirm)
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
-        // 只有宝藏会修正 X/Z；普通候选的下界已等于其距离，不重复叠加相同比较器。
-        if(keys.contains(TREASURE))scan.withCandidateLowerBound(this::candidateBound);
+        // 宝藏和移动地牢均以保守下界证明最近性。
+        if(keys.contains(TREASURE) || hasMovedAnchors())scan.withCandidateLowerBound(this::candidateBound);
         if(prefix!=null)scan.withCoveredPrefix(prefix.upper).withDeferredLanes(()-> {
             outerReady=true;return createLanes();
         });
@@ -90,7 +96,7 @@ public final class StructureSearch extends SearchJob {
         WorldgenCache cached = WorldgenCache.get(level);
         context=cached;
         // 前缀已经绑定本世界生成上下文和已审核规则，命中时不重复建立相同分组。
-        if(async && !compatiblePrediction && !outerReady)
+        if(async && !compatiblePrediction && !outerReady && !hasMovedAnchors())
             prefix=cached.prefix(keys,origin,ignoredChunks,(long)radius*radius,maximumSamples);
         if(prefix!=null && !outerReady)return replayPrefix(cached,origin,ignoredChunks);
         var registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -101,6 +107,7 @@ public final class StructureSearch extends SearchJob {
                     .ifPresent(holder->state.getPlacementsForStructure(holder).forEach(placement->
                             grouped.computeIfAbsent(placement,ignored->new ArrayList<>()).add(new Target(key,holder.value(),
                                     cached.biomeRule(holder.value()),!compatiblePrediction && (placement.getClass().getName().equals(GelGridPlacement.TYPE)
+                                    || AetherStructures.supported(holder.value())
                                     || holder.value().getClass()==net.minecraft.world.level.levelgen.structure.structures.JigsawStructure.class
                                     || holder.value().getClass()==net.minecraft.world.level.levelgen.structure.structures.RuinedPortalStructure.class
                                     || holder.value().getClass().getName().equals("com.yungnickyoung.minecraft.yungsapi.world.structure.YungJigsawStructure"))
@@ -109,7 +116,7 @@ public final class StructureSearch extends SearchJob {
         });
         long seed = level.getSeed();
         boolean sourceSafe = BiomeSourceSafety.prepare(level).allowed();
-        prefixEligible=async && !compatiblePrediction && sourceSafe && groups.size()==1
+        prefixEligible=async && !compatiblePrediction && sourceSafe && !hasMovedAnchors() && groups.size()==1
                 && cached.prefixRule(groups.get(0).placement(),level);
         prefixGroup=prefixEligible?groups.get(0):null;
         if(prefixEligible && !prefixStored) {
@@ -132,8 +139,10 @@ public final class StructureSearch extends SearchJob {
             }
             TwilightPlacement twilight = TwilightPlacement.of(placement);
             GelGridPlacement gel = GelGridPlacement.of(placement, level.registryAccess());
-            for (Target target : targets) if (target.dungeons() != null && !preparations.contains(target.dungeons()))
-                preparations.add(target.dungeons());
+            for (Target target : targets) if (target.dungeons() != null) {
+                if(!preparations.contains(target.dungeons()))preparations.add(target.dungeons());
+                if(AetherStructures.moved(target.structure()))anchorBounds.put(target.structure(),Math.max(32,target.dungeons().anchorPadding()));
+            }
             if (gel != null && gel.exclusion) deferredPlacement = true;
             Set<Long> visited = gel==null?null:java.util.concurrent.ConcurrentHashMap.newKeySet();
             var generator = level.getChunkSource().getGenerator();
@@ -163,7 +172,7 @@ public final class StructureSearch extends SearchJob {
                             : gel != null && gel.backgroundAllowed && policy != null && policy.allowed()
                                 ? policy.predict(prefilter,() -> cached.predict(target.structure(), target.biomes(), chunk)) : locate;
                     if(point!=null) {
-                        SearchCandidate candidate=new SearchCandidate(new BlockPos(locate.getX(), point.getY(), locate.getZ()),
+                        SearchCandidate candidate=new SearchCandidate(AetherStructures.moved(target.structure())?point:new BlockPos(locate.getX(), point.getY(), locate.getZ()),
                                 target.key(), target.structure(), placement, chunk, distance(origin,locate));
                         found.add(candidate);capturePrefix(candidate);
                     }
@@ -253,9 +262,23 @@ public final class StructureSearch extends SearchJob {
         long minZ = minJitter + (treasure ? Math.min(0, offset.getZ()) : offset.getZ());
         long maxX = maxJitter + (treasure ? Math.max(15, offset.getX()) : offset.getX());
         long maxZ = maxJitter + (treasure ? Math.max(15, offset.getZ()) : offset.getZ());
+        int padding=targets.stream().filter(t->AetherStructures.moved(t.structure())).mapToInt(t->anchorPadding(t.structure())).max().orElse(0);
+        minX-=padding;minZ-=padding;maxX+=padding;maxZ+=padding;
         return new RectFrontier.Geometry(start.getX(), start.getZ(), step, minX, minZ, maxX, maxZ);
     }
+    private boolean hasMovedAnchors(){
+        var registry=level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        return keys.stream().map(registry::get).filter(java.util.Objects::nonNull).anyMatch(AetherStructures::moved);
+    }
+    private int anchorPadding(Structure structure){
+        return anchorBounds.getOrDefault(structure,32);
+    }
     private long candidateBound(SearchCandidate candidate) {
+        if(AetherStructures.moved(candidate.structure())) {
+            int pad=anchorPadding(candidate.structure());
+            long dx=RectFrontier.gap(start.getX(),candidate.chunk().getMinBlockX()-pad,candidate.chunk().getMaxBlockX()+pad);
+            long dz=RectFrontier.gap(start.getZ(),candidate.chunk().getMinBlockZ()-pad,candidate.chunk().getMaxBlockZ()+pad);return dx*dx+dz*dz;
+        }
         if (!TREASURE.equals(candidate.key())) return candidate.distanceSquared();
         long dx = RectFrontier.gap(start.getX(), candidate.chunk().getMinBlockX(), candidate.chunk().getMaxBlockX());
         long dz = RectFrontier.gap(start.getZ(), candidate.chunk().getMinBlockZ(), candidate.chunk().getMaxBlockZ());
@@ -314,6 +337,10 @@ public final class StructureSearch extends SearchJob {
             long begin = System.nanoTime();
             try { policy.prepareOne(); return true; }
             finally { long used = System.nanoTime() - begin; mainNanos += used; preparationNanos += used; }
+        }
+        if(rebuildAfterTemplates) {
+            // 真实模板尺寸已就绪，先重建下界再派发；旧协调器尚未采样。
+            scan.cancel();budgets.clear();hints.clear();rebuildAfterTemplates=false;initializeScan();
         }
         try { return super.step(); }
         finally {

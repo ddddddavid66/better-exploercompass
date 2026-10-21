@@ -243,7 +243,8 @@ public final class TeleportService {
     public static String travelPhase(UUID player) {
         Task task=tasks.get(player);return task==null?"landing":task.phase.equals("checking")?"checking":task.phase.equals("height_probe")?"height_probe":"waiting_chunks";
     }
-    private static boolean aetherBiome(Task task){return task.biome && task.level.dimension().location().toString().equals("aether:the_aether");}
+    private static boolean aetherBiome(Task task){return task.travel && !task.returning && task.biome && task.level.dimension().location().toString().equals("aether:the_aether");}
+    private static boolean requiresBiome(Task task){return task.travel || !task.level.dimension().location().toString().equals("aether:the_aether");}
     private static boolean travelBiome(Task task,Vec3 point) {
         if(aetherBiome(task))return task.level.getBiome(BlockPos.containing(point)).unwrapKey().map(key->key.location().equals(task.key)).orElse(false);
         return !task.travel || !task.biome || task.fallback || task.level.getBiome(BlockPos.containing(point)).unwrapKey()
@@ -388,11 +389,11 @@ public final class TeleportService {
                 try {
                     point=point.atY(y);progress[index]++;
                     if(task.external!=null && !task.external.accepts(Vec3.atBottomCenterOf(point))){if(System.nanoTime()>=quantum)return true;continue;}
-                    landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback);
+                    landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback,requiresBiome(task));
                     if(landing==null && surface && task.fallback)landing=LandingChecks.waterSurface(task.player,task.level,landingStack(task),point);
                     if(landing!=null && (!travelBiome(task,landing) || !preferredTravelLanding(task,landing)))landing=null;
                     if(!task.fallback && task.relaxedLanding==null)
-                        task.relaxedLanding=LandingChecks.find(task.player,task.level,task.stack,point,true);
+                        task.relaxedLanding=LandingChecks.find(task.player,task.level,task.stack,point,true,requiresBiome(task));
                 } finally {task.checkNanos+=System.nanoTime()-before;}
                 work=true;
                 if(landing!=null) {
@@ -443,14 +444,14 @@ public final class TeleportService {
         BlockPos point=new BlockPos(task.x,y,task.z);
         if(!LandingChecks.ready(task.player,task.level,point,false))return false;
         if(task.chunksReady==0)task.chunksReady=System.nanoTime();
-        Vec3 landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback);
+        Vec3 landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback,requiresBiome(task));
         if(landing==null) {if(task.clicked)failed(task,"no_position");else finish(task,"no_position",0);return true;}
         task.landing=landing;if(task.fallback)task.relaxedLanding=landing;else task.strictLanding=landing;
         if(task.clicked)move(task);return true;
     }
     private static boolean recheck(Task task,Vec3 point,boolean relaxed) {
         if(task.external!=null && task.external.creature() && relaxed)return task.external.accepts(point) && CreatureLanding.allowed(task.player,task.level,point);
-        return (task.external==null || task.external.accepts(point)) && travelBiome(task,point) && (LandingChecks.standing(task.player,task.level,landingStack(task),point,relaxed)
+        return (task.external==null || task.external.accepts(point)) && travelBiome(task,point) && (LandingChecks.standing(task.player,task.level,landingStack(task),point,relaxed,requiresBiome(task))
                 || relaxed && LandingChecks.waterStanding(task.player,task.level,landingStack(task),point));
     }
     private static void refreshCreature(Task task){

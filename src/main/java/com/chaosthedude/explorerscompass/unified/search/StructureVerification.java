@@ -101,6 +101,14 @@ public final class StructureVerification {
         int y = box.getCenter().getY();
         BlockPos position = candidate.key().toString().equals("minecraft:buried_treasure")
                 ? new BlockPos(box.minX(), y, box.minZ()) : candidate.position().atY(y);
+        if(AetherStructures.moved(candidate.structure())) {
+            // 从真实片段还原锚点，不能依赖异步预测或同步locate坐标，否则两条路径会返回不同位置。
+            var piece=start.getPieces().get(0);
+            BlockPos anchor=piece instanceof net.minecraft.world.level.levelgen.structure.TemplateStructurePiece template?template.templatePosition()
+                :piece instanceof net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece pool?pool.getPosition():box.getCenter();
+            position=new BlockPos(Math.max(box.minX(),Math.min(box.maxX(),anchor.getX())),y,
+                Math.max(box.minZ(),Math.min(box.maxZ(),anchor.getZ())));
+        }
         confirmed = new SearchCandidate(position, candidate.key(), candidate.structure(), candidate.placement(),
                 candidate.chunk(), SearchJob.distance(origin, position));
         release();
