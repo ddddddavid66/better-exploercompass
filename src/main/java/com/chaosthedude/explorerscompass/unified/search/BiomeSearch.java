@@ -87,14 +87,18 @@ public final class BiomeSearch extends SearchJob {
             final class ColumnSampler implements BiomeColumnLane.Sampler {
                 private int lastX=Integer.MIN_VALUE,lastZ=Integer.MIN_VALUE;
                 private WorldgenCache.StreamingColumn column;
+                private WorldgenCache.BiomeColumn hotColumn;
                 public List<SearchCandidate> sample(int dx,int dz,int y) {
                     int x=origin.getX()+dx*spacing,z=origin.getZ()+dz*spacing;
                     if(exact?failed.contains(BlockPos.asLong(x,y,z)):ignoredPositions.excludes(x,z))return List.of();
                     int qx=QuartPos.fromBlock(x),qy=QuartPos.fromBlock(y),qz=QuartPos.fromBlock(z);
                     if(cache!=null && (column==null || lastX!=qx || lastZ!=qz)) {
-                        column=cache.streamingColumn(qx,qz);lastX=qx;lastZ=qz;
+                        column=cache.streamingColumn(qx,qz);hotColumn=dx==0 && dz==0?cache.biomeColumn(qx,qz):null;lastX=qx;lastZ=qz;
                     }
-                    if((cache==null?source.getNoiseBiome(qx,qy,qz,noise).value():column.predict(qy))!=biome)return List.of();
+                    // 仅原点列写入热点缓存；远处一次性样本不产生LRU条目。
+                    var actual=cache==null?source.getNoiseBiome(qx,qy,qz,noise).value():
+                            hotColumn!=null?hotColumn.predict(qy):column.predict(qy);
+                    if(actual!=biome)return List.of();
                     BlockPos position=new BlockPos(x,y,z);
                     return List.of(new SearchCandidate(position,key,null,null,null,distance(origin,position)));
                 }
