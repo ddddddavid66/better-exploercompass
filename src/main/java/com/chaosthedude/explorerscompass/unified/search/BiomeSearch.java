@@ -19,7 +19,8 @@ public final class BiomeSearch extends SearchJob {
     private final int spacing, depthInterval, innerRadius;
     private final boolean async,exact;
     private final BiomeSamplingProfile profile;
-    private boolean cachedOrigin;
+    private boolean cachedOrigin,memoHit;
+    private final List<BiomeSamplingMetrics> metrics=new ArrayList<>();
     private WorldgenCache context;
     private List<?> memoKey;
     private WorldgenCache.Prefix memo;
@@ -62,7 +63,7 @@ public final class BiomeSearch extends SearchJob {
             memoKey=List.of(target,start,profile,exact,excluded);
             var known=cache.prefix(memoKey);
             if(known!=null && known.upper<=(long)radius*radius && known.cost<=maxSamples && budget.take(known.cost)) {
-                memo=known;return List.of();
+                memo=known;memoHit=true;return List.of();
             }
         }
         var ignoredPositions = new com.chaosthedude.explorerscompass.unified.data.ExclusionIndex(excluded.stream()
@@ -84,6 +85,7 @@ public final class BiomeSearch extends SearchJob {
                 origin.getX(), origin.getZ(), origin.getX(), origin.getZ());
         for (var partition : RectFrontier.partition(geometry.domain(radius), workers)) {
             // 每个分片只持有当前列的气候快照，不在不同后台线程之间共享可变游标。
+            var meter=new BiomeSamplingMetrics();metrics.add(meter);
             final class ColumnSampler implements BiomeColumnLane.Sampler {
                 private int lastX=Integer.MIN_VALUE,lastZ=Integer.MIN_VALUE;
                 private WorldgenCache.StreamingColumn column;
@@ -93,18 +95,23 @@ public final class BiomeSearch extends SearchJob {
                     if(exact?failed.contains(BlockPos.asLong(x,y,z)):ignoredPositions.excludes(x,z))return List.of();
                     int qx=QuartPos.fromBlock(x),qy=QuartPos.fromBlock(y),qz=QuartPos.fromBlock(z);
                     if(cache!=null && (column==null || lastX!=qx || lastZ!=qz)) {
-                        column=cache.streamingColumn(qx,qz);hotColumn=dx==0 && dz==0?cache.biomeColumn(qx,qz):null;lastX=qx;lastZ=qz;
+                        column=cache.streamingColumn(qx,qz,meter.sourceCall);meter.columns++;
+                        hotColumn=dx==0 && dz==0?cache.biomeColumn(qx,qz):null;if(hotColumn!=null)meter.columns++;
+                        lastX=qx;lastZ=qz;
                     }
                     // 仅原点列写入热点缓存；远处一次性样本不产生LRU条目。
+                    long before=meter.sourceCalls;
+                    if(cache==null)meter.sourceCall.run();
                     var actual=cache==null?source.getNoiseBiome(qx,qy,qz,noise).value():
-                            hotColumn!=null?hotColumn.predict(qy):column.predict(qy);
+                            hotColumn!=null?hotColumn.predict(qy,meter.sourceCall):column.predict(qy);
+                    if(hotColumn!=null && meter.sourceCalls==before)meter.originHits++;
                     if(actual!=biome)return List.of();
                     BlockPos position=new BlockPos(x,y,z);
                     return List.of(new SearchCandidate(position,key,null,null,null,distance(origin,position)));
                 }
             }
             var lane=new BiomeColumnLane(geometry, partition, (long)radius * radius, budget,
-                    heights, depthInterval, background, new ColumnSampler()).withPrimaryHeights(profile.primaryHeights());
+                    heights, depthInterval, background, new ColumnSampler()).withMetricPublisher(meter::publish).withPrimaryHeights(profile.primaryHeights());
             lane.innerRadius(innerRadius);
             if(cache!=null)lane.withCachedSampler((dx,dz,y)-> {
                 // 仅复用零水平距离列，远处群系继续并行，避免将大范围热扫描搬到主线程。
@@ -113,6 +120,7 @@ public final class BiomeSearch extends SearchJob {
                 if(exact?failed.contains(BlockPos.asLong(x,y,z)):ignoredPositions.excludes(x,z))return List.of();
                 var known=cache.peekBiome(QuartPos.fromBlock(x),QuartPos.fromBlock(y),QuartPos.fromBlock(z));
                 if(known==null)return null;
+                meter.originHits++;
                 if(known!=biome)return List.of();
                 BlockPos point=new BlockPos(x,y,z);
                 return List.of(new SearchCandidate(point,key,null,null,null,distance(origin,point)));
@@ -136,6 +144,11 @@ public final class BiomeSearch extends SearchJob {
     @Override public void prime() {if(memo==null && !cachedOrigin)super.prime();}
     @Override public String mode() {return memo!=null?"async":super.mode();}
     public SearchJob synchronousFallback() { return new BiomeSearch(level,start,target,excluded,radius,maxSamples,false,exact,innerRadius,profile); }
+    @Override public String diagnostics(){
+        long calls=0,hits=0,columns=0;
+        for(var meter:metrics){var snapshot=meter.snapshot();calls+=snapshot.sourceCalls();hits+=snapshot.originHits();columns+=snapshot.columns();}
+        return "source_calls="+calls+", origin_cache_hits="+hits+", column_builds="+columns+", query_memo_hit="+memoHit+", metrics_scope=published_batches";
+    }
     public String samplingPlan(){return profile.description()+";limit="+maxSamples+";exact="+exact+";excluded="+excluded.size();}
     public boolean biome() { return true; }
     public boolean asynchronous() { return async; }

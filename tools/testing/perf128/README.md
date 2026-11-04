@@ -13,3 +13,5 @@
 构建：Gradle添加`-I tools/testing/perf128/fixture.gradle`，执行`perf128Jar reobfPerf128Jar`。生产发布包不得包含此工具。
 
 补充：天境测试玩家直接从Aether维度的私有NBT启动，避免整合包跨维度入境限制，起点为旁观者/无重力。结构结果可能在工具收到终态前卸载，独立核实会在搜索计时冻结后非阻塞重新准备源区块到STRUCTURE_STARTS，再读取真实起始记录；额外核实耗时不冒充搜索耗时。最初原位读取导致的verified=false已作废，未视为生产算法失败。
+
+最终诊断验收加-Dperf128.metrics=true -Dperf128.runs=3：冷查询断言source_calls>0；相同查询热请求断言query_memo_hit=true且source_calls=0；最后将目标更换为原点当前实际群系，断言origin_cache_hits>0、query_memo_hit=false，避免整次查询缓存掩盖原点缓存退化。每请求独立检查实际群系与票据归零。request_prepare_ms是正常服务入口内部接受/创建/初始化/初次派发所用主线程时间，已包含在main_ms中，不能相加重复计算。

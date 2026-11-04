@@ -41,6 +41,7 @@ public final class ScanCoordinator<T> {
         /** null 表示缓存未命中；实现必须保留该点供后台继续，不得执行生成查询。 */
         default List<T> sampleCached(long verifiedUpper) { return null; }
         default boolean backgroundAllowed() { return true; }
+        default void publishMetrics() {}
         default long pendingLowerBound() { return 0; }
         default boolean budgetLimited(long maximum) { return false; }
     }
@@ -164,7 +165,8 @@ public final class ScanCoordinator<T> {
             for(Work item:work) if(!item.running.get() && item.output.isEmpty()
                     && available(item,preferred) && (cached==null || item.remaining<cached.remaining)) cached=item;
             if(cached!=null) {
-                List<T> values=cached.lane.sampleCached(verifiedUpper.get());
+                List<T> values;
+                try{values=cached.lane.sampleCached(verifiedUpper.get());}finally{cached.lane.publishMetrics();}
                 if(values!=null) {
                     for(T candidate:values)if(admit(candidate))pending.add(candidate);
                     cached.remaining=cached.lane.pendingLowerBound();return true;
@@ -187,7 +189,8 @@ public final class ScanCoordinator<T> {
             else {
                 if (!available(item,priority.get())) return progress;
                 // 兼容路径每次只有一个采样；无需创建工作线程的批次包装或内部计时器。
-                for (T candidate : item.lane.sample(verifiedUpper.get())) if (admit(candidate)) pending.add(candidate);
+                try{for (T candidate : item.lane.sample(verifiedUpper.get())) if (admit(candidate)) pending.add(candidate);}
+                finally{item.lane.publishMetrics();}
                 item.remaining=item.lane.pendingLowerBound();return true;
             }
         }
@@ -282,7 +285,7 @@ public final class ScanCoordinator<T> {
                         || System.nanoTime() - begin >= batchNanos) break;
             }
             return new Packet<>(values==null?List.of():values, item.lane.pendingLowerBound());
-        } finally { if (worker) workerNanos.addAndGet(System.nanoTime() - begin); }
+        } finally { item.lane.publishMetrics();if (worker) workerNanos.addAndGet(System.nanoTime() - begin); }
     }
     private boolean admit(T candidate) {
         long bound=candidateBound.applyAsLong(candidate);

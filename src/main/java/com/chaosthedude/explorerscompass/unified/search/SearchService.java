@@ -161,7 +161,7 @@ public final class SearchService {
         begin(session);
         SearchRules.charge(player, costKey);
         long used=System.nanoTime()-before;
-        job.mainNanos+=used;pendingPreparationNanos+=used;
+        job.requestPreparation+=used;job.mainNanos+=used;pendingPreparationNanos+=used;
         return true;
     }
 
@@ -230,7 +230,7 @@ public final class SearchService {
         if(request!=null)request.queryPlan=plan;
         Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;session.queryPlan=plan;
         session.request=request;session.travel=request!=null;if(request!=null)request.attach(session);begin(session);
-        long used=System.nanoTime()-before;job.mainNanos+=used;pendingPreparationNanos+=used;
+        long used=System.nanoTime()-before;job.requestPreparation+=used;job.mainNanos+=used;pendingPreparationNanos+=used;
         return true;
     }
     /** 服务端唯一请求句柄：终态独立于空候选，取消必须匹配原会话。 */

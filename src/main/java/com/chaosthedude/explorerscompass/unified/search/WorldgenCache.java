@@ -135,25 +135,35 @@ final class WorldgenCache {
     }
     Biome predictBiome(int x, int y, int z) {
         // Quart 坐标和真实采样器严格隔离；只缓存审核过的不可变生成查询，仍逐点检查。
-        long key = net.minecraft.core.BlockPos.asLong(x, y, z);
-        return biomePredictions.get(key, ignored -> scoped(()->biomeSource.getNoiseBiome(x, y, z, noise).value()));
+        return predictBiome(x,y,z,null);
+    }
+    private Biome predictBiome(int x,int y,int z,Runnable onQuery) {
+        long key=net.minecraft.core.BlockPos.asLong(x,y,z);
+        return biomePredictions.get(key,ignored->streamBiome(x,y,z,onQuery));
     }
     final class BiomeColumn {
         private final int x,z;
         private final ColumnClimate.Column climate;
         private BiomeColumn(int x,int z){this.x=x;this.z=z;climate=columns==null?null:columns.column(x,z);}
-        Biome predict(int y){return climate==null?predictBiome(x,y,z):columns.with(climate,()->predictBiome(x,y,z));}
+        Biome predict(int y){return predict(y,null);}
+        Biome predict(int y,Runnable onQuery){return climate==null?predictBiome(x,y,z,onQuery):columns.with(climate,()->predictBiome(x,y,z,onQuery));}
     }
     BiomeColumn biomeColumn(int x,int z){return new BiomeColumn(x,z);}
     /** 流式扫描不污染高复用LRU；调用方独占列游标，来源作用域仍完整保留。 */
-    Biome streamBiome(int x,int y,int z){return scoped(()->biomeSource.getNoiseBiome(x,y,z,noise).value());}
+    Biome streamBiome(int x,int y,int z){return streamBiome(x,y,z,null);}
+    private Biome streamBiome(int x,int y,int z,Runnable onQuery){return scoped(()->{
+        if(onQuery!=null)onQuery.run();
+        return biomeSource.getNoiseBiome(x,y,z,noise).value();
+    });}
     final class StreamingColumn {
         private final int x,z;
         private final ColumnClimate.Column climate;
-        StreamingColumn(int x,int z){this.x=x;this.z=z;climate=columns==null?null:columns.column(x,z);}
-        Biome predict(int y){return climate==null?streamBiome(x,y,z):columns.with(climate,()->streamBiome(x,y,z));}
+        private final Runnable onQuery;
+        StreamingColumn(int x,int z,Runnable onQuery){this.x=x;this.z=z;this.onQuery=onQuery;climate=columns==null?null:columns.column(x,z);}
+        Biome predict(int y){return climate==null?streamBiome(x,y,z,onQuery):columns.with(climate,()->streamBiome(x,y,z,onQuery));}
     }
-    StreamingColumn streamingColumn(int x,int z){return new StreamingColumn(x,z);}
+    StreamingColumn streamingColumn(int x,int z){return streamingColumn(x,z,null);}
+    StreamingColumn streamingColumn(int x,int z,Runnable onQuery){return new StreamingColumn(x,z,onQuery);}
     <T> T inColumn(int x,int z,java.util.function.Supplier<T> action) {return columns==null?action.get():columns.with(x,z,action);}
     boolean allowedBiome(int x,int y,int z,Predicate<Holder<Biome>> allowed) {
         long key=net.minecraft.core.BlockPos.asLong(x,y,z);

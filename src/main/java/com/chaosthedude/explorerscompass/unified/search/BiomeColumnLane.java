@@ -14,6 +14,9 @@ final class BiomeColumnLane implements ScanCoordinator.Lane<SearchCandidate> {
     private final Sampler sampler;
     private int primaryHeights=1;
     private Sampler cachedSampler;
+    private Runnable metricPublisher;
+    BiomeColumnLane withMetricPublisher(Runnable publisher){metricPublisher=publisher;return this;}
+    public void publishMetrics(){if(metricPublisher!=null)metricPublisher.run();}
     private java.util.function.BiPredicate<Integer,Integer> columnGate;
     BiomeColumnLane withColumnGate(java.util.function.BiPredicate<Integer,Integer> gate){columnGate=gate;return this;}
     BiomeColumnLane withPrimaryHeights(int count) {

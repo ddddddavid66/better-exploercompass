@@ -29,7 +29,7 @@ public final class Perf128Checks {
  private final UUID verifyOwner=UUID.randomUUID();
  private static final TicketType<UUID> VERIFY=TicketType.create("unified128_fixture_verify",Comparator.<UUID>naturalOrder());
  private void releaseVerify(ServerPlayer p){if(verifyTicket){p.serverLevel().getChunkSource().chunkMap.getDistanceManager().removeTicket(VERIFY,job.result().chunk(),ChunkLevel.byStatus(ChunkStatus.STRUCTURE_STARTS),verifyOwner);verifyTicket=false;}VerificationSlots.release(verifyOwner);}
- private final String key=System.getProperty("perf128.target","aether:bronze_dungeon");
+ private String key=System.getProperty("perf128.target","aether:bronze_dungeon");
  public Perf128Checks(){MinecraftForge.EVENT_BUS.register(this);}
  @SubscribeEvent public void client(TickEvent.ClientTickEvent e){
   if(e.phase!=TickEvent.Phase.END)return;var mc=Minecraft.getInstance();
@@ -82,7 +82,11 @@ public final class Perf128Checks {
     JsonObject x=new JsonObject();x.addProperty("event","release");x.addProperty("target",key);x.addProperty("run",run);
     x.addProperty("slots",VerificationSlots.count());x.addProperty("queued",VerificationSlots.queued());x.addProperty("structure_tickets",StructureVerification.ticketCount());x.addProperty("teleport_tickets",TeleportService.ticketCount());write(x);
     if(VerificationSlots.count()!=0 || VerificationSlots.queued()!=0 || StructureVerification.ticketCount()!=0 || TeleportService.ticketCount()!=0)throw new AssertionError("ticket leak");
-    if(++run==Integer.getInteger("perf128.runs",2)){finished=true;return;}phase=1;ticks=0;
+    run++;
+    if(Boolean.getBoolean("perf128.metrics") && run==2) {
+     key=p.serverLevel().getChunkSource().getGenerator().getBiomeSource().getNoiseBiome(2,25,2,p.serverLevel().getChunkSource().randomState().sampler()).unwrapKey().orElseThrow().location().toString();
+    }else if(run==Integer.getInteger("perf128.runs",2)){finished=true;return;}
+    phase=1;ticks=0;
    }
   }catch(Throwable error){releaseVerify(p);SearchService.cancel(p,true);TeleportService.cancel(p.getUUID());fail(error);}
  }
@@ -94,7 +98,7 @@ public final class Perf128Checks {
   if(!p.serverLevel().dimension().equals(dimension))throw new AssertionError("fixture dimension mismatch");
   SearchService.clearCache(p.getUUID());p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(ExplorersCompass.explorersCompass));
   p.teleportTo(p.serverLevel(),8,100,8,0,0);since=System.nanoTime();searchEnd=0;replaced=false;
-  boolean ok=key.startsWith("ancient_aether:")?SearchService.startBiome(p,p.getMainHandItem(),new ResourceLocation(key)):
+  boolean ok=(Boolean.getBoolean("perf128.metrics") || key.startsWith("ancient_aether:"))?SearchService.startBiome(p,p.getMainHandItem(),new ResourceLocation(key)):
    SearchService.requestStructures(p,p.getMainHandItem(),new ResourceLocation(key),false,false,null);
   if(!ok)throw new AssertionError("request rejected "+key);job=current(p);phase=2;
  }
@@ -125,9 +129,16 @@ public final class Perf128Checks {
   }finally{first.cancel();second.cancel();}
  }
  private void record(ServerPlayer p,String state,boolean verified){
+  if(Boolean.getBoolean("perf128.metrics") && job.biome()) {
+   String d=job.diagnostics();boolean ok=run==0?d.matches(".*source_calls=[1-9][0-9]*,.*"):
+     run==1?d.contains("source_calls=0,") && d.contains("query_memo_hit=true"):
+      d.matches(".*origin_cache_hits=[1-9][0-9]*,.*") && d.contains("query_memo_hit=false");
+   if(!ok)throw new AssertionError("diagnostics contract: "+d);
+  }
   JsonObject x=new JsonObject();x.addProperty("event","result");x.addProperty("build",System.getProperty("perf128.build"));
-  x.addProperty("dimension",p.serverLevel().dimension().location().toString());x.addProperty("origin", "8,100,8");x.addProperty("target",key);x.addProperty("scenario",run==0?"cold":"hot");x.addProperty("state",state);x.addProperty("verified",verified);
+  x.addProperty("dimension",p.serverLevel().dimension().location().toString());x.addProperty("origin", "8,100,8");x.addProperty("target",key);x.addProperty("scenario",run==0?"cold":run==1?"hot":"origin_hotspot");x.addProperty("state",state);x.addProperty("verified",verified);
   x.addProperty("elapsed_ms",((searchEnd==0?System.nanoTime():searchEnd)-since)/1e6);x.addProperty("main_ms",job.mainNanos/1e6);x.addProperty("worker_ms",job.workerNanos()/1e6);
+  if(Boolean.getBoolean("perf128.metrics"))x.addProperty("request_prepare_ms",job.requestPreparationNanos()/1e6);
   x.addProperty("prepare_ms",job.preparationNanos()/1e6);x.addProperty("confirm_ms",job.confirmationNanos()/1e6);x.addProperty("wait_ms",job.waitingNanos()/1e6);
   x.addProperty("samples",job.samples());x.addProperty("candidates",job.candidates());x.addProperty("checks",job.confirmations);x.addProperty("chunks",job.chunkLoads);
   x.addProperty("mode",job.mode());x.addProperty("replaced_job",replaced);x.addProperty("diagnostics",job.diagnostics());

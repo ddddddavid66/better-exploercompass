@@ -11,6 +11,8 @@ public abstract class SearchJob {
     protected ScanCoordinator<SearchCandidate> scan;
     protected final List<SamplingBudget> budgets = new java.util.ArrayList<>();
     public long mainNanos;
+    long requestPreparation;
+    public long requestPreparationNanos(){return requestPreparation;}
     public int confirmations, chunkLoads;
     public final long startedNanos = System.nanoTime();
     private boolean fallback;
