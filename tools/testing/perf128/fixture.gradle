@@ -1,0 +1,9 @@
+gradle.projectsEvaluated {
+ def p=rootProject
+ p.sourceSets.create('perf128') {
+  java.srcDir('tools/testing/perf128/src');resources.srcDir('tools/testing/perf128/resources')
+  compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+ }
+ p.tasks.register('perf128Jar',Jar){archiveBaseName='unified128-checks';archiveVersion='1.0';from p.sourceSets.perf128.output;dependsOn 'perf128Classes'}
+ p.reobf.create('perf128Jar');p.tasks.named('reobfPerf128Jar').configure {libraries.from(p.sourceSets.main.output)}
+}
