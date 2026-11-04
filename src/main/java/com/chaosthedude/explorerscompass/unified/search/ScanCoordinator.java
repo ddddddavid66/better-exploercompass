@@ -16,6 +16,24 @@ import java.util.function.ToLongFunction;
 /** 矩形下界、未消费候选和在途批次共同构成最近性证明。预测只暂停工作，不删除范围。 */
 public final class ScanCoordinator<T> {
     public enum Confirmation { ACCEPT, REJECT, WAIT }
+    /** 可选稳定核对窗口；默认入口完全保留原单候选协议。 */
+    public interface Verification<T> {
+        Confirmation poll(boolean primary);
+        T actual();
+        void close();
+    }
+    private final class Active {
+        final T candidate;final Verification<T> handle;
+        Active(T candidate){this.candidate=candidate;handle=verificationFactory.apply(candidate);}
+    }
+    private Function<T,Verification<T>> verificationFactory;
+    private final List<Active> active=new ArrayList<>();
+    private Active lookaheadEpoch;
+    private boolean lookaheadUsed;
+    private volatile boolean lookaheadAllowed;
+    public ScanCoordinator<T> withVerificationWindow(Function<T,Verification<T>> factory) {
+        customVerification();verificationFactory=factory;return this;
+    }
     public interface Lane<T> {
         boolean available(long limit);
         List<T> sample();
@@ -90,7 +108,28 @@ public final class ScanCoordinator<T> {
         for (Work item : work) if (!item.running.get() && item.output.isEmpty())
             item.remaining = item.lane.pendingLowerBound();
         long upper = accepted == null ? maximum : distance.applyAsLong(accepted);
-        T next = pending.peek();
+        if(verificationFactory!=null) {
+            // 稳定句柄只在终态或真实上界剪枝时释放，不随pending队首变化撤票。
+            for(int i=0;i<active.size();) {
+                Active flight=active.get(i);
+                if(candidateBound.applyAsLong(flight.candidate)>upper) {
+                    flight.handle.close();active.remove(i);progress=true;continue;
+                }
+                Confirmation outcome=flight.handle.poll(i==0);
+                if(outcome==Confirmation.WAIT){i++;continue;}
+                T actual=outcome==Confirmation.ACCEPT?flight.handle.actual():null;
+                flight.handle.close();active.remove(i);progress=true;
+                if(actual!=null && distance.applyAsLong(actual)<=maximum && (accepted==null || order.compare(actual,accepted)<0)) {
+                    accepted=actual;verifiedUpper.accumulateAndGet(distance.applyAsLong(actual),Math::min);
+                    upper=distance.applyAsLong(actual);
+                }
+            }
+            if(active.size()<2 && !pending.isEmpty() && candidateBound.applyAsLong(pending.peek())<=upper) {
+                active.add(new Active(pending.remove()));progress=true;
+            }
+            confirming=!active.isEmpty();
+        }
+        T next = verificationFactory==null?pending.peek():null;
         if (next != null && candidateBound.applyAsLong(next) <= upper) {
             confirming = true;
             Confirmation outcome = confirmation.apply(next);
@@ -112,7 +151,9 @@ public final class ScanCoordinator<T> {
         }
         long preferred = pending.isEmpty() ? upper : Math.min(upper, Math.max(candidateBound.applyAsLong(pending.peek()),
                 distance.applyAsLong(pending.peek())));
+        for(Active flight:active)preferred=Math.min(preferred,Math.max(candidateBound.applyAsLong(flight.candidate),distance.applyAsLong(flight.candidate)));
         priority.set(preferred);
+        if(verificationFactory!=null)progress|=lookahead(executor,preferred);
         if(deferred!=null && deferredBound<=preferred) {
             var prepare=deferred;deferred=null;deferredBound=Long.MAX_VALUE;
             for(Lane<T> lane:prepare.get())work.add(new Work(lane));
@@ -151,7 +192,7 @@ public final class ScanCoordinator<T> {
             }
         }
         for (Work item : work) if (item.running.get() || !item.output.isEmpty()) return progress;
-        if (!pending.isEmpty() && candidateBound.applyAsLong(pending.peek()) <= upper) return progress;
+        if (!active.isEmpty() || !pending.isEmpty() && candidateBound.applyAsLong(pending.peek()) <= upper) return progress;
         for (Work item : work) if (available(item,upper)) { priority.set(upper); return progress; }
         // 空批次可能在上面的证明检查后完成；终止前再读取一次完整前沿。
         if (accepted != null && unresolvedBound() > upper) result = accepted;
@@ -190,6 +231,7 @@ public final class ScanCoordinator<T> {
     }
     private long unresolvedBound() {
         long bound = pending==null || pending.isEmpty() ? deferredBound : Math.min(deferredBound,candidateBound.applyAsLong(pending.peek()));
+        for(Active flight:active)bound=Math.min(bound,candidateBound.applyAsLong(flight.candidate));
         for (Work item : work) bound = Math.min(bound, Math.max(coveredFloor,item.remaining));
         return bound;
     }
@@ -315,7 +357,35 @@ public final class ScanCoordinator<T> {
         unconditionalConfirmation=true; confirmation=ignored->Confirmation.ACCEPT;
         candidateBound=distance; resolved=Function.identity(); rebuild(); return this;
     }
-    public void cancel() { cancelled.set(true); }
+    public void cancel() { cancelled.set(true);for(Active flight:active)flight.handle.close();active.clear(); }
+    private boolean lookahead(ExecutorService executor,long proofPriority) {
+        lookaheadAllowed=active.size()==1 && pending.isEmpty();
+        Active first=active.isEmpty()?null:active.get(0);
+        if(first!=lookaheadEpoch){lookaheadEpoch=first;lookaheadUsed=false;}
+        if(!async || first==null || active.size()!=1 || !pending.isEmpty() || lookaheadUsed)return false;
+        Work selected=null;
+        for(Work item:work)if(!item.running.get() && item.output.isEmpty() && item.lane.backgroundAllowed()
+                && available(item,verifiedUpper.get()) && (selected==null || item.remaining<selected.remaining))selected=item;
+        if(selected==null || !selected.running.compareAndSet(false,true))return false;
+        Work item=selected;long limit=Math.min(verifiedUpper.get(),Math.max(proofPriority,item.remaining));
+        lookaheadUsed=true;
+        try {
+            executor.execute(()->{
+                long begin=System.nanoTime();var values=new ArrayList<T>();
+                try {
+                    for(int i=0;i<Math.min(256,batchSize) && lookaheadAllowed && !cancelled.get() && !done && available(item,limit);i++) {
+                        for(T candidate:item.lane.sample(verifiedUpper.get()))if(admit(candidate))values.add(candidate);
+                        if(!values.isEmpty() || System.nanoTime()-begin>=batchNanos)break;
+                    }
+                    if(!cancelled.get() && !done) {
+                        var packet=new Packet<T>(values,item.lane.pendingLowerBound());
+                        if(!values.isEmpty())item.output.offer(packet);else item.remaining=packet.remainingBound;
+                    }
+                }catch(Throwable error){item.failure=error;}
+                finally{workerNanos.addAndGet(System.nanoTime()-begin);item.running.set(false);}
+            });submitted.incrementAndGet();return true;
+        }catch(RejectedExecutionException full){item.running.set(false);lookaheadUsed=false;return false;}
+    }
     public boolean done() { return done; }
     public boolean cancelled() { return cancelled.get(); }
     public T result() { return result; }

@@ -4,7 +4,6 @@ import com.chaosthedude.explorerscompass.unified.mixin.ChunkMapAccessor;
 import com.chaosthedude.explorerscompass.unified.mixin.StructureCheckAccessor;
 import com.chaosthedude.explorerscompass.unified.mixin.StructureManagerAccessor;
 import com.mojang.datafixers.util.Either;
-import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,21 +21,27 @@ import net.minecraft.world.level.levelgen.structure.StructureCheckResult;
 public final class StructureVerification {
     private static final TicketType<UUID> TICKET = TicketType.create("unified_structure_check", Comparator.<UUID>naturalOrder());
     private static final int TICKET_LEVEL = ChunkLevel.byStatus(ChunkStatus.STRUCTURE_STARTS);
-    private static final int MAX_TICKETS = 4;
-    private static final ArrayDeque<StructureVerification> QUEUE = new ArrayDeque<>();
+    private static final java.util.Map<ServerLevel,java.util.Map<Long,Flight>> FLIGHTS=new java.util.IdentityHashMap<>();
+    private static final class Flight {
+        final ServerLevel level;final net.minecraft.world.level.ChunkPos chunk;final GenerationStamp stamp;
+        final UUID id=UUID.randomUUID();int refs;boolean ticket;
+        CompletableFuture<Either<ChunkAccess,ChunkHolder.ChunkLoadingFailure>> future;
+        Flight(ServerLevel level,net.minecraft.world.level.ChunkPos chunk){this.level=level;this.chunk=chunk;stamp=GenerationStamp.capture(level);}
+    }
+    private Flight flight;
+    private boolean background;
     private static int tickets;
     private final ServerLevel level;
     private final BlockPos origin;
-    private final UUID ticketId = UUID.randomUUID();
     private SearchCandidate attempt, confirmed;
-    private CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>> future;
-    private boolean ticket, queued;
-    private int confirmations, chunkRequests;
+    private int confirmations, chunkRequests, sharedAcquires;
     private long mainNanos, waitStarted, waitedNanos;
 
     public StructureVerification(ServerLevel level, BlockPos origin) { this.level = level; this.origin = origin.immutable(); }
 
-    public ScanCoordinator.Confirmation verify(SearchCandidate candidate) {
+    public ScanCoordinator.Confirmation verify(SearchCandidate candidate) {return verify(candidate,false);}
+    public ScanCoordinator.Confirmation verify(SearchCandidate candidate,boolean background) {
+        this.background=background;
         requireMainThread();
         long begin = System.nanoTime();
         try { return advance(candidate); }
@@ -46,7 +51,7 @@ public final class StructureVerification {
 
     private ScanCoordinator.Confirmation advance(SearchCandidate candidate) {
         if (!candidate.equals(attempt)) {
-            // 更近的候选可抢占尚未就绪的旧位置，不能保留其 ticket 或迟到的 future。
+            // 此对象是稳定候选句柄；旧单候选调用方切换目标时仍先释放旧引用。
             release(); attempt = candidate; confirmations++;
             if (candidate.placement().getClass().getName().equals(GelGridPlacement.TYPE)
                     && !candidate.placement().isStructureChunk(level.getChunkSource().getGeneratorState(),
@@ -60,14 +65,23 @@ public final class StructureVerification {
             if (knownAbsent(candidate) && TwilightPlacement.of(candidate.placement()) == null) return reject();
             waitStarted = System.nanoTime();
         }
-        if (!ticket && !acquire()) return ScanCoordinator.Confirmation.WAIT;
-        if (future == null) {
+        if(flight==null) {
+            var map=FLIGHTS.computeIfAbsent(level,k->new java.util.HashMap<>());
+            flight=map.get(candidate.chunk().toLong());
+            if(flight==null || !flight.stamp.current(level)) {
+                flight=new Flight(level,candidate.chunk());map.put(candidate.chunk().toLong(),flight);
+            }
+            if(flight.refs>0)sharedAcquires++;
+            flight.refs++;
+        }
+        if (!flight.ticket && !acquire()) return ScanCoordinator.Confirmation.WAIT;
+        if (flight.future == null) {
             ChunkHolder holder = holder(candidate);
             if (holder == null || holder.getTicketLevel() > TICKET_LEVEL) return ScanCoordinator.Confirmation.WAIT;
             // 此 holder 入口只调度 future，不像 ServerChunkCache.getChunkFuture 那样 managedBlock。
-            future = holder.getOrScheduleFuture(ChunkStatus.STRUCTURE_STARTS, level.getChunkSource().chunkMap);
+            flight.future = holder.getOrScheduleFuture(ChunkStatus.STRUCTURE_STARTS, level.getChunkSource().chunkMap);
         }
-        var ready = future.getNow(null);
+        var ready = flight.future.getNow(null);
         if (ready == null) return ScanCoordinator.Confirmation.WAIT;
         if (ready.left().isEmpty()) throw new IllegalStateException("结构区块准备失败: " + candidate.chunk() + " " + ready.right().orElse(null));
         return inspect(candidate, ready.left().get());
@@ -86,11 +100,10 @@ public final class StructureVerification {
     }
 
     private boolean acquire() {
-        if (!queued) { QUEUE.addLast(this); queued = true; }
-        if (QUEUE.peekFirst() != this || !VerificationSlots.acquire(this)) return false;
-        QUEUE.removeFirst(); queued = false;
-        level.getChunkSource().chunkMap.getDistanceManager().addTicket(TICKET, attempt.chunk(), TICKET_LEVEL, ticketId);
-        ticket = true; tickets++; chunkRequests++;
+        boolean granted=background?VerificationSlots.acquireBackground(flight):VerificationSlots.acquire(flight);
+        if(!granted)return false;
+        level.getChunkSource().chunkMap.getDistanceManager().addTicket(TICKET, flight.chunk, TICKET_LEVEL, flight.id);
+        flight.ticket=true;tickets++;chunkRequests++;
         return true;
     }
 
@@ -118,14 +131,19 @@ public final class StructureVerification {
     private ScanCoordinator.Confirmation reject() { release(); return ScanCoordinator.Confirmation.REJECT; }
 
     private void release() {
-        if (queued) { QUEUE.remove(this); queued = false; }
-        if (ticket) {
-            level.getChunkSource().chunkMap.getDistanceManager().removeTicket(TICKET, attempt.chunk(), TICKET_LEVEL, ticketId);
-            ticket = false; tickets--;
+        if(flight!=null && --flight.refs==0) {
+            if(flight.ticket) {
+                level.getChunkSource().chunkMap.getDistanceManager().removeTicket(TICKET,flight.chunk,TICKET_LEVEL,flight.id);
+                tickets--;
+            }
+            VerificationSlots.release(flight);
+            var map=FLIGHTS.get(level);
+            if(map!=null){map.remove(flight.chunk.toLong(),flight);if(map.isEmpty())FLIGHTS.remove(level);}
         }
+        flight=null;
         if (waitStarted != 0) { waitedNanos += System.nanoTime() - waitStarted; waitStarted = 0; }
         // future 属于 Minecraft；放弃引用即可，不能取消服务器共同使用的生成任务。
-        VerificationSlots.release(this); future = null; attempt = null;
+        attempt = null;
     }
 
     private void requireMainThread() {
@@ -134,11 +152,14 @@ public final class StructureVerification {
 
     public void cancel() { requireMainThread(); release(); }
     public boolean waiting() { return attempt != null; }
+    boolean slotWaiting(){return flight!=null && !flight.ticket;}
+    boolean chunkWaiting(){return flight!=null && flight.ticket && (flight.future==null || !flight.future.isDone());}
     public SearchCandidate confirmed() { return confirmed; }
     public int confirmations() { return confirmations; }
     public int chunkRequests() { return chunkRequests; }
+    int sharedAcquires(){return sharedAcquires;}
     public long mainNanos() { return mainNanos; }
     public long waitingNanos() { return waitedNanos + (waitStarted == 0 ? 0 : System.nanoTime() - waitStarted); }
     public static int ticketCount() { return tickets; }
-    public static int queuedCount() { return QUEUE.size(); }
+    public static int queuedCount() { return VerificationSlots.queued(); }
 }

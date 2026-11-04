@@ -1,5 +1,8 @@
 # 探险者指南针 统一 1.2.7
 
+> **1.2.8 开发分支（未完成游戏验收）**：新增生成上下文身份校验、起点列热点缓存、标准结构稳定双窗口、共享区块准备和有界预取。源码默认产品版本仍为1.2.7；验收构建使用`-Pmod_version=1.2.8-dev`，不是正式发布。当前仅通过局部自动测试，尚无完整整合包12请求对比，不能据此宣称搜索加速。生物指南针、981条图鉴、地图和预探索未修改。详细架构见`docs/search-architecture-1.2.8.md`。
+
+
 Explorer’s Compass Unified，由 David 维护，基于 ChaosTheDude / MattCzyr 的 Explorer’s Compass Forge 1.20.1 1.4.0 开发。Minecraft 1.20.1、Forge、Java17，一个独立jar；非官方衍生版本，不暗示上游背书。
 
 ## 安装与升级

@@ -46,13 +46,13 @@ public final class StructureSearch extends SearchJob {
     private final long maximumSamples;
     private final boolean async;
     private final boolean compatiblePrediction;
-    private final StructureVerification verification;
+    private final StructureVerificationWindow verification;
     private final Map<SearchCandidate, SearchCandidate> verified = new java.util.HashMap<>();
     private long preparationNanos;
     private final List<StartPrediction> preparations = new ArrayList<>();
     private boolean deferredPlacement;
     private final HeightBiomeFilter.Metrics prefilter=new HeightBiomeFilter.Metrics();
-    @Override public String diagnostics(){return "biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum()+", policies="+preparations.stream().map(StartPrediction::reason).filter(r->!r.isEmpty()).toList();}
+    @Override public String diagnostics(){return verification.diagnostics()+", biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum()+", policies="+preparations.stream().map(StartPrediction::reason).filter(r->!r.isEmpty()).toList();}
     private WorldgenCache context;
     private final List<SearchCandidate> hints = new ArrayList<>();
     private java.util.concurrent.ConcurrentLinkedQueue<SearchCandidate> predictedPrefix;
@@ -72,7 +72,7 @@ public final class StructureSearch extends SearchJob {
         super(level, start, radius); this.keys = List.copyOf(keys); this.excluded = Set.copyOf(excluded);
         this.maximumSamples = maximumSamples; this.async = async;
         this.compatiblePrediction = compatiblePrediction;
-        verification = new StructureVerification(level, start);
+        verification = new StructureVerificationWindow(level, start);
         quotaDisabled = radius > 0 && maximumSamples <= 0;
         initializeScan();
         rebuildAfterTemplates=hasMovedAnchors() && preparations.stream().anyMatch(StartPrediction::preparing);
@@ -80,7 +80,7 @@ public final class StructureSearch extends SearchJob {
     private void initializeScan() {
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
                 (long)radius * radius, async).withTieBreaker(TIE)
-                .withBatch(256, 4_000_000L).withEagerCandidates(false).withConfirmation(this::confirm)
+                .withBatch(256, 4_000_000L).withEagerCandidates(false).withVerificationWindow(candidate -> verification.begin(candidate,actual -> {verified.put(candidate,actual);context.rememberHint(actual);}))
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
         // 宝藏和移动地牢均以保守下界证明最近性。
         if(keys.contains(TREASURE) || hasMovedAnchors())scan.withCandidateLowerBound(this::candidateBound);
@@ -310,14 +310,6 @@ public final class StructureSearch extends SearchJob {
             public boolean budgetLimited(long maximum) { return !budget.available() && index < chunks.size()
                     && chunkBound(chunks.get(index), placement) <= maximum; }
         };
-    }
-    private ScanCoordinator.Confirmation confirm(SearchCandidate candidate) {
-        var state = verification.verify(candidate);
-        if (state == ScanCoordinator.Confirmation.ACCEPT) {
-            SearchCandidate actual=verification.confirmed();
-            verified.put(candidate,actual);context.rememberHint(actual);
-        }
-        return state;
     }
     @Override public SearchCandidate result() {
         var candidate = super.result();
