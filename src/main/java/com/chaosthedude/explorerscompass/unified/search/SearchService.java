@@ -41,6 +41,7 @@ public final class SearchService {
     private static final class Session {
         final ServerPlayer player;
         final ServerLevel level;
+        final GenerationStamp stamp;
         final ItemStack stack;
         final UUID token = UUID.randomUUID();
         final ResourceLocation category;
@@ -60,10 +61,11 @@ public final class SearchService {
         boolean group, next, fresh=true;
         Session(ServerPlayer player, ItemStack stack, ResourceLocation category, SearchJob job) {
             this.player = player; this.level = player.serverLevel(); this.stack = stack;
+            stamp=GenerationStamp.capture(level);
             this.category = category; this.job = job;this.requested=List.of(category);
         }
         boolean valid() {
-            return !player.isRemoved() && player.serverLevel() == level
+            return !player.isRemoved() && player.serverLevel() == level && stamp.current(level)
                     && (player.getMainHandItem() == stack || player.getOffhandItem() == stack)
                     && !stack.isEmpty() && stack.getTag() != null && stack.getTag().hasUUID(TOKEN)
                     && token.equals(stack.getTag().getUUID(TOKEN));

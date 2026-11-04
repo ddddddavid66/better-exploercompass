@@ -17,6 +17,7 @@ final class WorldgenCache {
     private StructurePredictor predictor;
     private final ServerLevel level;
     private final boolean sourceSafe;
+    private final GenerationStamp stamp;
     private record PredictionKey(Structure structure, long chunk) {}
     private static final class Prediction {
         final net.minecraft.core.BlockPos point;
@@ -76,7 +77,7 @@ final class WorldgenCache {
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private WorldgenCache(ServerLevel level) {
-        this.level=level;
+        this.level=level;stamp=GenerationStamp.capture(level);
         alex=BiomeSourceSafety.prepare(level).allowed()?AlexBiomeScope.prepare(level.getSeed()):null;
         biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
         noise = level.getChunkSource().randomState().sampler();
@@ -88,7 +89,7 @@ final class WorldgenCache {
     static WorldgenCache get(ServerLevel level) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("生成缓存只能由服务端线程创建");
         WorldgenCache known=WORLDS.get(level);
-        if(known==null || known.biomeSource!=level.getChunkSource().getGenerator().getBiomeSource()
+        if(known==null || !known.stamp.current(level) || known.biomeSource!=level.getChunkSource().getGenerator().getBiomeSource()
                 || known.noise!=level.getChunkSource().randomState().sampler()
                 || known.sourceSafe!=BiomeSourceSafety.prepare(level).allowed()) {
             known=new WorldgenCache(level);WORLDS.put(level,known);
@@ -163,5 +164,5 @@ final class WorldgenCache {
         return biomePredictions.peek(net.minecraft.core.BlockPos.asLong(x,y,z));
     }
     private <T> T scoped(Supplier<T> action){return alex==null?action.get():alex.with(action);}
-    static void clear() { WORLDS.clear(); AetherSamplingHints.clear(); BiomeSourceSafety.clear(); AlexBiomeScope.clear(); }
+    static void clear() { GenerationStamp.invalidate(); WORLDS.clear(); AetherSamplingHints.clear(); BiomeSourceSafety.clear(); AlexBiomeScope.clear(); }
 }

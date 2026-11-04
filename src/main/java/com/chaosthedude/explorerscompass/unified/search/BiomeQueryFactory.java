@@ -10,17 +10,17 @@ public final class BiomeQueryFactory {
     public static final class Plan {
         final ServerLevel level;final BlockPos origin;final ResourceLocation target;
         final BiomeSamplingProfile profile;
-        private final Object source,sampler;
+        private final GenerationStamp stamp;
         private Plan(ServerLevel level,BlockPos origin,ResourceLocation target,BiomeSamplingProfile profile) {
             this.level=level;this.origin=origin.immutable();this.target=target;this.profile=profile;
-            source=level.getChunkSource().getGenerator().getBiomeSource();sampler=level.getChunkSource().randomState().sampler();
+            stamp=GenerationStamp.capture(level);
         }
         public BlockPos origin(){return origin;}
         public ResourceLocation target(){return target;}
         public BiomeSamplingProfile profile(){return profile;}
         private void validate() {
             if(!level.getServer().isSameThread())throw new IllegalStateException("群系计划只能由服务端线程提交");
-            if(source!=level.getChunkSource().getGenerator().getBiomeSource() || sampler!=level.getChunkSource().randomState().sampler())
+            if(!stamp.current(level))
                 throw new IllegalStateException("群系生成上下文已失效");
         }
     }

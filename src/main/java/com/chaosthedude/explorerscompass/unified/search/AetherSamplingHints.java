@@ -23,7 +23,7 @@ import net.minecraft.world.level.levelgen.DensityFunction;
 final class AetherSamplingHints {
     record Hint(OptionalInt height,String evidence) {}
     private AetherSamplingHints() {}
-    private record Index(Object source,Object sampler,BiomeSamplingProfile.LinearDepth linear,
+    private record Index(GenerationStamp stamp,BiomeSamplingProfile.LinearDepth linear,
                          java.util.Map<ResourceLocation,List<Climate.Parameter>> ranges) {}
     private static final java.util.Map<ServerLevel,Index> INDEX=new java.util.IdentityHashMap<>();
     static void clear(){INDEX.clear();}
@@ -34,7 +34,7 @@ final class AetherSamplingHints {
             if(!(source instanceof MultiNoiseBiomeSource multi))return unknown("non_multi_noise_source");
             Object sampler=level.getChunkSource().randomState().sampler();
             Index index=INDEX.get(level);
-            if(index==null || index.source()!=source || index.sampler()!=sampler) {
+            if(index==null || !index.stamp().current(level)) {
             var ops=RegistryOps.create(JsonOps.INSTANCE,level.registryAccess());
             var depth=DensityFunction.HOLDER_HELPER_CODEC.encodeStart(ops,level.getChunkSource().randomState().sampler().depth())
                     .result().orElseThrow();
@@ -62,7 +62,7 @@ final class AetherSamplingHints {
             }catch(ClassNotFoundException ignored) { }
             var frozen=new java.util.LinkedHashMap<ResourceLocation,List<Climate.Parameter>>();
             ranges.forEach((key,value)->frozen.put(key,List.copyOf(value)));
-            index=new Index(source,sampler,linear,java.util.Map.copyOf(frozen));
+            index=new Index(GenerationStamp.capture(level),linear,java.util.Map.copyOf(frozen));
             // 未就绪来源不能把不完整参数树缓存为永久结论。
             if(BiomeSourceSafety.prepare(level).status()!=BiomeSourceSafety.Status.NOT_READY)INDEX.put(level,index);
             }
