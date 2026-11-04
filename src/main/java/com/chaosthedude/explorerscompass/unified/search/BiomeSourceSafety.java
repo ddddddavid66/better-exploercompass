@@ -27,7 +27,12 @@ final class BiomeSourceSafety {
     private static final ClassValue<Map<String, AccessibleObject>> MEMBERS = new ClassValue<>() {
         @Override protected Map<String, AccessibleObject> computeValue(Class<?> type) { return new HashMap<>(); }
     };
-    record Result(boolean allowed, String reason, String chain) {}
+    enum Status { SAFE, NOT_READY, UNSUPPORTED }
+    record Result(Status status, String reason, String chain) {boolean allowed(){return status==Status.SAFE;}}
+    private record Identity(Object generator,Object source,Object sampler) {}
+    private static final Map<ServerLevel,Identity> IDENTITIES=new IdentityHashMap<>();
+    private static final Map<ServerLevel,Integer> RETRY=new IdentityHashMap<>();
+    private static final class NotReady extends IllegalStateException {NotReady(String reason){super(reason);}}
     private final ServerLevel level;
     private final List<String> chain = new ArrayList<>();
     private final Set<BiomeSource> visiting = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -35,14 +40,25 @@ final class BiomeSourceSafety {
 
     static Result prepare(ServerLevel level) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("群系来源审查只能在服务端线程执行");
-        return WORLDS.computeIfAbsent(level, key -> {
-            Result result = new BiomeSourceSafety(key).inspect();
-            if (!result.allowed()) com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.warn(
-                    "维度 {} 使用主线程兼容查询：{}；来源链：{}", key.dimension().location(), result.reason(), result.chain());
-            return result;
-        });
+        var generator=level.getChunkSource().getGenerator();
+        Identity identity=new Identity(generator,generator.getBiomeSource(),level.getChunkSource().randomState().sampler());
+        Identity old=IDENTITIES.put(level,identity);
+        if(old!=null && (old.generator()!=identity.generator() || old.source()!=identity.source() || old.sampler()!=identity.sampler())) {
+            WORLDS.remove(level);RETRY.remove(level);
+        }
+        Result previous=WORLDS.get(level);int tick=level.getServer().getTickCount();
+        if(!shouldRefresh(previous,tick,RETRY.getOrDefault(level,0)))return previous;
+        Result result=new BiomeSourceSafety(level).inspect();WORLDS.put(level,result);
+        RETRY.put(level,tick+20);
+        if(previous==null || previous.status()!=result.status() || !previous.reason().equals(result.reason()))
+            com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.info("维度 {} 搜索来源能力 {}：{}",level.dimension().location(),result.status(),result.reason());
+        return result;
     }
-    static void clear() { WORLDS.clear(); }
+    /** 只复查临时未就绪；未知能力必须保持拒绝，不能随时间自动放行。 */
+    static boolean shouldRefresh(Result previous,int tick,int retryAt) {
+        return previous==null || previous.status()==Status.NOT_READY && tick>=retryAt;
+    }
+    static void clear() { WORLDS.clear(); RETRY.clear(); IDENTITIES.clear(); }
 
     private Result inspect() {
         var generator = level.getChunkSource().getGenerator();
@@ -52,13 +68,13 @@ final class BiomeSourceSafety {
                     && generator.getBiomeSource().getClass().getName().equals("twilightforest.world.components.biomesources.TFBiomeProvider")) {
                 requireVersion("twilightforest", "4.3.2508");
                 generator.getBiomeSource().possibleBiomes();
-                return new Result(true, "", String.join(" -> ", chain));
+                return new Result(Status.SAFE, "", String.join(" -> ", chain));
             }
             if (generator.getClass() != NoiseBasedChunkGenerator.class) reject("未经核对的生成器 " + generator.getClass().getName());
             audit(generator.getBiomeSource());
-            return new Result(true, "", String.join(" -> ", chain));
+            return new Result(Status.SAFE, "", String.join(" -> ", chain));
         } catch (ReflectiveOperationException | RuntimeException error) {
-            return new Result(false, error.getMessage() == null ? error.toString() : error.getMessage(), String.join(" -> ", chain));
+            return new Result(error instanceof NotReady?Status.NOT_READY:Status.UNSUPPORTED, error.getMessage() == null ? error.toString() : error.getMessage(), String.join(" -> ", chain));
         }
     }
     private void audit(BiomeSource source) throws ReflectiveOperationException {
@@ -74,7 +90,7 @@ final class BiomeSourceSafety {
                     if(!accessor.isInstance(source))reject("Alex 群系来源接口未应用");
                     Class<?> mapping=Class.forName("com.github.alexmodguy.alexscaves.server.level.biome.BiomeSourceAccessor");
                     if(!mapping.isInstance(source) || ((Map<?,?>)mapping.getMethod("getResourceKeyMap").invoke(source)).isEmpty())
-                        reject("Alex 群系来源映射尚未初始化，保留兼容查询");
+                        throw new NotReady("Alex 群系来源映射尚未初始化，保留兼容查询");
                     accessor.getMethod("setLastSampledSeed",long.class).invoke(source,level.getSeed());
                     accessor.getMethod("setLastSampledDimension",net.minecraft.resources.ResourceKey.class).invoke(source,level.dimension());
                     AlexBiomeScope.prepare(level.getSeed());
@@ -114,7 +130,7 @@ final class BiomeSourceSafety {
             if(region==null && Boolean.FALSE.equals(field(parameters,"initialized"))) {
                 chain.add("TerraBlender:unassigned-region-vanilla-parameters");return;
             }
-            reject("TerraBlender 参数树尚未完成初始化");
+            throw new NotReady("TerraBlender 参数树尚未完成初始化");
         }
     }
     private void prepareEnd(BiomeSource source) throws ReflectiveOperationException {

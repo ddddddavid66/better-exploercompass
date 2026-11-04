@@ -23,11 +23,18 @@ import net.minecraft.world.level.levelgen.DensityFunction;
 final class AetherSamplingHints {
     record Hint(OptionalInt height,String evidence) {}
     private AetherSamplingHints() {}
+    private record Index(Object source,Object sampler,BiomeSamplingProfile.LinearDepth linear,
+                         java.util.Map<ResourceLocation,List<Climate.Parameter>> ranges) {}
+    private static final java.util.Map<ServerLevel,Index> INDEX=new java.util.IdentityHashMap<>();
+    static void clear(){INDEX.clear();}
 
     static Hint prepare(ServerLevel level,ResourceLocation target,int initialY) {
         try {
             var source=level.getChunkSource().getGenerator().getBiomeSource();
             if(!(source instanceof MultiNoiseBiomeSource multi))return unknown("non_multi_noise_source");
+            Object sampler=level.getChunkSource().randomState().sampler();
+            Index index=INDEX.get(level);
+            if(index==null || index.source()!=source || index.sampler()!=sampler) {
             var ops=RegistryOps.create(JsonOps.INSTANCE,level.registryAccess());
             var depth=DensityFunction.HOLDER_HELPER_CODEC.encodeStart(ops,level.getChunkSource().randomState().sampler().depth())
                     .result().orElseThrow();
@@ -39,8 +46,9 @@ final class AetherSamplingHints {
             if(from==to || fromY>=toY || !Double.isFinite(from+to))return unknown("invalid_depth_gradient");
             var linear=new BiomeSamplingProfile.LinearDepth(fromY,toY,from,to);
             var parameters=((com.chaosthedude.explorerscompass.unified.mixin.ClimateParametersAccessor)(Object)multi).unified$parameters();
-            List<Climate.Parameter> ranges=new ArrayList<>();
-            for(var pair:parameters.values())if(matches(pair.getSecond(),target))ranges.add(pair.getFirst().depth());
+            java.util.Map<ResourceLocation,List<Climate.Parameter>> ranges=new java.util.LinkedHashMap<>();
+            for(var pair:parameters.values())pair.getSecond().unwrapKey().ifPresent(key->
+                ranges.computeIfAbsent(key.location(),k->new ArrayList<>()).add(pair.getFirst().depth()));
             // TerraBlender额外region的真实树不在values()中；已初始化后读取树叶，不重新执行region注册代码。
             try {
                 Class<?> api=Class.forName("terrablender.worldgen.IExtendedParameterList");
@@ -48,13 +56,19 @@ final class AetherSamplingHints {
                     int count=(int)api.getMethod("getTreeCount").invoke(parameters);
                     for(int i=0;i<count;i++) {
                         Object tree=api.getMethod("getTree",int.class).invoke(parameters,i);
-                        if(tree!=null)readTree(tree,target,ranges);
+                        if(tree!=null)readTree(tree,ranges);
                     }
                 }
             }catch(ClassNotFoundException ignored) { }
+            var frozen=new java.util.LinkedHashMap<ResourceLocation,List<Climate.Parameter>>();
+            ranges.forEach((key,value)->frozen.put(key,List.copyOf(value)));
+            index=new Index(source,sampler,linear,java.util.Map.copyOf(frozen));
+            // 未就绪来源不能把不完整参数树缓存为永久结论。
+            if(BiomeSourceSafety.prepare(level).status()!=BiomeSourceSafety.Status.NOT_READY)INDEX.put(level,index);
+            }
             int best=0;long distance=Long.MAX_VALUE;
-            for(var range:ranges) {
-                var preferred=linear.preferred(Climate.unquantizeCoord(range.min()),Climate.unquantizeCoord(range.max()),
+            for(var range:index.ranges().getOrDefault(target,List.of())) {
+                var preferred=index.linear().preferred(Climate.unquantizeCoord(range.min()),Climate.unquantizeCoord(range.max()),
                         level.getMinBuildHeight(),level.getMaxBuildHeight());
                 if(preferred.isEmpty())continue;
                 int height=preferred.getAsInt();
@@ -69,9 +83,6 @@ final class AetherSamplingHints {
     }
 
     private static Hint unknown(String reason){return new Hint(OptionalInt.empty(),reason);}
-    private static boolean matches(Holder<Biome> holder,ResourceLocation target) {
-        return holder.unwrapKey().map(key->key.location().equals(target)).orElse(false);
-    }
     private static JsonElement resolve(ServerLevel level,JsonElement value,Set<String> seen) {
         if(!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())return value;
         String id=value.getAsString();if(!seen.add(id) || seen.size()>32)throw new IllegalArgumentException("cyclic density function");
@@ -80,13 +91,13 @@ final class AetherSamplingHints {
         return resolve(level,DensityFunction.DIRECT_CODEC.encodeStart(RegistryOps.create(JsonOps.INSTANCE,level.registryAccess()),function)
                 .result().orElseThrow(),seen);
     }
-    private static void readTree(Object tree,ResourceLocation target,List<Climate.Parameter> ranges)throws ReflectiveOperationException {
+    private static void readTree(Object tree,java.util.Map<ResourceLocation,List<Climate.Parameter>> ranges)throws ReflectiveOperationException {
         for(Field field:tree.getClass().getDeclaredFields())if(field.getType().getName().endsWith("Climate$RTree$Node")) {
             if(!field.trySetAccessible())return;
-            walk(field.get(tree),target,ranges,Collections.newSetFromMap(new IdentityHashMap<>()));return;
+            walk(field.get(tree),ranges,Collections.newSetFromMap(new IdentityHashMap<>()));return;
         }
     }
-    private static void walk(Object node,ResourceLocation target,List<Climate.Parameter> ranges,Set<Object> seen)throws ReflectiveOperationException {
+    private static void walk(Object node,java.util.Map<ResourceLocation,List<Climate.Parameter>> ranges,Set<Object> seen)throws ReflectiveOperationException {
         if(node==null || !seen.add(node))return;
         Object value=null;Object[] children=null;
         for(Field field:node.getClass().getDeclaredFields()) {
@@ -94,12 +105,12 @@ final class AetherSamplingHints {
             if(field.getType()==Object.class)value=field.get(node);
             if(field.getType().isArray() && field.getType().getComponentType().getName().endsWith("Climate$RTree$Node"))children=(Object[])field.get(node);
         }
-        if(value instanceof Holder<?> holder && holder.unwrapKey().map(key->key.location().equals(target)).orElse(false)) {
+        if(value instanceof Holder<?> holder && holder.unwrapKey().isPresent()) {
             for(Class<?> type=node.getClass();type!=null;type=type.getSuperclass())for(Field field:type.getDeclaredFields())
                 if(field.getType().isArray() && field.getType().getComponentType()==Climate.Parameter.class && field.trySetAccessible()) {
-                    var bounds=(Climate.Parameter[])field.get(node);if(bounds.length>4)ranges.add(bounds[4]);return;
+                    var bounds=(Climate.Parameter[])field.get(node);if(bounds.length>4)ranges.computeIfAbsent(holder.unwrapKey().orElseThrow().location(),k->new ArrayList<>()).add(bounds[4]);return;
                 }
         }
-        if(children!=null)for(Object child:children)walk(child,target,ranges,seen);
+        if(children!=null)for(Object child:children)walk(child,ranges,seen);
     }
 }

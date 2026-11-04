@@ -14,7 +14,9 @@ import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStr
 /** 主线程创建不可变生成上下文；生命周期随世界与数据包重载结束。 */
 final class WorldgenCache {
     private static final Map<ServerLevel, WorldgenCache> WORLDS = new IdentityHashMap<>();
-    final StructurePredictor predictor;
+    private StructurePredictor predictor;
+    private final ServerLevel level;
+    private final boolean sourceSafe;
     private record PredictionKey(Structure structure, long chunk) {}
     private static final class Prediction {
         final net.minecraft.core.BlockPos point;
@@ -74,20 +76,24 @@ final class WorldgenCache {
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private WorldgenCache(ServerLevel level) {
+        this.level=level;
         alex=BiomeSourceSafety.prepare(level).allowed()?AlexBiomeScope.prepare(level.getSeed()):null;
         biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
         noise = level.getChunkSource().randomState().sampler();
         columns=ColumnClimate.prepare(level,noise);
-        var state = level.getChunkSource().getGeneratorState();
-        state.ensureStructuresGenerated();
-        state.possibleStructureSets().forEach(set -> {
-            if (set.value().placement() instanceof ConcentricRingsStructurePlacement rings) state.getRingPositionsFor(rings);
-        });
-        predictor = new StructurePredictor(level);
+        sourceSafe=BiomeSourceSafety.prepare(level).allowed();
+        // 群系请求不承担结构初始化成本；预测器仅由结构计划在主线程按需准备。
+
     }
     static WorldgenCache get(ServerLevel level) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("生成缓存只能由服务端线程创建");
-        return WORLDS.computeIfAbsent(level, WorldgenCache::new);
+        WorldgenCache known=WORLDS.get(level);
+        if(known==null || known.biomeSource!=level.getChunkSource().getGenerator().getBiomeSource()
+                || known.noise!=level.getChunkSource().randomState().sampler()
+                || known.sourceSafe!=BiomeSourceSafety.prepare(level).allowed()) {
+            known=new WorldgenCache(level);WORLDS.put(level,known);
+        }
+        return known;
     }
     SearchCandidate hint(Structure structure) { return hints.peek(structure); }
     Prefix prefix(List<net.minecraft.resources.ResourceLocation> keys,net.minecraft.core.BlockPos origin,
@@ -100,6 +106,7 @@ final class WorldgenCache {
     void rememberHint(SearchCandidate candidate) { hints.remember(candidate.structure(),candidate); }
     List<StructureSearch.Group> structurePlan(List<net.minecraft.resources.ResourceLocation> keys, boolean compatible,
                                             Supplier<List<StructureSearch.Group>> prepare) {
+        if(predictor==null)predictor=new StructurePredictor(level);
         // 只缓存注册表分组和预测策略，不能包含玩家位置、历史排除或可变采样游标。
         PlanKey key=new PlanKey(keys,compatible);
         List<StructureSearch.Group> known=plans.peek(key);
@@ -137,6 +144,15 @@ final class WorldgenCache {
         Biome predict(int y){return climate==null?predictBiome(x,y,z):columns.with(climate,()->predictBiome(x,y,z));}
     }
     BiomeColumn biomeColumn(int x,int z){return new BiomeColumn(x,z);}
+    /** 流式扫描不污染高复用LRU；调用方独占列游标，来源作用域仍完整保留。 */
+    Biome streamBiome(int x,int y,int z){return scoped(()->biomeSource.getNoiseBiome(x,y,z,noise).value());}
+    final class StreamingColumn {
+        private final int x,z;
+        private final ColumnClimate.Column climate;
+        StreamingColumn(int x,int z){this.x=x;this.z=z;climate=columns==null?null:columns.column(x,z);}
+        Biome predict(int y){return climate==null?streamBiome(x,y,z):columns.with(climate,()->streamBiome(x,y,z));}
+    }
+    StreamingColumn streamingColumn(int x,int z){return new StreamingColumn(x,z);}
     <T> T inColumn(int x,int z,java.util.function.Supplier<T> action) {return columns==null?action.get():columns.with(x,z,action);}
     boolean allowedBiome(int x,int y,int z,Predicate<Holder<Biome>> allowed) {
         long key=net.minecraft.core.BlockPos.asLong(x,y,z);
@@ -147,5 +163,5 @@ final class WorldgenCache {
         return biomePredictions.peek(net.minecraft.core.BlockPos.asLong(x,y,z));
     }
     private <T> T scoped(Supplier<T> action){return alex==null?action.get():alex.with(action);}
-    static void clear() { WORLDS.clear(); BiomeSourceSafety.clear(); AlexBiomeScope.clear(); }
+    static void clear() { WORLDS.clear(); AetherSamplingHints.clear(); BiomeSourceSafety.clear(); AlexBiomeScope.clear(); }
 }
