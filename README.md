@@ -5,6 +5,18 @@
 
 Explorer’s Compass Unified，由 David 维护，基于 ChaosTheDude / MattCzyr 的 Explorer’s Compass Forge 1.20.1 1.4.0 开发。Minecraft 1.20.1、Forge、Java17，一个独立jar；非官方衍生版本，不暗示上游背书。
 
+## 1.2.8 定向验收与发布构建
+
+新优化版完整副本（391个原模组）、Java17、种子789123、起点(8,100,8)：青铜地牢、利维坦尸骨、温风高地，新旧版冷/热共12请求均核实真实ID/XYZ一致，所有请求结束后槽位、排队及ticket归零。各场景只测一次，单次结果不计算P95，不保证固定倍数或客户端帧率。
+
+最终安装包又完成温风高地冷查询、整次结果热命中与换目标原点列热命中三项：来源调用分别2723、0、0；原点列热命中80次；并正确区分query_memo_hit。54项局部自动测试通过。共享准备引用计数探针验证先取消一个引用仍持票、最后引用取消后释放；最终该实现class与探针使用版本逐字节一致。
+
+正式构建SHA-256：`83791c4c8e639870fb30ae305359437510ed47da1b6c402b5ebc83388f973a64`。此前下载过同名1.2.8候选包的用户请按此SHA重新核对、两端一起替换；保留旧NBT和统计。发布包873852字节（853.371KiB），超过旧750KiB预算，已公开报告，不改动门槛或删减图鉴。
+
+细分诊断只在批次/阶段结束发布，包含完整来源调用尝试、原点列缓存命中、整次查询命中、列对象创建与请求准备耗时。来源调用不含包装来源内部的递归子调用，取消后的未发布收尾批次不阻塞终态；逻辑samples可能来自前缀额度记账，不能冒充真实生成查询次数。
+
+本轮不重跑完整模组兼容矩阵、独立服务端或大型benchmark。因仅增加诊断，保留先前12请求原始CSV，另附最终诊断复测，不用新数据替换历史记录。所有原始证据随交付提供，Git仅留工具源码和最新版说明，不含实例/存档/日志。
+
 ## 安装与升级
 
 移除原版、Edited、Enhance和旧filters扩展，只安装统一版；本次只安装1.2.8 jar，移除旧统一版；客户端与服务端同时升级1.2.8（协议`unified-8`）。保留`explorerscompass`模组ID、原指南针物品、配方、旧NBT、配置及历史统计。
@@ -138,13 +150,15 @@ WorldMap1.39.2没有公开居中setter，版本限定适配仅缓存解析原生
 ## 构建、验证与发布材料
 
 ```powershell
-.\gradlew.bat assemble checkReleaseSize
+.\gradlew.bat compactRelease
+# 如需检查原体积预算（当前版本会明确报告超限）：
+.\gradlew.bat checkReleaseSize
 .\gradlew.bat test --tests '*Fresh123Test' --tests '*VerificationSlotsTest' --tests '*RectCoordinatorTest'
 .\gradlew.bat test --tests '*CatalogPackets121Test'
 python tools/catalog/validate_catalog.py collected-v2.json --registry registry-snapshot.json --evidence evidence-index.json --audit registry-audit.json
 ```
 
-Java17、Gradle Wrapper、固定Maven依赖；接近体积上限需要构建机PATH有7-Zip。发布预算750KiB，不包含测试、benchmark、第三方类、反编译和详细研究资料。本次优化构建为834996字节（815.426KiB），超过预算66996字节；体积门槛检查明确失败，未删除条目或描述来凑体积。
+Java17、Gradle Wrapper、固定Maven依赖；接近体积上限需要构建机PATH有7-Zip。发布预算750KiB，不包含测试、benchmark、第三方类、反编译和详细研究资料。最终1.2.8为873852字节（853.371KiB），超过预算105852字节；体积门槛检查仍会明确失败，未删除条目或描述来凑体积。compactRelease编译/重映射/打包通过不代表checkReleaseSize通过。
 
 1.2.2旧存档验收在愚者完整整合包副本中，花飘飘、曦鹤、海龟、鱿鱼及狮尾狒狒均通过真实UUID定位，四项走保存实体路径。最终功能验收耗时依次约11.6秒、0.15秒、21.3秒、0.40秒、0.40秒；冷索引仍有开销，不承诺所有目标一秒内找到。维度/群系浮层及输入隔离通过，结束后票据和在途读取为0、峰值8。仅测试上述五项和相关浮层，没有跑benchmark、娱乐功能、地图、独立服务端或完整回归。具体记录随交付提供。
 
