@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.TeleportService;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.unified.network.TeleportStatusPacket;

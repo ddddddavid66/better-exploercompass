@@ -1,7 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.network;
 
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
-import com.chaosthedude.explorerscompass.unified.search.TeleportService;
+import com.david.compass.runtime.game.data.LandingMode;
+import com.david.compass.runtime.game.search.TeleportService;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;

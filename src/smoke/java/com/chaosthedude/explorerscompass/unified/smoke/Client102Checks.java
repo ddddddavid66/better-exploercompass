@@ -1,11 +1,13 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.client.DimensionNames;
+
 import static com.chaosthedude.explorerscompass.unified.smoke.SmokeChecks.check;
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.gui.ExplorersCompassScreen;
 import com.chaosthedude.explorerscompass.unified.client.*;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import com.chaosthedude.explorerscompass.unified.search.SearchService;
 import com.google.gson.JsonParser;
 import java.nio.file.*;

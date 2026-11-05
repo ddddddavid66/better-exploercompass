@@ -1,7 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.entertainment;
 
 import java.util.UUID;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;

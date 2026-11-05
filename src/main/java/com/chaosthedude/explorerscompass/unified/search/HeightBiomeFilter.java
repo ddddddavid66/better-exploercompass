@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.BiomeGenerationContext;
+
 import java.util.function.Supplier;
 import net.minecraft.core.QuartPos;
 import net.minecraft.server.level.ServerLevel;

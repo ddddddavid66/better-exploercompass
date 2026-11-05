@@ -1,3 +1,8 @@
-// 产品装配迁移完成前不生成误导性的空安装包。
-plugins { id 'base' }
+plugins { id 'java' }
 version = '1.0.0'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+dependencies { implementation project(':runtime') }
+sourceSets.main.compileClasspath += rootProject.sourceSets.main.compileClasspath
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+// 发行包必须经过根工程的 Forge 重映射和共享核心装配。
+tasks.named('jar').configure { enabled = false }

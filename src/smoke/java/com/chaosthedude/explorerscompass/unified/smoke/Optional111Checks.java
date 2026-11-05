@@ -1,9 +1,14 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.ColumnClimate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.TeleportService;
+import com.david.compass.runtime.game.search.VerificationSlots;
+
 import com.chaosthedude.explorerscompass.unified.search.*;
 
 import com.chaosthedude.explorerscompass.ExplorersCompass;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import com.chaosthedude.explorerscompass.util.CompassState;
 import com.mojang.authlib.GameProfile;
 import java.nio.file.*;
@@ -140,7 +145,7 @@ public final class Optional111Checks {
     }
     private static void alexArithmetic() throws Exception {
         var level=server.overworld();var key=new ResourceLocation("alexscaves:magnetic_caves");
-        Class<?> adapterType=Class.forName("com.chaosthedude.explorerscompass.unified.search.AlexCavesAdapter");
+        Class<?> adapterType=Class.forName("com.david.compass.runtime.game.search.AlexCavesAdapter");
         var prepare=adapterType.getDeclaredMethod("prepare",net.minecraft.server.level.ServerLevel.class,ResourceLocation.class);prepare.setAccessible(true);
         var adapter=prepare.invoke(null,level,key);
         var sample=adapterType.getDeclaredMethod("center",int.class,int.class);sample.setAccessible(true);if(adapter==null)throw new AssertionError("Alex adapter unavailable");
@@ -165,7 +170,7 @@ public final class Optional111Checks {
     }
     private static void columnClimate() throws Exception {
         var level=server.overworld();var sampler=level.getChunkSource().randomState().sampler();
-        Class<?> type=Class.forName("com.chaosthedude.explorerscompass.unified.search.ColumnClimate");
+        Class<?> type=Class.forName("com.david.compass.runtime.game.search.ColumnClimate");
         var prepare=type.getDeclaredMethod("prepare",net.minecraft.server.level.ServerLevel.class,net.minecraft.world.level.biome.Climate.Sampler.class);prepare.setAccessible(true);
         var columns=prepare.invoke(null,level,sampler);if(columns==null)throw new AssertionError("default climate density proof unavailable");
         if(field(columns,"fixedDepth")==null) {
@@ -199,14 +204,14 @@ public final class Optional111Checks {
         }
     }
     private static int slots() throws Exception {
-        var m=Class.forName("com.chaosthedude.explorerscompass.unified.search.VerificationSlots").getDeclaredMethod("count");m.setAccessible(true);return (int)m.invoke(null);
+        var m=Class.forName("com.david.compass.runtime.game.search.VerificationSlots").getDeclaredMethod("count");m.setAccessible(true);return (int)m.invoke(null);
     }
     private static void landing() throws Exception {
         // 深水无固体支撑：眼睛/头部空气。缓存复核必须接受同一种海面候选。
         var level=server.overworld();BlockPos pos=level.getSharedSpawnPos().above(60);
         for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)level.getChunk((pos.getX()>>4)+x,(pos.getZ()>>4)+z);
         for(int y=-4;y<=3;y++)level.setBlockAndUpdate(pos.offset(0,y,0),y<=0?Blocks.WATER.defaultBlockState():Blocks.AIR.defaultBlockState());
-        var type=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingChecks");
+        var type=Class.forName("com.david.compass.runtime.game.search.LandingChecks");
         var surface=type.getDeclaredMethod("waterSurface",ServerPlayer.class,net.minecraft.server.level.ServerLevel.class,BlockPos.class);surface.setAccessible(true);
         var recheck=type.getDeclaredMethod("waterStanding",ServerPlayer.class,net.minecraft.server.level.ServerLevel.class,net.minecraft.world.phys.Vec3.class);recheck.setAccessible(true);
         var water=surface.invoke(null,player,level,pos.above());

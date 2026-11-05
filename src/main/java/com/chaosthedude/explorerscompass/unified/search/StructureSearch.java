@@ -1,5 +1,13 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.BiomeSourceSafety;
+import com.david.compass.runtime.game.search.RectFrontier;
+import com.david.compass.runtime.game.search.SamplingBudget;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.SearchPool;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -179,10 +187,10 @@ public final class StructureSearch extends SearchJob {
                 }
                 return found;
             };
-            int stripes = async && predict ? SearchConfig.threads() : 1;
+            int stripes = async && predict ? SearchPool.parallelism() : 1;
             if (gel != null) {
                 boolean background = async && gel.backgroundAllowed && sourceSafe;
-                int count = background ? SearchConfig.threads() : 1;
+                int count = background ? SearchPool.parallelism() : 1;
                 BlockPos offset = placement.getLocatePos(new ChunkPos(0, 0));
                 // 官方 offset 是包含端点的非负区块抖动，可能落入相邻区域。
                 var geometry = geometry(gel.spacing * 16, offset, 0, gel.offset * 16, targets);
@@ -192,7 +200,7 @@ public final class StructureSearch extends SearchJob {
             }
             if (twilight != null) {
                 boolean background = async && twilight.backgroundAllowed(generator);
-                int count = background ? SearchConfig.threads() : 1;
+                int count = background ? SearchPool.parallelism() : 1;
                 BlockPos offset = placement.getLocatePos(new ChunkPos(0, 0));
                 // 官方中心算法的区块抖动是 [-3,3]；调用公开方法，不复制随机算法。
                 var geometry = geometry(256, offset, -48, 48, targets);

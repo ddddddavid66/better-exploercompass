@@ -1,5 +1,9 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.RectFrontier;
+import com.david.compass.runtime.game.search.SamplingBudget;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;

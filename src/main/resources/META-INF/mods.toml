@@ -7,6 +7,16 @@ version="${loader_version}"
 displayName="探险者指南针 统一 ${mod_version} / Explorer's Compass Unified"
 authors="ChaosTheDude, David"
 description="由 David 维护的非官方衍生版本，基于 Explorer's Compass 1.4.0。结构与群系异步搜索、维度/群系筛选、中文与拼音、暮色适配和两级落点传送。搜索次数累计成功传送次数。原项目：https://github.com/MattCzyr/ExplorersCompass"
+[[mods]]
+modId="creaturecompass"
+version="1.0.0"
+displayName="生物定位指南针 / Creature Compass"
+authors="David"
+[[mods]]
+modId="compass_runtime"
+version="1.0.0"
+displayName="Compass Runtime (Internal)"
+authors="David"
 [[dependencies.explorerscompass]]
 modId="forge"
 mandatory=true

@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.TeleportService;
+
 import com.chaosthedude.explorerscompass.unified.creature.*;
 import com.chaosthedude.explorerscompass.unified.creature.catalog.*;
 import com.chaosthedude.explorerscompass.unified.creature.client.*;

@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.BiomeSourceSafety;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.mojang.serialization.JsonOps;
 import java.util.ArrayList;

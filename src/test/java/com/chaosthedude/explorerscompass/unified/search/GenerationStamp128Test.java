@@ -1,4 +1,6 @@
-package com.chaosthedude.explorerscompass.unified.search;
+package com.david.compass.runtime.game.search;
+
+import com.david.compass.runtime.game.search.GenerationStamp;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class GenerationStamp128Test {

@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.david.compass.runtime.game.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "explorerscompass-unified.refmap.json",
+  "mixins": [
+    "BackgroundChunkGuardMixin",
+    "ChunkMapAccessor",
+    "ChunkStorageAccessor",
+    "AlexVoronoiScopeMixin",
+    "ClimateParametersAccessor",
+    "ColumnClimateMixin",
+    "DensityAddAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

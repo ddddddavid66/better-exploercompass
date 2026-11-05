@@ -1,11 +1,13 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.BiomeSourceSafety;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.unified.search.SearchConfig;
-import com.chaosthedude.explorerscompass.unified.search.SearchJob;
+import com.david.compass.runtime.game.search.SearchJob;
 import com.chaosthedude.explorerscompass.unified.search.SearchService;
-import com.chaosthedude.explorerscompass.unified.search.TeleportService;
+import com.david.compass.runtime.game.search.TeleportService;
 import com.chaosthedude.explorerscompass.util.CompassState;
 import com.chaosthedude.explorerscompass.util.StructureUtils;
 import com.mojang.authlib.GameProfile;
@@ -251,7 +253,7 @@ public final class Dungeons103TickChecks {
     }
 
     private static void auditSource(ServerLevel level) throws Exception {
-        Class<?> type = Class.forName("com.chaosthedude.explorerscompass.unified.search.BiomeSourceSafety");
+        Class<?> type = Class.forName("com.david.compass.runtime.game.search.BiomeSourceSafety");
         Method prepare = type.getDeclaredMethod("prepare", ServerLevel.class);
         prepare.setAccessible(true);
         Object result = prepare.invoke(null, level);

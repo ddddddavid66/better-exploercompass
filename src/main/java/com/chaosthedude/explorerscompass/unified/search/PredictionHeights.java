@@ -1,6 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
-import com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer;
+import com.david.compass.runtime.game.data.BoundedMemoizer;
 import java.util.function.Supplier;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.chunk.ChunkGenerator;

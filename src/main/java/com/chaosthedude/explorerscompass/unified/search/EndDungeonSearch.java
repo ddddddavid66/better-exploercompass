@@ -1,5 +1,13 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.BiomeSourceSafety;
+import com.david.compass.runtime.game.search.RectFrontier;
+import com.david.compass.runtime.game.search.SamplingBudget;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.SearchPool;
+
 import java.util.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -45,7 +53,7 @@ public final class EndDungeonSearch extends SearchJob {
         SamplingBudget budget=new SamplingBudget(maximum);budgets.add(budget);
         long seed=level.getSeed();
         boolean background = async && BiomeSourceSafety.prepare(level).allowed();
-        int workers=background?SearchConfig.threads():1;
+        int workers=background?SearchPool.parallelism():1;
         Set<Long> visited=java.util.concurrent.ConcurrentHashMap.newKeySet();
         // 模板偏移为 [-1,1]，源区块随机坐标为 [0,15]，真实锚点保持 X/Z。
         var geometry = new RectFrontier.Geometry(start.getX(), start.getZ(), 16, -1, -1, 16, 16);

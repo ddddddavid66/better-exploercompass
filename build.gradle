@@ -4,7 +4,7 @@ version = providers.gradleProperty('mod_version').get()
 base { archivesName = 'ExplorersCompassUnified-1.20.1-forge' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 // 单包过渡构建复用核心源码。独立产品通过同一 JarJar 构建取得这些类。
-sourceSets.main.java.srcDir(project(':runtime').file('src/main/java'))
+sourceSets.main.java.srcDirs(project(':runtime').file('src/main/java'), project(':creature').file('src/main/java'))
 sourceSets {
     benchmark {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
@@ -32,7 +32,7 @@ minecraft {
         configureEach {
             workingDirectory project.file('run')
             property 'forge.logging.console.level', 'info'
-            args '--mixin', 'explorerscompass-unified.mixins.json'
+            args '--mixin', 'explorerscompass-unified.mixins.json', '--mixin', 'compass-runtime.mixins.json', '--mixin', 'creaturecompass.mixins.json'
             mods { explorerscompass { source sourceSets.main } }
             if (project.hasProperty('smoke')) mods { filterschecks { source sourceSets.smoke } }
         }
@@ -101,7 +101,7 @@ tasks.named('test').configure { useJUnitPlatform(); testLogging { events 'passed
 tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
 jar {
     from('NOTICE.txt') { into 'META-INF' }
-    manifest { attributes 'MixinConfigs': 'explorerscompass-unified.mixins.json' }
+    manifest { attributes 'MixinConfigs': 'explorerscompass-unified.mixins.json,compass-runtime.mixins.json,creaturecompass.mixins.json' }
     finalizedBy 'reobfJar'
 }
 tasks.register('smokeJar', Jar) {
@@ -188,6 +188,22 @@ tasks.register('checkReleaseSize') {
     }
 }
 tasks.named('build').configure { dependsOn 'checkReleaseSize' }
+
+// 两产品各自编译只能看见公共核心；随后分配 Forge 重映射后的字节码与资源。
+tasks.register('assembleSplit', Exec) {
+    dependsOn 'reobfJar', ':explorer:compileJava', ':creature:compileJava'
+    def output = layout.buildDirectory.dir('split-candidates')
+    inputs.file(tasks.jar.archiveFile)
+    inputs.file('tools/release/build_split.py')
+    outputs.dir(output)
+    doFirst {
+        def launcher = javaToolchains.launcherFor(java.toolchain).get()
+        def executable = org.gradle.internal.os.OperatingSystem.current().isWindows() ? 'jdeps.exe' : 'jdeps'
+        commandLine providers.gradleProperty('splitPython').orElse('python').get(),
+            file('tools/release/build_split.py'), tasks.jar.archiveFile.get().asFile,
+            output.get().asFile, launcher.metadata.installationPath.file('bin/' + executable).asFile
+    }
+}
 
 tasks.register('benchmarkHarnessJar', Jar) {
     archiveBaseName = 'compassbench'; archiveVersion = '1.0'

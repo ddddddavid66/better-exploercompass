@@ -1,11 +1,14 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.TeleportService;
+import com.david.compass.runtime.game.search.VerificationSlots;
+
 import com.chaosthedude.explorerscompass.unified.search.*;
 
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.network.CatalogService;
 import com.chaosthedude.explorerscompass.util.CompassState;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import com.mojang.authlib.GameProfile;
 import java.nio.file.*;
 import java.util.*;
@@ -158,7 +161,7 @@ public final class End105TickChecks {
         Object snapshot=rules();var method=EndDungeonAdapter.class.getDeclaredMethod("evidence",snapshot.getClass(),BlockPos.class,java.util.function.Function.class);
         method.setAccessible(true);return (int)method.invoke(null,snapshot,anchor,(java.util.function.Function<BlockPos,net.minecraft.world.level.block.state.BlockState>)level::getBlockState);
     }
-    private static int slots(String name) throws Exception {var method=Class.forName("com.chaosthedude.explorerscompass.unified.search.VerificationSlots").getDeclaredMethod(name);method.setAccessible(true);return (int)method.invoke(null);}
+    private static int slots(String name) throws Exception {var method=Class.forName("com.david.compass.runtime.game.search.VerificationSlots").getDeclaredMethod(name);method.setAccessible(true);return (int)method.invoke(null);}
     private static void require(boolean condition,String message) {if(!condition)throw new AssertionError(message);}
     private static void finish(Throwable error) {
         try {

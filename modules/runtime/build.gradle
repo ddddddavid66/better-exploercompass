@@ -13,3 +13,8 @@ tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
+
+// 使用根工程同版本的 Forge 映射；公共核心可单独编译。
+sourceSets.main.compileClasspath += rootProject.sourceSets.main.compileClasspath
+sourceSets.test.compileClasspath += rootProject.sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += rootProject.sourceSets.main.compileClasspath

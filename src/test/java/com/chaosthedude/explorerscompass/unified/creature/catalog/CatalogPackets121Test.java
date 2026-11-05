@@ -16,7 +16,7 @@ class CatalogPackets121Test {
     private static List<ResourceLocation> ids(JsonObject n,String key){return strings(n,key).stream().map(ResourceLocation::new).toList();}
     @Test void actualCatalogueFitsBoundedDefaultNbtDecoder()throws Exception {
         List<CreatureEntry> entries=new ArrayList<>();
-        try(var reader=new InputStreamReader(Objects.requireNonNull(getClass().getResourceAsStream("/data/explorerscompass/creature_catalog/user-book.json")),java.nio.charset.StandardCharsets.UTF_8)){
+        try(var reader=CreatureCatalog.reader(Objects.requireNonNull(getClass().getResourceAsStream("/data/creaturecompass/creature_catalog/user-book.json")))){
             for(var value:JsonParser.parseReader(reader).getAsJsonArray()){
                 var n=value.getAsJsonObject();var rules=new ArrayList<CreatureAppearance>();
                 for(var a:n.getAsJsonArray("appearances")){var r=a.getAsJsonObject();rules.add(new CreatureAppearance(r.get("kind").getAsString(),r.get("dimension").isJsonNull()?null:new ResourceLocation(r.get("dimension").getAsString()),ids(r,"biomes"),r.get("description").getAsString(),r.get("verification").getAsString()));}

@@ -1,9 +1,14 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.TeleportService;
+import com.david.compass.runtime.game.search.VerificationSlots;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.search.*;
 import com.chaosthedude.explorerscompass.unified.client.*;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import com.chaosthedude.explorerscompass.util.CompassState;
 import java.nio.file.*;
 import java.util.*;

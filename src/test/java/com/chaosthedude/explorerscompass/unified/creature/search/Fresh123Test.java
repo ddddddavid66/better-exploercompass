@@ -1,19 +1,21 @@
 package com.chaosthedude.explorerscompass.unified.creature.search;
 
+import com.david.compass.runtime.game.search.ScanCoordinator;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.io.*;
 import java.util.*;
 import net.minecraft.core.BlockPos;
-import com.chaosthedude.explorerscompass.unified.search.VerificationSlots;
+import com.david.compass.runtime.game.search.VerificationSlots;
 import com.chaosthedude.explorerscompass.unified.creature.catalog.CreatureCatalog;
 import org.junit.jupiter.api.Test;
 
 class Fresh123Test {
     @Test void habitatMayFinishAtFirstConfirmedWithoutChangingOrdinaryProof()throws Exception{
-        var lane=new com.chaosthedude.explorerscompass.unified.search.ScanCoordinator.Lane<Integer>(){
+        var lane=new com.david.compass.runtime.game.search.ScanCoordinator.Lane<Integer>(){
             public boolean available(long limit){return true;}public List<Integer> sample(){return List.of(42);}public boolean backgroundAllowed(){return false;}
         };
-        var scan=new com.chaosthedude.explorerscompass.unified.search.ScanCoordinator<>(List.of(lane),v->v,v->true,100,false).withFirstConfirmed();
+        var scan=new com.david.compass.runtime.game.search.ScanCoordinator<>(List.of(lane),v->v,v->true,100,false).withFirstConfirmed();
         var pool=java.util.concurrent.Executors.newSingleThreadExecutor();try{scan.step(pool);assertFalse(scan.done());scan.step(pool);assertTrue(scan.done());assertEquals(42,scan.result());}finally{pool.shutdownNow();}
     }
     @Test void fourRoundsUse256DistinctChunksWithOneAnchor(){

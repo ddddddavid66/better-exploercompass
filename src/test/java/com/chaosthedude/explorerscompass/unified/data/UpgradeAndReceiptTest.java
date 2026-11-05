@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.data;
 
+import com.david.compass.runtime.game.data.ExclusionIndex;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.nio.file.Files;
 import java.nio.file.Path;

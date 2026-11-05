@@ -1,5 +1,10 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.BiomeSearch;
+import com.david.compass.runtime.game.search.RuntimeMod;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.TeleportService;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.mojang.authlib.GameProfile;
 import com.chaosthedude.explorerscompass.unified.network.*;
@@ -36,7 +41,7 @@ public final class ServerFeatureChecks {
             var jobField=session.getClass().getDeclaredField("job");jobField.setAccessible(true);
             var job=(SearchJob)jobField.get(session);
             long prepared=job.mainNanos;
-            pending.setLong(null,SearchConfig.TICK_MILLIS.get()*1_000_000L+1);
+            pending.setLong(null,com.david.compass.runtime.game.search.RuntimeMod.TICK_MILLIS.get()*1_000_000L+1);
             SearchService.tick();
             check(job.mainNanos==prepared && SearchService.owns(player,stack),"exhausted preparation budget defers without losing request");
             check(pending.getLong(null)==0,"preparation debit consumed once");

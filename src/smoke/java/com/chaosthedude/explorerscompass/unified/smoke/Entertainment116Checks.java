@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.TeleportService;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.entertainment.*;
 import com.chaosthedude.explorerscompass.unified.search.*;
@@ -183,7 +185,7 @@ public final class Entertainment116Checks {
             check(abyss!=null,"actual Abyss dimension");var chunk=abyss.getChunk(0,0);int roof=-1;
             for(int y=abyss.getMaxBuildHeight()-1;y>=abyss.getMinBuildHeight()+8;y--)if(chunk.getBlockState(new BlockPos(8,y,8)).is(Blocks.BEDROCK)){roof=y;break;}
             check(roof>0,"actual Abyss bedrock roof");
-            var allowed=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingSafety").getDeclaredMethod("allowed",ServerLevel.class,Vec3.class,boolean.class);allowed.setAccessible(true);
+            var allowed=Class.forName("com.david.compass.runtime.game.search.LandingSafety").getDeclaredMethod("allowed",ServerLevel.class,Vec3.class,boolean.class);allowed.setAccessible(true);
             check(!(boolean)allowed.invoke(null,abyss,new Vec3(8.5,roof+1,8.5),false),"actual Abyss roof rejected");
             notes.add("PASS actual Infinite Abyss first-layer roof guard at y="+roof);ready=true;return;
         }
@@ -207,10 +209,10 @@ public final class Entertainment116Checks {
             for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)level.setBlock(new BlockPos(x+dx,y-1,z+dz),Blocks.STONE_SLAB.defaultBlockState(),2);
             check(TeleportService.safeAt(p,level,ItemStack.EMPTY,new Vec3(x+.5,y-.5,z+.5)),"3x3 slab platform accepted");
             level.setBlock(new BlockPos(x,y-3,z),Blocks.BEDROCK.defaultBlockState(),2);
-            Class<?> guard=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingSafety");var invalidate=guard.getDeclaredMethod("invalidate",ServerLevel.class);invalidate.setAccessible(true);invalidate.invoke(null,level);
+            Class<?> guard=Class.forName("com.david.compass.runtime.game.search.LandingSafety");var invalidate=guard.getDeclaredMethod("invalidate",ServerLevel.class);invalidate.setAccessible(true);invalidate.invoke(null,level);
             check(!TeleportService.safeAt(p,level,ItemStack.EMPTY,new Vec3(x+.5,y-.5,z+.5)),"above bedrock barrier rejected");
             level.setBlock(new BlockPos(x,y-3,z),Blocks.AIR.defaultBlockState(),2);invalidate.invoke(null,level);
-            var water=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingChecks").getDeclaredMethod("waterStanding",ServerPlayer.class,ServerLevel.class,Vec3.class);water.setAccessible(true);
+            var water=Class.forName("com.david.compass.runtime.game.search.LandingChecks").getDeclaredMethod("waterStanding",ServerPlayer.class,ServerLevel.class,Vec3.class);water.setAccessible(true);
             for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)level.setBlock(new BlockPos(x+dx,y-1,z+dz),Blocks.WATER.defaultBlockState(),2);
             check(!(boolean)water.invoke(null,p,level,new Vec3(x+.5,y-1+level.getFluidState(new BlockPos(x,y-1,z)).getHeight(level,new BlockPos(x,y-1,z))-.25,z+.5)),"bottomless source water rejected");
             for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)level.setBlock(new BlockPos(x+dx,y-2,z+dz),Blocks.STONE.defaultBlockState(),2);

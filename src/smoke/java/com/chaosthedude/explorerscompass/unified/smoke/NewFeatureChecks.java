@@ -1,9 +1,11 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.TeleportService;
+
 import static com.chaosthedude.explorerscompass.unified.smoke.SmokeChecks.check;
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.search.*;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import com.mojang.authlib.GameProfile;
 import java.util.*;
 import net.minecraft.core.BlockPos;

@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.util;
 
+import com.david.compass.runtime.game.client.DimensionNames;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +121,7 @@ public class StructureUtils {
 
 	@OnlyIn(Dist.CLIENT)
 	private static String getDimensionName(ResourceLocation dimensionKey) {
-		return com.chaosthedude.explorerscompass.unified.client.DimensionNames.name(dimensionKey);
+		return com.david.compass.runtime.game.client.DimensionNames.name(dimensionKey);
 	}
 
 	private static Registry<Structure> getStructureRegistry(ServerLevel level) {

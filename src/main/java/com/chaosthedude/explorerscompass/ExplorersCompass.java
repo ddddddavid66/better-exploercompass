@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass;
 
+import com.david.compass.runtime.game.search.SearchReplacement;
+
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.items.ExplorersCompassItem;
 import com.google.common.collect.ArrayListMultimap;
@@ -40,7 +42,6 @@ public class ExplorersCompass {
 
 	public ExplorersCompass() {
 		com.chaosthedude.explorerscompass.unified.CompassUnified.initialize();
-        com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.register(net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get(),LOGGER::warn);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetup);
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::buildCreativeTabContents);
 
@@ -51,21 +52,16 @@ public class ExplorersCompass {
 	private void commonSetup(FMLCommonSetupEvent event) {
         com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.register();
         com.chaosthedude.explorerscompass.unified.search.ExplorerLandingAdapter.register();
-        com.chaosthedude.explorerscompass.unified.search.SearchPool.configure(com.chaosthedude.explorerscompass.unified.search.SearchConfig::threads);
-        com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork.register();
-        com.chaosthedude.explorerscompass.unified.search.SearchReplacement.register(MODID,player->{
+        com.david.compass.runtime.game.search.SearchReplacement.register(MODID,player->{
             com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.replaced");
             com.chaosthedude.explorerscompass.unified.search.SearchService.cancel(player,true);
         });
-        com.chaosthedude.explorerscompass.unified.search.SearchReplacement.register(
-                com.chaosthedude.explorerscompass.unified.creature.CreatureIdentity.MOD_ID,
-                player->com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(player.getUUID()));
+        com.chaosthedude.explorerscompass.unified.search.SearchEvents.register();
     }
 
 	private void buildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
 		if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
 			event.accept(new ItemStack(explorersCompass));
-            event.accept(com.chaosthedude.explorerscompass.unified.creature.CreatureItem.INSTANCE);
 		}
 	}
 

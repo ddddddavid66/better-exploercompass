@@ -1,5 +1,8 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.RectFrontier;
+import com.david.compass.runtime.game.search.SamplingBudget;
+
 import com.chaosthedude.explorerscompass.unified.entertainment.TravelExpansion;
 import org.junit.jupiter.api.Test;
 import java.util.*;

@@ -1,6 +1,14 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
-import com.chaosthedude.explorerscompass.unified.mixin.ChunkMapAccessor;
+import com.david.compass.runtime.game.search.RectFrontier;
+import com.david.compass.runtime.game.search.SamplingBudget;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.SearchPool;
+import com.david.compass.runtime.game.search.VerificationSlots;
+
+import com.david.compass.runtime.game.mixin.ChunkMapAccessor;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -52,7 +60,7 @@ public final class GoldenCrateSearch extends SearchJob {
                 chunk->level.getChunkSource().chunkMap.getDistanceManager().removeTicket(TICKET,new ChunkPos(chunk),TICKET_LEVEL,ticketId));
         if(rules.predictive() && maximum>0 && radius>0) {
             var geometry=new RectFrontier.Geometry(start.getX(),start.getZ(),16,6,6,21,21);
-            for(var region:RectFrontier.partition(geometry.domain(radius),async?SearchConfig.threads():1))
+            for(var region:RectFrontier.partition(geometry.domain(radius),async?SearchPool.parallelism():1))
                 lanes.add(new Lane(new RectFrontier(geometry,region,8,(long)radius*radius)));
         }
     }

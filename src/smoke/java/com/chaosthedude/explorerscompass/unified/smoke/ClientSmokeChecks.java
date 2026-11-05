@@ -1,5 +1,9 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.client.DimensionNames;
+import com.david.compass.runtime.game.data.LandingMode;
+import com.david.compass.runtime.game.search.TeleportService;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.gui.ExplorersCompassScreen;
 import com.chaosthedude.explorerscompass.unified.client.ClientSession;
@@ -70,7 +74,7 @@ public final class ClientSmokeChecks {
                         mc.setScreen(new TitleScreen());
                     }
                     if (!(mc.screen instanceof TitleScreen)) return;
-                    com.chaosthedude.explorerscompass.config.ConfigHandler.CLIENT.landingMode.set(com.chaosthedude.explorerscompass.unified.data.LandingMode.DEFAULT);
+                    com.chaosthedude.explorerscompass.config.ConfigHandler.CLIENT.landingMode.set(com.david.compass.runtime.game.data.LandingMode.DEFAULT);
                     com.chaosthedude.explorerscompass.config.ConfigHandler.CLIENT.searchLogEnabled.set(false);
                     mc.options.guiScale().set(2);
                     mc.resizeDisplay();
@@ -326,7 +330,7 @@ public final class ClientSmokeChecks {
                         biomeVerificationRequested = true;
                         server.execute(() -> {
                             var player = server.getPlayerList().getPlayer(id);
-                            biomeTeleportVerified = com.chaosthedude.explorerscompass.unified.search.TeleportService.safeAt(player, player.serverLevel(), player.getMainHandItem(), player.position());
+                            biomeTeleportVerified = com.david.compass.runtime.game.search.TeleportService.safeAt(player, player.serverLevel(), player.getMainHandItem(), player.position());
                             System.out.println("CLIENT actual landing="+player.position()+" strict="+biomeTeleportVerified);
                         });
                         return;
@@ -361,8 +365,8 @@ public final class ClientSmokeChecks {
                 }
                 case 22 -> {
                     if (!(mc.screen instanceof ExplorersCompassScreen screen) || !ClientSession.ready()) return;
-                    check(com.chaosthedude.explorerscompass.unified.client.DimensionNames.sorted(ClientSession.dimensions()).get(0).equals(ClientSession.currentDimension()), "current dimension first");
-                    check(com.chaosthedude.explorerscompass.unified.client.DimensionNames.name(ClientSession.currentDimension()).equals("主世界"), "Chinese dimension name");
+                    check(com.david.compass.runtime.game.client.DimensionNames.sorted(ClientSession.dimensions()).get(0).equals(ClientSession.currentDimension()), "current dimension first");
+                    check(com.david.compass.runtime.game.client.DimensionNames.name(ClientSession.currentDimension()).equals("主世界"), "Chinese dimension name");
                     click(screen, "dimensionFilter"); screenshot(mc,"filters-dimension-popup.png");
                     screen.charTyped('x',0); screen.charTyped('j',0); advance(23,5);
                 }
@@ -466,7 +470,7 @@ public final class ClientSmokeChecks {
                     if (!mc.level.dimension().equals(net.minecraft.world.level.Level.NETHER) || !ClientSession.ready()) return;
                     check(ClientSession.canSearch(),"enter selected dimension restores searching");
                     check(ClientSession.biomes().contains(new ResourceLocation("minecraft:crimson_forest")),"catalog remains valid after actual dimension change");
-                    check(com.chaosthedude.explorerscompass.unified.client.DimensionNames.sorted(ClientSession.dimensions()).get(0).equals(mc.level.dimension().location()),"nether now first");
+                    check(com.david.compass.runtime.game.client.DimensionNames.sorted(ClientSession.dimensions()).get(0).equals(mc.level.dimension().location()),"nether now first");
                     var property=net.minecraft.client.renderer.item.ItemProperties.getProperty(ExplorersCompass.explorersCompass,new ResourceLocation("angle"));
                     check(property.call(mc.player.getMainHandItem(),mc.level,mc.player,0)==0F,"wrong dimension needle is suspended");
                     screenshot(mc,"filters-return-dimension.png");

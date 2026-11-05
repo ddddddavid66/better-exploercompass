@@ -1,4 +1,10 @@
-package com.chaosthedude.explorerscompass.unified.search;
+package com.david.compass.runtime.game.search;
+
+import com.david.compass.runtime.game.search.BiomeGenerationContext;
+import com.david.compass.runtime.game.search.BiomeSearch;
+import com.chaosthedude.explorerscompass.unified.creature.search.CreatureChunkPlanner;
+import com.david.compass.runtime.game.search.HabitatSearch;
+import com.david.compass.runtime.game.search.SearchCandidate;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +34,9 @@ class BiomeContextSplitTest {
         }
     }
     private String source(String name) throws Exception {
-        return Files.readString(Path.of("src/main/java/com/chaosthedude/explorerscompass/unified/search/" + name + ".java"));
+        String base=name.equals("CreatureChunkPlanner")
+                ? "modules/creature/src/main/java/com/chaosthedude/explorerscompass/unified/creature/search/"
+                : "modules/runtime/src/main/java/com/david/compass/runtime/game/search/";
+        return Files.readString(Path.of(base+name+".java"));
     }
 }

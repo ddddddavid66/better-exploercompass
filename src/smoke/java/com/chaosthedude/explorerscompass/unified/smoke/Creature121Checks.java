@@ -9,7 +9,7 @@ import com.chaosthedude.explorerscompass.unified.creature.client.CreatureScreen;
 import com.chaosthedude.explorerscompass.unified.creature.search.CreatureIndex;
 import com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch;
 import com.chaosthedude.explorerscompass.unified.creature.search.MobPoint;
-import com.chaosthedude.explorerscompass.unified.search.TeleportService;
+import com.david.compass.runtime.game.search.TeleportService;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;

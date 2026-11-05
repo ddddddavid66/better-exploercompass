@@ -17,8 +17,6 @@ public class ExplorersCompassRegistry {
 		e.register(ForgeRegistries.Keys.ITEMS, helper -> {
 			ExplorersCompass.explorersCompass = new ExplorersCompassItem();
             helper.register(new ResourceLocation(ExplorersCompass.MODID, ExplorersCompassItem.NAME), ExplorersCompass.explorersCompass);
-            com.chaosthedude.explorerscompass.unified.creature.CreatureItem.INSTANCE=new com.chaosthedude.explorerscompass.unified.creature.CreatureItem();
-            helper.register(new ResourceLocation(ExplorersCompass.MODID,"creature_compass"),com.chaosthedude.explorerscompass.unified.creature.CreatureItem.INSTANCE);
         });
 	}
 

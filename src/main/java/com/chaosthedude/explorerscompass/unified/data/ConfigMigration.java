@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.data;
 
+import com.david.compass.runtime.game.data.AtomicFiles;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

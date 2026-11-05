@@ -1,4 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.search;
+
+import com.david.compass.runtime.game.search.VerificationSlots;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class VerificationSlots128Test {

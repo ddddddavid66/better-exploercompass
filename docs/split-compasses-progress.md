@@ -93,3 +93,13 @@ gradlew :runtime:test --offline
 - 两产品通过 `SearchReplacement` 注册服务端替换回调，生物搜索不再加载探险者搜索与娱乐实现。生物日志使用自身 ID；公共采样工厂使用配置快照，线程分片数从公共线程池取得。
 - 17 项落点、配置、群系边界测试及 13 项 runtime 测试通过；烟测源码编译通过（修正旧水面检查反射签名和生境快照参数）。没有运行客户端或服务端烟测。
 - 字节码边界检查记录 `../.analysis/split/landing-boundary-jdeps.*` 是移除最后几条生物直连前的诊断，不是双包验收；下一步按实际类依赖迁移物理模块、Forge 入口和 JarJar。
+
+### 物理模块、候选包与客户端启动
+
+- 公共游戏类迁入 `modules/runtime`、生物类迁入 `modules/creature`，使用不重叠的 Java 包；探险者子工程只编译探险者源码。两个产品的编译类路径只依赖 runtime，不包含另一产品。
+- `RuntimeMod` 接管唯一的服务器 tick、玩家离开、重载、关服以及共享预算配置。探险者和生物各自注册参与者；生物 Forge 入口管理新物品 ID、客户端事件、网络和配置。
+- `assembleSplit` 使用同版本 Forge 重映射输出，检查真实字节码跨产品引用和重叠包，生成各自 `mods.toml`、Mixin 配置/映射与 JarJar 元数据。两包内嵌核心字节完全相同。
+- 当前候选目录 `build/split-candidates`：探险者 669595 B，生物 527918 B，内嵌核心 214716 B；不是正式发布目录。
+- Forge 47.4.18 隔离客户端启动三组通过：只装探险者、只装生物、两者同装。测试探针进入主菜单后检查物品 ID、旧生物 ID 不存在和内嵌核心仅一份，三组退出码均为 0。
+- 原始证据 `../.analysis/split/startup-client-a/*/result.json` 绑定实际两个候选 SHA-256；打包及定向测试日志 `../maintenance/split-candidates-build.log`。
+- 独立服务端安装器联网检查遇到 TLS 握手失败，已改用校验哈希的离线依赖填充。服务端三组、完整整合包功能链、发布文档与交付仍待完成。

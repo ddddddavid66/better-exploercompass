@@ -1,4 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.data;
+
+import com.david.compass.runtime.game.data.CompactPinyin;
 import com.github.promeg.pinyinhelper.Pinyin;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

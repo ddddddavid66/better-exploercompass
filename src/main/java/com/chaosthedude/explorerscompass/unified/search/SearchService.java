@@ -1,5 +1,15 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.BiomeGenerationContext;
+import com.david.compass.runtime.game.search.BiomeQueryFactory;
+import com.david.compass.runtime.game.search.BiomeSearch;
+import com.david.compass.runtime.game.search.GenerationStamp;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.SearchReplacement;
+import com.david.compass.runtime.game.search.TeleportService;
+
 import com.david.compass.runtime.BudgetedSearchScheduler;
 
 import com.chaosthedude.explorerscompass.ExplorersCompass;
@@ -163,7 +173,7 @@ public final class SearchService {
         begin(session);
         SearchRules.charge(player, costKey);
         long used=System.nanoTime()-before;
-        job.requestPreparation+=used;job.mainNanos+=used;pendingPreparationNanos+=used;
+        job.recordRequestPreparation(used);pendingPreparationNanos+=used;
         return true;
     }
 
@@ -232,7 +242,7 @@ public final class SearchService {
         if(request!=null)request.queryPlan=plan;
         Session session=new Session(player,stack,key,job);session.startedNanos=before;session.startedAt=beforeMillis;session.queryPlan=plan;
         session.request=request;session.travel=request!=null;if(request!=null)request.attach(session);begin(session);
-        long used=System.nanoTime()-before;job.requestPreparation+=used;job.mainNanos+=used;pendingPreparationNanos+=used;
+        long used=System.nanoTime()-before;job.recordRequestPreparation(used);pendingPreparationNanos+=used;
         return true;
     }
     /** 服务端唯一请求句柄：终态独立于空候选，取消必须匹配原会话。 */
@@ -261,9 +271,9 @@ public final class SearchService {
         public long elapsed(){return session==null?0:System.nanoTime()-session.startedNanos;}
         public long samples(){return session==null?0:session.priorSamples+session.job.samples();}
         public CompoundTag failureDetails(){return session==null?new CompoundTag():session.failureDetails.isEmpty()?SearchFailureDetails.snapshot(session.level,session.job,session.requested,session.exceptions):session.failureDetails.copy();}
-        public BlockPos origin(){return session==null?null:session.job.start;}
-        public String plan(){return session==null?reason:session.job.start+";source="+session.level.getChunkSource().getGenerator().getBiomeSource().getClass().getName()
-                +";mode="+session.job.mode()+";radius="+session.job.radius+";"+(session.job instanceof BiomeSearch biome?biome.samplingPlan():"");}
+        public BlockPos origin(){return session==null?null:session.job.origin();}
+        public String plan(){return session==null?reason:session.job.origin()+";source="+session.level.getChunkSource().getGenerator().getBiomeSource().getClass().getName()
+                +";mode="+session.job.mode()+";radius="+session.job.radius()+";"+(session.job instanceof BiomeSearch biome?biome.samplingPlan():"");}
         public void cancel(String why){if(state()==State.RUNNING && sessions.get(session.player.getUUID())==session)SearchService.cancel(session.player,true,why);}
         public static boolean expired(State state,long elapsed){return state==State.RUNNING && elapsed>40_000_000_000L;}
     }
@@ -402,7 +412,7 @@ public final class SearchService {
         };
     }
     private static void fail(Session session) {
-        ExplorersCompass.explorersCompass.setNotFound(session.stack, session.job.radius, session.job.legacySamples());
+        ExplorersCompass.explorersCompass.setNotFound(session.stack, session.job.radius(), session.job.legacySamples());
     }
     private static void status(Session session) {
         session.lastSamples = session.job.samples();
@@ -425,7 +435,7 @@ public final class SearchService {
         data.putString("dimension",session.level.dimension().location().toString());
         if (session.job instanceof EndDungeonSearch || session.job instanceof GoldenCrateSearch) data.putString("targetImplementation","feature");
         data.putString("requestKind",session.travel?"entertainment":session.next?"next":session.group?"group":"normal");
-        data.putIntArray("origin",new int[]{session.job.start.getX(),session.job.start.getY(),session.job.start.getZ()});
+        data.putIntArray("origin",new int[]{session.job.origin().getX(),session.job.origin().getY(),session.job.origin().getZ()});
         var targets=new net.minecraft.nbt.ListTag();for(var key:session.requested)targets.add(net.minecraft.nbt.StringTag.valueOf(key.toString()));
         data.put("targets",targets);data.putString("mode",session.job.mode());
         if(terminal) {
@@ -472,12 +482,14 @@ public final class SearchService {
         }
     }
     public static void stopAll() {
+        clearProduct();TeleportService.clear();BiomeGenerationContext.clearSharedState();
+    }
+    static void clearProduct() {
         pendingPreparationNanos=0;
-        TeleportService.clear();
         for (Session session : List.copyOf(sessions.values())) cancel(session.player, true);
         WorldgenCache.clear(); EndDungeonAdapter.clear(); EndDungeonIndex.clearRuntime(); GoldenCrateAdapter.clear(); GoldenCrateIndex.clearRuntime();
     }
-    public static void shutdown() { stopAll(); TeleportService.shutdown(); biomeHistory.clear(); structureHistory.clear(); featureHistory.clear(); TeleportEvents.clear(); SearchPool.shutdown(); VerificationSlots.reset(); cursor = 0; }
+    public static void shutdown() { clearProduct(); biomeHistory.clear(); structureHistory.clear(); featureHistory.clear(); TeleportEvents.clear(); cursor = 0; }
     public static boolean isBiome(ItemStack stack) { return stack.getTag() != null && "biome".equals(stack.getTag().getString(KIND)); }
     public static UUID token(ItemStack stack) { return stack.getTag() != null && stack.getTag().hasUUID(TOKEN) ? stack.getTag().getUUID(TOKEN) : null; }
     public static boolean owns(ServerPlayer player, ItemStack stack) { var session = sessions.get(player.getUUID()); return session != null && session.stack == stack && session.valid(); }

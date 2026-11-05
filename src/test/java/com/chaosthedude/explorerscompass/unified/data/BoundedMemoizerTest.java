@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.data;
 
+import com.david.compass.runtime.game.data.BoundedMemoizer;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;

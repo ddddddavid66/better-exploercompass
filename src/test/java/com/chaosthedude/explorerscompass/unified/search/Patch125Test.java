@@ -1,6 +1,10 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
-import com.chaosthedude.explorerscompass.unified.data.PatchConnectivity;
+import com.david.compass.runtime.game.search.RectFrontier;
+import com.david.compass.runtime.game.search.SamplingBudget;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+
+import com.chaosthedude.explorerscompass.unified.creature.data.PatchConnectivity;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.Test;

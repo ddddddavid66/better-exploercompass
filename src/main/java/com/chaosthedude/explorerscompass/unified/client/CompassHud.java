@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.client;
 
+import com.david.compass.runtime.game.client.DimensionNames;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.util.*;

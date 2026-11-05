@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.network;
 
+import com.david.compass.runtime.game.data.WorldDirectory;
+
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -26,7 +28,7 @@ public final class CatalogService {
     private record Cost(Pattern pattern, int amount) {}
     private static final Map<MinecraftServer, Snapshot> CACHE = new IdentityHashMap<>();
     private CatalogService() {}
-    public static void clear() { CACHE.clear(); com.chaosthedude.explorerscompass.unified.data.WorldDirectory.clear(); }
+    public static void clear() { CACHE.clear(); }
     private static Pattern pattern(String glob) {
         return Pattern.compile(Pattern.quote(glob).replace("*", "\\E.*\\Q").replace("?", "\\E.\\Q"));
     }
@@ -83,7 +85,7 @@ public final class CatalogService {
         if (endFeature && mapping.containsKey(featureKey)) groups.put(featureKey, featureKey);
         if (crateFeature && mapping.containsKey(crateKey)) groups.put(crateKey,crateKey);
         mapping.keySet().forEach(id -> groups.putIfAbsent(id, new ResourceLocation("explorerscompass:none")));
-        var world = com.chaosthedude.explorerscompass.unified.data.WorldDirectory.get(level.getServer());
+        var world = com.david.compass.runtime.game.data.WorldDirectory.get(level.getServer());
         Map<ResourceLocation, Set<ResourceLocation>> dimensionStructures = new LinkedHashMap<>();
         for (ServerLevel dimension : level.getServer().getAllLevels()) {
             var dimensionId = dimension.dimension().location();

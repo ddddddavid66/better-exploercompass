@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.data;
 
+import com.david.compass.runtime.game.data.LandingColumns;
+
 import java.util.HashSet;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

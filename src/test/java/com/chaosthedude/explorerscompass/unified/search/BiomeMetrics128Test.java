@@ -1,7 +1,9 @@
-package com.chaosthedude.explorerscompass.unified.search;
+package com.david.compass.runtime.game.search;
+
+import com.david.compass.runtime.game.search.BiomeSamplingMetrics;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-import com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer;
+import com.david.compass.runtime.game.data.BoundedMemoizer;
 class BiomeMetrics128Test {
  @Test void onlyBatchPublicationChangesObservedCounters(){
   var m=new BiomeSamplingMetrics();for(int i=0;i<4096;i++)m.sourceCall.run();m.originHits=7;m.columns=3;

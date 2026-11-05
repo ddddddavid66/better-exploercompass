@@ -1,4 +1,8 @@
-package com.chaosthedude.explorerscompass.unified.search;
+package com.david.compass.runtime.game.search;
+
+import com.david.compass.runtime.game.search.BiomeColumnLane;
+import com.david.compass.runtime.game.search.RectFrontier;
+import com.david.compass.runtime.game.search.SamplingBudget;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.HashSet;

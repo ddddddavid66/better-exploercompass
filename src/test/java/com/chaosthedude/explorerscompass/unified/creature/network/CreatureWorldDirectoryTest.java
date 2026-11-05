@@ -5,7 +5,7 @@ import java.nio.file.*;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import com.chaosthedude.explorerscompass.unified.data.WorldDirectory;
+import com.david.compass.runtime.game.data.WorldDirectory;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -46,11 +46,11 @@ class CreatureWorldDirectoryTest {
         } finally {buffer.release();}
     }
     @Test void creatureClientAndNetworkNoLongerLoadExplorerDirectory() throws Exception {
-        var root=Path.of("src/main/java/com/chaosthedude/explorerscompass/unified");
+        var root=Path.of("modules/creature/src/main/java/com/chaosthedude/explorerscompass/unified");
         for(var path:List.of(root.resolve("creature/client/CreatureClient.java"),root.resolve("creature/client/CreatureScreen.java"),root.resolve("creature/network/CreatureNetwork.java"))) {
             var text=Files.readString(path);assertFalse(text.contains("ClientSession"));assertFalse(text.contains("UnifiedNetwork"));
         }
-        var directory=Files.readString(root.resolve("data/WorldDirectory.java"));
+        var directory=Files.readString(Path.of("modules/runtime/src/main/java/com/david/compass/runtime/game/data/WorldDirectory.java"));
         assertFalse(directory.contains("Registries.STRUCTURE"));assertFalse(directory.contains("ensureStructuresGenerated"));
         assertFalse(directory.contains("ConfigHandler"));
     }

@@ -1,5 +1,9 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.BiomeGenerationContext;
+import com.david.compass.runtime.game.data.BoundedMemoizer;
+import com.david.compass.runtime.game.search.SearchCandidate;
+
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.List;
@@ -23,8 +27,8 @@ final class WorldgenCache {
         Prediction(net.minecraft.core.BlockPos point){this.point=point;}
         net.minecraft.core.BlockPos point(){return point;}
     }
-    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<PredictionKey, Prediction> predictions =
-            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
+    private final com.david.compass.runtime.game.data.BoundedMemoizer<PredictionKey, Prediction> predictions =
+            new com.david.compass.runtime.game.data.BoundedMemoizer<>(32_768);
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, StartPrediction> dungeons = new IdentityHashMap<>();
     private final Map<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement,Boolean> regionPolicies=new IdentityHashMap<>();
@@ -53,8 +57,8 @@ final class WorldgenCache {
         }
     }
     // 仅保存结构前缀；群系完整结果由公共群系上下文独立管理。
-    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<List<?>,Prefix> prefixes=
-            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
+    private final com.david.compass.runtime.game.data.BoundedMemoizer<List<?>,Prefix> prefixes=
+            new com.david.compass.runtime.game.data.BoundedMemoizer<>(256);
     private static final class PlanKey {
         final List<net.minecraft.resources.ResourceLocation> keys;final boolean compatible;
         PlanKey(List<net.minecraft.resources.ResourceLocation> keys,boolean compatible){this.keys=keys;this.compatible=compatible;}
@@ -64,11 +68,11 @@ final class WorldgenCache {
         }
         @Override public int hashCode() { return 31*keys.hashCode()+(compatible?1:0); }
     }
-    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<PlanKey,List<StructureSearch.Group>> plans =
-            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
+    private final com.david.compass.runtime.game.data.BoundedMemoizer<PlanKey,List<StructureSearch.Group>> plans =
+            new com.david.compass.runtime.game.data.BoundedMemoizer<>(256);
     // 少量近期位置只作为下次请求的提示；每次使用仍检查真实结构记录。
-    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
-            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
+    private final com.david.compass.runtime.game.data.BoundedMemoizer<Structure, SearchCandidate> hints =
+            new com.david.compass.runtime.game.data.BoundedMemoizer<>(256);
     private WorldgenCache(ServerLevel level) {
         biomes=BiomeGenerationContext.get(level);
         this.level=level;
@@ -119,5 +123,5 @@ final class WorldgenCache {
             }
         }).point();
     }
-    static void clear() { WORLDS.clear(); BiomeGenerationContext.clearSharedState(); }
+    static void clear() { WORLDS.clear(); }
 }

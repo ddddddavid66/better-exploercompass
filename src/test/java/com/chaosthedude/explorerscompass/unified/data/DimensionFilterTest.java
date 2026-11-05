@@ -1,5 +1,8 @@
 package com.chaosthedude.explorerscompass.unified.data;
 
+import com.david.compass.runtime.game.data.LocalizedNames;
+import com.david.compass.runtime.game.data.SearchText;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

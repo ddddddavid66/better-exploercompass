@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.client;
 
+import com.david.compass.runtime.game.client.DimensionNames;
+
 import com.chaosthedude.explorerscompass.unified.data.FailureReportText;
 import com.chaosthedude.explorerscompass.unified.network.SearchLifecyclePacket;
 import com.chaosthedude.explorerscompass.util.StructureUtils;

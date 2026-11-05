@@ -1,5 +1,8 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.BiomeSourceSafety;
+import com.david.compass.runtime.game.search.SearchJob;
+
 import com.chaosthedude.explorerscompass.unified.data.FailureReportText;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.registries.Registries;
@@ -15,7 +18,7 @@ final class SearchFailureDetails {
         tag.putLong("samples",job.samples());tag.putLong("candidates",job.candidates());tag.putInt("checks",job.confirmations);tag.putInt("chunkRequests",job.chunkLoads);
         tag.putLong("mainNanos",job.mainNanos);tag.putLong("workerNanos",job.workerNanos());
         tag.putLong("preparationNanos",job.preparationNanos());tag.putLong("confirmationNanos",job.confirmationNanos());tag.putLong("waitingNanos",job.waitingNanos());
-        tag.putInt("radius",job.radius);tag.putLong("sampleLimit",job.sampleLimit());
+        tag.putInt("radius",job.radius());tag.putLong("sampleLimit",job.sampleLimit());
         tag.putString("generator",level.getChunkSource().getGenerator().getClass().getName());
         tag.putString("biomeSource",level.getChunkSource().getGenerator().getBiomeSource().getClass().getName());
         tag.putString("diagnostics",FailureReportText.clean(job.diagnostics()+"; source_audit="+BiomeSourceSafety.prepare(level),6000));

@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.data;
 
+import com.david.compass.runtime.game.data.SearchText;
+
 import com.chaosthedude.explorerscompass.unified.creature.search.*;
 import com.chaosthedude.explorerscompass.unified.creature.catalog.CreatureEntry;
 import java.util.*;

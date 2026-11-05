@@ -1,11 +1,18 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.chaosthedude.explorerscompass.unified.creature.search.CreatureHabitats;
+import com.chaosthedude.explorerscompass.unified.creature.search.CreatureLanding;
+import com.david.compass.runtime.game.search.LocatorTarget;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.TeleportService;
+import com.david.compass.runtime.game.search.VerificationSlots;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.unified.creature.CreatureItem;
 import com.chaosthedude.explorerscompass.unified.creature.client.*;
 import com.chaosthedude.explorerscompass.unified.creature.search.*;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import com.chaosthedude.explorerscompass.unified.search.*;
 import com.chaosthedude.explorerscompass.util.CompassState;
 import java.nio.file.*;

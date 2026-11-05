@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.game.search.SamplingBudget;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.Test;

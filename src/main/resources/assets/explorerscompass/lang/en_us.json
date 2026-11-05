@@ -199,7 +199,7 @@
   "entertainment.timeout_limit": "Five real timeouts for this biome; stopping and returning.",
   "entertainment.excluded": "Excluded by active generation: %s (%s)",
   "entertainment.unresolved": "Unresolved: %s (%s)",
-  "item.explorerscompass.creature_compass": "Creature Locator Compass",
+  "item.creaturecompass.creature_compass": "Creature Locator Compass",
   "entertainment.range_failed": "Biome not found within the fourfold radius. Travel stopped.",
   "entertainment.search_failed": "Biome search stopped. See the incomplete target and reason.",
   "filters.teleport_reason_height_probe": "Checking target biome height",

@@ -2,7 +2,7 @@ package com.chaosthedude.explorerscompass.unified.entertainment;
 
 import com.chaosthedude.explorerscompass.gui.TransparentButton;
 import com.chaosthedude.explorerscompass.unified.client.PopupLayer;
-import com.chaosthedude.explorerscompass.unified.data.SearchText;
+import com.david.compass.runtime.game.data.SearchText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;

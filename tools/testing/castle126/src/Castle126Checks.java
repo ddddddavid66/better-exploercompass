@@ -1,4 +1,8 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
+
+import com.david.compass.runtime.game.mixin.ChunkMapAccessor;
+import com.david.compass.runtime.game.search.TeleportService;
+import com.david.compass.runtime.game.search.VerificationSlots;
 import com.chaosthedude.explorerscompass.unified.search.*;
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.network.CatalogService;
@@ -75,7 +79,7 @@ public final class Castle126Checks {
    // 使用搜索已经完成的地物阶段区块，不同步加载其他区域。
    // 找到与最近性证明结束之间，候选可能正常卸载；验收自身也应非阻塞重新准备。
    if(verifying==null){verifying=pos;verificationBegin=System.nanoTime();TeleportService.cancel(p.getUUID());p.serverLevel().getChunkSource().chunkMap.getDistanceManager().addTicket(VERIFY,new ChunkPos(pos),net.minecraft.server.level.ChunkLevel.byStatus(net.minecraft.world.level.chunk.ChunkStatus.FEATURES),verifyId);return;}
-   var holder=((com.chaosthedude.explorerscompass.unified.mixin.ChunkMapAccessor)p.serverLevel().getChunkSource().chunkMap).unified$getUpdatingChunkIfPresent(new ChunkPos(pos).toLong());
+   var holder=((com.david.compass.runtime.game.mixin.ChunkMapAccessor)p.serverLevel().getChunkSource().chunkMap).unified$getUpdatingChunkIfPresent(new ChunkPos(pos).toLong());
    check(System.nanoTime()-verificationBegin<60_000_000_000L,"test result chunk reload deadline");
    if(holder==null || holder.getTicketLevel()>net.minecraft.server.level.ChunkLevel.byStatus(net.minecraft.world.level.chunk.ChunkStatus.FEATURES))return;
    var ready=holder.getOrScheduleFuture(net.minecraft.world.level.chunk.ChunkStatus.FEATURES,p.serverLevel().getChunkSource().chunkMap).getNow(null);

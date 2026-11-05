@@ -1,7 +1,10 @@
 package com.chaosthedude.explorerscompass.unified.client;
 
+import com.david.compass.runtime.game.client.BiomeNames;
+import com.david.compass.runtime.game.client.DimensionNames;
+
 import com.chaosthedude.explorerscompass.gui.TransparentButton;
-import com.chaosthedude.explorerscompass.unified.data.SearchText;
+import com.david.compass.runtime.game.data.SearchText;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

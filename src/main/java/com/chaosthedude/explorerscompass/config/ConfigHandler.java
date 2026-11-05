@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.config;
 
+import com.david.compass.runtime.game.data.LandingMode;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,7 +65,7 @@ public class ConfigHandler {
         public final ForgeConfigSpec.IntValue creatureRounds;
         public final ForgeConfigSpec.BooleanValue creatureDots;
         public final ForgeConfigSpec.ConfigValue<String> creatureDimension,creatureBiome;
-        public final ForgeConfigSpec.EnumValue<com.chaosthedude.explorerscompass.unified.data.LandingMode> landingMode;
+        public final ForgeConfigSpec.EnumValue<com.david.compass.runtime.game.data.LandingMode> landingMode;
         public final ForgeConfigSpec.BooleanValue searchLogEnabled;
 		public final ForgeConfigSpec.BooleanValue displayWithChatOpen;
 		public final ForgeConfigSpec.BooleanValue translateStructureNames;
@@ -76,7 +78,7 @@ public class ConfigHandler {
             creatureDimension=builder.define("creatureDimension","");creatureBiome=builder.define("creatureBiome","");
 			String desc;
 			builder.push("Client");
-            landingMode = builder.comment("Default two-stage, strict-only, or immediate relaxed landing.").defineEnum("landingMode", com.chaosthedude.explorerscompass.unified.data.LandingMode.DEFAULT);
+            landingMode = builder.comment("Default two-stage, strict-only, or immediate relaxed landing.").defineEnum("landingMode", com.david.compass.runtime.game.data.LandingMode.DEFAULT);
             searchLogEnabled = builder.comment("Local search history; controlled by /david log open|close.").define("searchLogEnabled", false);
 
 			desc = "Displays Explorer's Compass information on the HUD even while chat is open.";

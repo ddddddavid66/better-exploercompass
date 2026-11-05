@@ -1,5 +1,9 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.AlexBiomeScope;
+import com.david.compass.runtime.game.search.BiomeQueryFactory;
+import com.david.compass.runtime.game.search.SearchJob;
+
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.unified.creature.CreatureItem;
 import com.chaosthedude.explorerscompass.unified.creature.client.*;

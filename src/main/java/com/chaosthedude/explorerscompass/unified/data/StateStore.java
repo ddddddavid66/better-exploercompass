@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.data;
 
+import com.david.compass.runtime.game.data.AtomicFiles;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.IOException;

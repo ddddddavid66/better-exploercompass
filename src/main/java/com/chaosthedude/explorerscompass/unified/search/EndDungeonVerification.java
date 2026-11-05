@@ -1,6 +1,10 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
-import com.chaosthedude.explorerscompass.unified.mixin.ChunkMapAccessor;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.VerificationSlots;
+
+import com.david.compass.runtime.game.mixin.ChunkMapAccessor;
 import java.util.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.*;

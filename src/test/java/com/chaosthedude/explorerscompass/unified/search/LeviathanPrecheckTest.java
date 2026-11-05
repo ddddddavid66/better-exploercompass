@@ -1,6 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
-import com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer;
+import com.david.compass.runtime.game.data.BoundedMemoizer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;

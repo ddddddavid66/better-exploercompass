@@ -1,4 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.client;
+
+import com.david.compass.runtime.game.data.LandingMode;
 import com.chaosthedude.explorerscompass.unified.network.TeleportStatusPacket;
 import com.chaosthedude.explorerscompass.unified.search.SearchService;
 import java.util.*;
@@ -29,7 +31,7 @@ public final class LandingClientState {
         if(System.nanoTime()-entry.received>30_000_000_000L){states.remove(token);return null;}
         return entry.packet.state();
     }
-    public static boolean fallback(ItemStack stack) {var s=state(stack);return com.chaosthedude.explorerscompass.config.ConfigHandler.CLIENT.landingMode.get()==com.chaosthedude.explorerscompass.unified.data.LandingMode.DEFAULT && (s==TeleportStatusPacket.State.NEEDS_CONFIRMATION || s==TeleportStatusPacket.State.FAILED_RETRYABLE);}
+    public static boolean fallback(ItemStack stack) {var s=state(stack);return com.chaosthedude.explorerscompass.config.ConfigHandler.CLIENT.landingMode.get()==com.david.compass.runtime.game.data.LandingMode.DEFAULT && (s==TeleportStatusPacket.State.NEEDS_CONFIRMATION || s==TeleportStatusPacket.State.FAILED_RETRYABLE);}
     public static net.minecraft.network.chat.Component preparing(ItemStack stack) {
         var entry=states.get(SearchService.token(stack));
         return net.minecraft.network.chat.Component.translatable("filters.teleport_reason_"+(entry==null?"checking":entry.packet.reason()));

@@ -1,5 +1,9 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.SearchPool;
+
 import com.chaosthedude.explorerscompass.unified.search.*;
 
 import com.mojang.serialization.JsonOps;

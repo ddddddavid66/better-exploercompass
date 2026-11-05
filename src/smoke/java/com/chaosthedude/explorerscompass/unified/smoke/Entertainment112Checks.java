@@ -3,7 +3,7 @@ package com.chaosthedude.explorerscompass.unified.smoke;
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.gui.ExplorersCompassScreen;
 import com.chaosthedude.explorerscompass.unified.entertainment.*;
-import com.chaosthedude.explorerscompass.unified.search.TeleportService;
+import com.david.compass.runtime.game.search.TeleportService;
 import java.nio.file.*;
 import java.util.*;
 import net.minecraft.client.*;

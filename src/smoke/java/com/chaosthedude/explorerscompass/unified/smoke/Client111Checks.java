@@ -1,8 +1,10 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
 
+import com.david.compass.runtime.game.search.TeleportService;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.search.*;
-import com.chaosthedude.explorerscompass.unified.data.LandingMode;
+import com.david.compass.runtime.game.data.LandingMode;
 import com.chaosthedude.explorerscompass.unified.client.LandingClientState;
 import com.chaosthedude.explorerscompass.unified.network.*;
 import com.chaosthedude.explorerscompass.util.CompassState;

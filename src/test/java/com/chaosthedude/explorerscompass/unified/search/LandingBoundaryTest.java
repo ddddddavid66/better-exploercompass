@@ -1,5 +1,8 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.chaosthedude.explorerscompass.unified.creature.search.CreatureLanding;
+import com.david.compass.runtime.game.search.TeleportService;
+
 import java.nio.file.*;
 import java.util.Arrays;
 import java.util.List;
@@ -19,7 +22,7 @@ class LandingBoundaryTest {
                 Arrays.stream(TeleportService.State.values()).map(Enum::name).toArray());
     }
     @Test void coreLandingPathsDoNotReferenceProductServices() throws Exception {
-        var root=Path.of("src/main/java/com/chaosthedude/explorerscompass/unified/search");
+        var root=Path.of("modules/runtime/src/main/java/com/david/compass/runtime/game/search");
         for(String file:List.of("TeleportService","LandingChecks","AetherHeightProbe","LandingSafety")) {
             String source=Files.readString(root.resolve(file+".java"));
             for(String forbidden:List.of("ExplorersCompass.","SearchService.","ConfigHandler.","TeleportStatusPacket",

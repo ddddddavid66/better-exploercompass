@@ -1,6 +1,12 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
-import com.chaosthedude.explorerscompass.unified.mixin.ChunkMapAccessor;
+import com.david.compass.runtime.game.search.GenerationStamp;
+import com.david.compass.runtime.game.search.ScanCoordinator;
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.VerificationSlots;
+
+import com.david.compass.runtime.game.mixin.ChunkMapAccessor;
 import com.chaosthedude.explorerscompass.unified.mixin.StructureCheckAccessor;
 import com.chaosthedude.explorerscompass.unified.mixin.StructureManagerAccessor;
 import com.mojang.datafixers.util.Either;

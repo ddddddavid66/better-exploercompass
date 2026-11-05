@@ -1,4 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.search;
+
+import com.david.compass.runtime.game.search.ScanCoordinator;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.Test;

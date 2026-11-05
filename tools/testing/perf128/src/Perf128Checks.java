@@ -1,7 +1,13 @@
 package com.chaosthedude.explorerscompass.unified.smoke;
+
+import com.david.compass.runtime.game.search.ScanCoordinator;
+import com.david.compass.runtime.game.search.SearchCandidate;
+import com.david.compass.runtime.game.search.SearchJob;
+import com.david.compass.runtime.game.search.TeleportService;
+import com.david.compass.runtime.game.search.VerificationSlots;
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.search.*;
-import com.chaosthedude.explorerscompass.unified.mixin.ChunkMapAccessor;
+import com.david.compass.runtime.game.mixin.ChunkMapAccessor;
 import com.google.gson.JsonObject;
 import java.util.*;
 import java.nio.file.*;
