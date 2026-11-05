@@ -6,3 +6,7 @@ pluginManagement {
     }
 }
 rootProject.name = 'explorerscompass-unified'
+include 'runtime', 'explorer', 'creature'
+project(':runtime').projectDir = file('modules/runtime')
+project(':explorer').projectDir = file('modules/explorer')
+project(':creature').projectDir = file('modules/creature')
