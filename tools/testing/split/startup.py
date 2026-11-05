@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shutil
+import shlex
 import subprocess
 import time
 from pathlib import Path
@@ -32,7 +33,7 @@ def write_arguments(path, values):
     path.write_text("\n".join(map(quote, values)) + "\n", encoding="gbk" if os.name == "nt" else "utf-8")
 
 
-def run(launcher, candidates, probe, folder, mode, timeout):
+def run(launcher, candidates, probe, folder, mode, timeout, side):
     instance = folder / mode
     instance.mkdir()
     mods = instance / "mods"
@@ -44,11 +45,18 @@ def run(launcher, candidates, probe, folder, mode, timeout):
         jars.append(candidates / "CreatureCompass-1.20.1-forge-1.0.0.jar")
     for jar in jars:
         shutil.copy2(jar, mods / jar.name)
-    (instance / "options.txt").write_text("onboardAccessibility:false\nfullscreen:false\n", encoding="utf-8")
+    if side == "client":
+        (instance / "options.txt").write_text("onboardAccessibility:false\nfullscreen:false\n", encoding="utf-8")
+        launch_args = client_arguments(launcher["args"], instance)
+    else:
+        (instance / "eula.txt").write_text("eula=true\n", encoding="ascii")
+        (instance / "server.properties").write_text("server-ip=127.0.0.1\nserver-port=0\nlevel-type=minecraft:flat\n"
+                                                     "view-distance=2\nsimulation-distance=2\n", encoding="ascii")
+        launch_args = launcher["args"] + ["nogui"]
     receipt = instance / "split-startup.txt"
     args = instance / "launch.args"
     write_arguments(args, [f"-Dcompass.split.expected={mode}", "-Dcompass.split.report=split-startup.txt"]
-                    + client_arguments(launcher["args"], instance))
+                    + launch_args)
     start = time.monotonic()
     with (instance / "console.log").open("wb") as log:
         process = subprocess.Popen([launcher["java"], "@" + str(args)], cwd=instance, stdout=log,
@@ -60,7 +68,7 @@ def run(launcher, candidates, probe, folder, mode, timeout):
             process.terminate()
             process.wait(timeout=20)
     text = receipt.read_text(encoding="utf-8") if receipt.exists() else ""
-    result = {"mode": mode, "side": "client", "pass": process.returncode == 0 and text.startswith("PASS\n"),
+    result = {"mode": mode, "side": side, "pass": process.returncode == 0 and text.startswith("PASS\n"),
               "receipt": text, "exit_code": process.returncode, "wall_seconds": round(time.monotonic() - start, 2),
               "sha256": {jar.name: hashlib.sha256(jar.read_bytes()).hexdigest() for jar in jars}}
     (instance / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
@@ -76,11 +84,21 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("modes", nargs="+", choices=["explorer", "creature", "both"])
     parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--server-args", type=Path)
+    parser.add_argument("--server-libraries", type=Path)
     args = parser.parse_args()
     launcher = json.loads(args.launcher.read_text(encoding="utf-8"))
+    side = "dedicated" if args.server_args else "client"
+    if args.server_args:
+        if not args.server_libraries:
+            parser.error("--server-libraries is required for the dedicated launcher")
+        libraries = args.server_libraries.resolve().as_posix()
+        original = shlex.split(args.server_args.read_text(encoding="utf-8"))
+        launcher["args"] = [f"-DlibraryDirectory={libraries}" if token == "-DlibraryDirectory=libraries"
+                            else token.replace("libraries/", libraries + "/") for token in original]
     folder = args.output.resolve()
     folder.mkdir(parents=True, exist_ok=False)
-    success = [run(launcher, args.candidates.resolve(), args.probe.resolve(), folder, mode, args.timeout)
+    success = [run(launcher, args.candidates.resolve(), args.probe.resolve(), folder, mode, args.timeout, side)
                for mode in args.modes]
     return 0 if all(success) else 1
 
