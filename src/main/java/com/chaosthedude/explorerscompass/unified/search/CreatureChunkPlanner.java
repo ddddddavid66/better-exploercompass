@@ -28,7 +28,7 @@ public final class CreatureChunkPlanner {
         private List<ChunkPos> result;
         private Set<Long> covered=Set.of();
         private String kind="unknown";
-        private Plan(ServerLevel level,BlockPos anchor,int count,Set<Long> excluded,BlockPos origin,int radius,ResourceLocation target,Set<ResourceLocation> habitats){
+        private Plan(ServerLevel level,BlockPos anchor,int count,Set<Long> excluded,BlockPos origin,int radius,ResourceLocation target,Set<ResourceLocation> habitats,com.david.compass.runtime.SearchParameters settings){
             this.anchor=anchor;this.origin=origin;this.count=count;this.radius=radius;this.excluded=Set.copyOf(excluded);
             cx=anchor.getX()>>4;cz=anchor.getZ()>>4;background=BiomeSourceSafety.prepare(level).allowed();
             feature=CreatureHabitats.get(level,target).feature();occupied=feature?GeneratedChunkHints.read(level,cx,cz):java.util.concurrent.CompletableFuture.completedFuture(Set.of());
@@ -36,7 +36,7 @@ public final class CreatureChunkPlanner {
             allowed=Collections.newSetFromMap(new IdentityHashMap<>());var registry=level.registryAccess().registryOrThrow(Registries.BIOME);
             habitats.forEach(id->{var biome=registry.get(id);if(biome!=null)allowed.add(biome);});
             var hs=new LinkedHashSet<Integer>();hs.add(anchor.getY());
-            if(!habitats.isEmpty())hs.addAll(BiomeQueryFactory.prepare(level,anchor,habitats.stream().sorted().findFirst().orElseThrow()).profile().heights());
+            if(!habitats.isEmpty())hs.addAll(BiomeQueryFactory.prepare(level,anchor,habitats.stream().sorted().findFirst().orElseThrow(),settings).profile().heights());
             heights=List.copyOf(hs);var ready=new HashSet<Long>();
             for(int x=cx-4;x<=cx+4;x++)for(int z=cz-4;z<=cz+4;z++)if(level.getChunkSource().getChunkNow(x,z)!=null)ready.add(ChunkPos.asLong(x,z));
             loaded=Set.copyOf(ready);
@@ -75,7 +75,7 @@ public final class CreatureChunkPlanner {
         }
     }
     private CreatureChunkPlanner(){}
-    public static Plan prepare(ServerLevel level,BlockPos anchor,int count,Set<Long> excluded,BlockPos origin,int radius,ResourceLocation target,Set<ResourceLocation> habitats){
-        return new Plan(level,anchor,count,excluded,origin,radius,target,habitats);
+    public static Plan prepare(ServerLevel level,BlockPos anchor,int count,Set<Long> excluded,BlockPos origin,int radius,ResourceLocation target,Set<ResourceLocation> habitats,com.david.compass.runtime.SearchParameters settings){
+        return new Plan(level,anchor,count,excluded,origin,radius,target,habitats,settings);
     }
 }

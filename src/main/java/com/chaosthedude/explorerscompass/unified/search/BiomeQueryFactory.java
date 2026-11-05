@@ -26,20 +26,24 @@ public final class BiomeQueryFactory {
     }
     private BiomeQueryFactory() {}
     public static SearchJob habitats(ServerLevel level,BlockPos origin,java.util.Set<ResourceLocation> targets,
-                                    java.util.Set<Long> excluded,int radius,long quota,boolean async) {
+                                    java.util.Set<Long> excluded,int radius,long quota,boolean async,com.david.compass.runtime.SearchParameters settings) {
         var target=targets.stream().sorted().findFirst().orElseThrow();
-        var plan=prepare(level,origin,target);
+        var plan=prepare(level,origin,target,settings);
         return new HabitatSearch(level,origin,targets,excluded,radius,quota,async,plan.profile);
     }
     public static Plan prepare(ServerLevel level,BlockPos origin,ResourceLocation target) {
+        return prepare(level,origin,target,new com.david.compass.runtime.SearchParameters(SearchConfig.RADIUS.get(),
+                SearchConfig.BIOME_SAMPLES.get(),SearchConfig.SPACING.get(),SearchConfig.VERTICAL.get(),SearchConfig.DEPTH_INTERVAL.get(),SearchConfig.ASYNC_BIOMES.get()));
+    }
+    public static Plan prepare(ServerLevel level,BlockPos origin,ResourceLocation target,com.david.compass.runtime.SearchParameters settings) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("群系计划只能在服务端线程准备");
         BiomeSourceSafety.prepare(level);
-        int spacing=SearchConfig.SPACING.get(),interval=SearchConfig.DEPTH_INTERVAL.get();
+        int spacing=settings.horizontalSpacing(),interval=settings.depthInterval();
         BiomeSamplingProfile profile;
         if(level.dimension().location().toString().equals("aether:the_aether")) {
             var hint=AetherSamplingHints.prepare(level,target,origin.getY());
             profile=BiomeSamplingProfile.aether(level.getMinBuildHeight(),level.getMaxBuildHeight(),origin.getY(),spacing,interval,hint.height(),hint.evidence());
-        } else profile=BiomeSamplingProfile.legacy(level.getMinBuildHeight(),level.getMaxBuildHeight(),origin.getY(),spacing,SearchConfig.VERTICAL.get(),interval);
+        } else profile=BiomeSamplingProfile.legacy(level.getMinBuildHeight(),level.getMaxBuildHeight(),origin.getY(),spacing,settings.verticalSpacing(),interval);
         return new Plan(level,origin,target,profile);
     }
     public static SearchJob create(Plan plan,List<BlockPos> excluded,int radius,long configuredQuota,boolean async,boolean exact,int innerRadius) {

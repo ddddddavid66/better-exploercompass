@@ -46,7 +46,7 @@ public final class Creature122Checks {
                     p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(CreatureItem.INSTANCE));
                     notes.add("Seed="+p.serverLevel().getSeed()+" origin="+p.position()+" mods="+net.minecraftforge.fml.ModList.get().size());prepared=true;
                 }));next(2,5);}
-                case 2->{if(!prepared)return;ConfigHandler.CLIENT.creatureDimension.set("minecraft:overworld");ConfigHandler.CLIENT.creatureBiome.set("");ConfigHandler.CLIENT.creatureRounds.set(4);CreatureClient.open();next(3,10);}
+                case 2->{if(!prepared)return;com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.CLIENT.creatureDimension.set("minecraft:overworld");com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.CLIENT.creatureBiome.set("");com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.CLIENT.creatureRounds.set(4);CreatureClient.open();next(3,10);}
                 case 3->{
                     if(CreatureClient.entries.isEmpty() || !ClientSession.ready())return;
                     if(!overlaysDone){var screen=(CreatureScreen)mc.screen;((Button)field(screen,"dimensionButton")).onPress();((EditBox)field(screen,"popupInput")).setValue("主世界");next(20,5);return;}
@@ -69,7 +69,7 @@ public final class Creature122Checks {
                 }
                 case 5->{
                     if(!verified)return;verified=false;write("RUNNING\n"+String.join("\n",notes));index++;
-                    if(index<TARGETS.length){ConfigHandler.CLIENT.creatureBiome.set("");CreatureClient.open();next(3,10);}
+                    if(index<TARGETS.length){com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.CLIENT.creatureBiome.set("");CreatureClient.open();next(3,10);}
                     else{CreatureClient.stop();next(6,20);}
                 }
                 case 6->{

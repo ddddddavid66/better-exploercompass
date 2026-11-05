@@ -9,6 +9,8 @@ public interface LocatorTarget {
     default Object identity(){return position();}
     default boolean creature(){return false;}
     default java.util.List<Vec3> relaxedCandidates(net.minecraft.server.level.ServerPlayer player){return java.util.List.of();}
+    boolean allowed();
+    com.chaosthedude.explorerscompass.unified.data.LandingMode mode();
     BlockPos position();
     boolean valid();
     boolean accepts(Vec3 landing);

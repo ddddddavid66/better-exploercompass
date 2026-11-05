@@ -77,3 +77,11 @@ gradlew :runtime:test --offline
 - 旧 `SearchPool`、`VerificationSlots` 成为公共实现的薄适配；共享线程池仍有 256 有界队列，四槽门禁延续前台 FIFO、后台不得插队及幂等释放。
 - 根工程的搜索、双窗口、核对槽回归与 runtime 契约/调度测试均通过，日志 `maintenance/split-runtime-wiring-tests.log`。
 - 仍需将过渡装配移交 Forge 内嵌核心与两个产品，并实测单装、同装及整合包；本步骤不生成发布 jar。
+
+### 生物配置和外部传送策略
+
+- 生物生产代码改用 `CreatureConfig`，不再读取 `ConfigHandler` 或 `SearchConfig` 的产品配置。新配置缺失时按白名单从旧配置复制，原文件及现有新文件不改写。
+- 生物搜索冻结自己的半径、额度、采样间距及异步选择；群系任务与邻区规划接收快照。
+- 生物界面新增独立模式按钮。外部落点任务从 `LocatorTarget` 读取权限与模式；探险者模式更新不会覆盖正在运行的外部任务，外部任务初始化也不再读探险者物品 NBT。
+- 保留共享落点算法、安全限制、区块票据与生物真实复核。传送引擎本身仍有探险者入口，需要继续提取到核心。
+- 配置迁移、群系调用链、生物目录、落点列及生境相关定向测试通过，日志在 `maintenance/split-creature-policy-tests.log`。本阶段无双 jar 启动验收。

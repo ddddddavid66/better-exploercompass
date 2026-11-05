@@ -50,20 +50,24 @@ public final class TeleportService {
         long progressAt;int readyCount;
         Task(ServerPlayer player,ItemStack stack,UUID token) { this(player,stack,token,null); }
         Task(ServerPlayer player,ItemStack stack,UUID token,BlockPos returnPoint) {
+            this(player,stack,token,returnPoint,null);
+        }
+        Task(ServerPlayer player,ItemStack stack,UUID token,BlockPos returnPoint,LocatorTarget external) {
+            this.external=external;
             returning=returnPoint!=null;
             this.player=player;level=player.serverLevel();this.stack=stack;this.token=token;
-            var compass=ExplorersCompass.explorersCompass;
-            biome=!returning && SearchService.isBiome(stack);key=target(stack);
-            x=returning?returnPoint.getX():compass.getFoundStructureX(stack);z=returning?returnPoint.getZ():compass.getFoundStructureZ(stack);
+            biome=!returning && SearchService.isBiome(stack); key=external==null?target(stack):null;
+            if(returning){x=returnPoint.getX();z=returnPoint.getZ();}
+            else {var compass=ExplorersCompass.explorersCompass;x=compass.getFoundStructureX(stack);z=compass.getFoundStructureZ(stack);}
             legacyHeight=!returning && !stack.getTag().contains(SearchService.FOUND_Y);sourceY=returning?returnPoint.getY():stack.getTag().getInt(SearchService.FOUND_Y);
             treasure=!returning && !biome && key!=null && key.toString().equals("minecraft:buried_treasure");
-            mode=modes.getOrDefault(player.getUUID(),LandingMode.DEFAULT);fallback=mode==LandingMode.RELAXED_ONLY;
+            mode=external==null?modes.getOrDefault(player.getUUID(),LandingMode.DEFAULT):external.mode();fallback=mode==LandingMode.RELAXED_ONLY;
             heights=fallback?relaxedHeights:strictHeights;
             origin=new BlockPos(x,legacyHeight?player.blockPosition().getY():sourceY,z);center=new ChunkPos(origin);
             expires=player.getServer().getTickCount()+100;
         }
         boolean valid() {
-            if(external!=null)return player.serverLevel()==level && external.valid() && ConfigHandler.GENERAL.allowTeleport.get();
+            if(external!=null)return player.serverLevel()==level && external.valid() && external.allowed();
             if(returning)return allowedTravel(player,stack) && player.serverLevel()==level;
             var compass=ExplorersCompass.explorersCompass;
             return eligible(player,stack,token) && player.serverLevel()==level && key.equals(target(stack))
@@ -74,10 +78,10 @@ public final class TeleportService {
     private TeleportService() {}
     /** 生物模块复用同一落点扫描、票据、二次确认与最终保护，不复制传送算法。 */
     public static boolean requestLocator(ServerPlayer player,ItemStack stack,UUID token,LocatorTarget target,boolean fallback) {
-        if(!target.valid() || !ConfigHandler.GENERAL.allowTeleport.get())return false;
+        if(!target.valid() || !target.allowed())return false;
         Task task=tasks.get(player.getUUID());
-        if(task==null || task.external==null || !task.token.equals(token) || !task.external.identity().equals(target.identity()) || !task.valid() || task.handoffUntil>0) {
-            cancel(player.getUUID());task=new Task(player,stack,token,target.position());task.external=target;
+        if(task==null || task.external==null || !task.token.equals(token) || !task.external.identity().equals(target.identity()) || task.mode!=target.mode() || !task.valid() || task.handoffUntil>0) {
+            cancel(player.getUUID());task=new Task(player,stack,token,target.position(),target);
             task.returnYaw=player.getYRot();task.returnPitch=player.getXRot();tasks.put(player.getUUID(),task);
         }
         task.external=target;
@@ -96,7 +100,7 @@ public final class TeleportService {
     public static LandingMode mode(UUID player) {return modes.getOrDefault(player,LandingMode.DEFAULT);}
     public static void setMode(UUID player,LandingMode mode) {
         if(modes.put(player,mode)==mode)return;
-        Task task=tasks.get(player);if(task==null || task.handoffUntil>0)return;
+        Task task=tasks.get(player);if(task==null || task.external!=null || task.handoffUntil>0)return;
         // 不丢弃已就绪区块和候选，但旧的确认授权立即失效。
         task.mode=mode;
         if(task.travel) {beginTravelStage(task,mode==LandingMode.RELAXED_ONLY);return;}

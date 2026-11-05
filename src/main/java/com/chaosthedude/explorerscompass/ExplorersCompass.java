@@ -40,6 +40,7 @@ public class ExplorersCompass {
 
 	public ExplorersCompass() {
 		com.chaosthedude.explorerscompass.unified.CompassUnified.initialize();
+        com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.register(net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get(),LOGGER::warn);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetup);
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::buildCreativeTabContents);
 

@@ -18,6 +18,7 @@ final class HabitatVisit {
     private final ServerPlayer player;
     private final ItemStack stack;
     private final UUID request;
+    private final java.util.function.Supplier<com.chaosthedude.explorerscompass.unified.data.LandingMode> mode;
     private final EntityType<?> type;
     private final Set<ResourceLocation> biomes;
     final ChunkPos center;
@@ -33,10 +34,10 @@ final class HabitatVisit {
     boolean ready,empty,waiting,confirmation;
 
     HabitatVisit(ServerPlayer player,ItemStack stack,UUID request,ResourceLocation type,
-                 Set<ResourceLocation> biomes,ChunkPos center,BooleanSupplier valid,java.util.function.Predicate<MobPoint> accepts){
+                 Set<ResourceLocation> biomes,ChunkPos center,BooleanSupplier valid,java.util.function.Predicate<MobPoint> accepts,java.util.function.Supplier<com.chaosthedude.explorerscompass.unified.data.LandingMode> mode){
         this.player=player;this.stack=stack;this.request=request;
         this.type=ForgeRegistries.ENTITY_TYPES.getValue(type);this.biomes=Set.copyOf(biomes);
-        this.center=center;this.valid=valid;this.accepts=accepts;
+        this.center=center;this.valid=valid;this.accepts=accepts;this.mode=mode;
         var level=player.serverLevel();preferredY=level.getHeight(SpawnPlacements.getHeightmapType(this.type),center.getMiddleBlockX(),center.getMiddleBlockZ());
     }
     boolean watching(){return watchingSince!=0;}
@@ -81,6 +82,8 @@ final class HabitatVisit {
         if(!ready || waiting || watching() || !valid.getAsBoolean())return false;
         waiting=true;state="habitat_preparing";
         boolean accepted=TeleportService.requestLocator(player,stack,request,new LocatorTarget(){
+            public boolean allowed(){return com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.GENERAL.allowTeleport.get();}
+            public com.chaosthedude.explorerscompass.unified.data.LandingMode mode(){return mode.get();}
             public BlockPos position(){return observer;}
             public boolean valid(){return HabitatVisit.this.valid.getAsBoolean();}
             public boolean accepts(Vec3 point){return observerDistance(point.distanceToSqr(Vec3.atCenterOf(spawn)));}

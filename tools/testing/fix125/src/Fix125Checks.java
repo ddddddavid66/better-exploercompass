@@ -68,7 +68,7 @@ public final class Fix125Checks {
             }
             if(mc.player==null || mc.getSingleplayerServer()==null)return;playerId=mc.player.getUUID();
             String cmd=command;command="";
-            if(cmd.startsWith("search:")){target=cmd.substring(7);ConfigHandler.CLIENT.creatureRounds.set(4);CreatureClient.open();CreatureClient.search(new ResourceLocation(target),mc.level.dimension().location(),null);}
+            if(cmd.startsWith("search:")){target=cmd.substring(7);com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.CLIENT.creatureRounds.set(4);CreatureClient.open();CreatureClient.search(new ResourceLocation(target),mc.level.dimension().location(),null);}
             else if(cmd.equals("tp0") || cmd.equals("tp1")){CreatureClient.selection=cmd.equals("tp0")?0:1;CreatureClient.teleport();}
             view=new View(target,CreatureClient.state,CreatureClient.finished,List.copyOf(CreatureClient.points),CreatureClient.teleportPending());
         }catch(Throwable error){error.printStackTrace();finished="FAIL client "+error;}

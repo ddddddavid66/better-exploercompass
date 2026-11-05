@@ -1,6 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.creature.client;
 
-import com.chaosthedude.explorerscompass.config.ConfigHandler;
+import com.chaosthedude.explorerscompass.unified.creature.CreatureConfig;
 import com.chaosthedude.explorerscompass.unified.creature.catalog.*;
 import com.chaosthedude.explorerscompass.unified.creature.search.MobPoint;
 import com.chaosthedude.explorerscompass.unified.creature.network.CreatureRequest;
@@ -87,8 +87,8 @@ public final class CreatureClient {
     }
     public static void search(ResourceLocation type,ResourceLocation dimension,ResourceLocation biome) {
         clearPendingTeleport();habitatReady=false;naturalWaitMillis=0;query=UUID.randomUUID();pendingParts.clear();pointRevision=0;points=List.of();state="initial";finished=false;confirmation=false;selection=0;
-        storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";captured=captureTotal=chunks=round=0;rounds=ConfigHandler.CLIENT.creatureRounds.get();chunksTotal=rounds*64;
-        var n=base("search",query);n.putString("type",type.toString());n.putString("dimension",dimension==null?"":dimension.toString());n.putString("biome",biome==null?"":biome.toString());n.putInt("rounds",ConfigHandler.CLIENT.creatureRounds.get());send(n);
+        storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";captured=captureTotal=chunks=round=0;rounds=CreatureConfig.CLIENT.creatureRounds.get();chunksTotal=rounds*64;
+        var n=base("search",query);n.putString("type",type.toString());n.putString("dimension",dimension==null?"":dimension.toString());n.putString("biome",biome==null?"":biome.toString());n.putInt("rounds",CreatureConfig.CLIENT.creatureRounds.get());send(n);
     }
     public static void stop(){clearPendingTeleport();if(query!=null)send(base("cancel",query));finished=true;state="cancelled";}
     public static void teleport(){
@@ -118,7 +118,7 @@ public final class CreatureClient {
     private static void clearPendingTeleport(){pendingTeleportRequest=null;pendingTeleportQuery=null;pendingTeleportScreen=null;pendingTeleportStarted=0;}
     public static MobPoint selected(){return points.isEmpty()?null:points.get(Math.floorMod(selection,points.size()));}
     public static void cycle(int delta){if(!points.isEmpty())selection=Math.floorMod(selection+delta,points.size());}
-    private static CompoundTag base(String action,UUID id){var n=new CompoundTag();n.putString("action",action);n.putUUID("request",id);n.putString("landingMode",ConfigHandler.CLIENT.landingMode.get().name());return n;}
+    private static CompoundTag base(String action,UUID id){var n=new CompoundTag();n.putString("action",action);n.putUUID("request",id);n.putString("landingMode",CreatureConfig.CLIENT.landingMode.get().name());return n;}
     private static void send(CompoundTag n){if(Minecraft.getInstance().getConnection()!=null)CreatureNetwork.CHANNEL.sendToServer(new CreatureRequest(n));}
     public static void clear(){CreatureWorldCatalog.clear();CreaturePreExploreClient.clear();entries=List.of();points=List.of();pendingParts.clear();catalogParts.clear();catalogPartCount=0;pointRevision=0;habitatReady=false;naturalWaitMillis=0;query=null;catalog=null;connection=null;state="idle";finished=true;confirmation=canTeleport=false;clearPendingTeleport();storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";round=rounds=chunks=selection=captured=captureTotal=chunksTotal=0;CreatureScreen.clearPreviews();}
     public static void tick(){
@@ -127,6 +127,6 @@ public final class CreatureClient {
         CreatureWorldCatalog.tick();
         com.chaosthedude.explorerscompass.unified.creature.map.CreatureMaps.tick();
     }
-    public static boolean dots(){return ConfigHandler.CLIENT.creatureDots.get();}
-    public static void toggleDots(){ConfigHandler.CLIENT.creatureDots.set(!dots());ConfigHandler.CLIENT.creatureDots.save();}
+    public static boolean dots(){return CreatureConfig.CLIENT.creatureDots.get();}
+    public static void toggleDots(){CreatureConfig.CLIENT.creatureDots.set(!dots());CreatureConfig.CLIENT.creatureDots.save();}
 }

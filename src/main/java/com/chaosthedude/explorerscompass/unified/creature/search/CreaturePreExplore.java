@@ -1,6 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.creature.search;
 
-import com.chaosthedude.explorerscompass.config.ConfigHandler;
+import com.chaosthedude.explorerscompass.unified.creature.CreatureConfig;
 import com.chaosthedude.explorerscompass.unified.creature.network.CreatureUpdate;
 import com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork;
 import com.chaosthedude.explorerscompass.unified.search.*;
@@ -27,7 +27,7 @@ public final class CreaturePreExplore {
         ChunkPos pending;boolean ticket,paused,slow,finished;int high,low;long waiting,lastPacket;double tickMillis;
         String state="planning";List<Entity> capture;int captureAt;Map<ChunkPos,List<SavedCreatureIndex.Point>> snapshots;
         Task(ServerPlayer p,UUID id,int radius){this.id=id;player=p;level=p.serverLevel();stack=CreatureSearch.held(p);origin=p.blockPosition().immutable();this.radius=radius;}
-        boolean valid(){return player.isAlive() && !player.isRemoved() && player.serverLevel()==level && CreatureSearch.held(player)==stack && ConfigHandler.GENERAL.allowCreaturePreExplore.get();}
+        boolean valid(){return player.isAlive() && !player.isRemoved() && player.serverLevel()==level && CreatureSearch.held(player)==stack && CreatureConfig.GENERAL.allowCreaturePreExplore.get();}
     }
     private CreaturePreExplore() {}
     public static void request(ServerPlayer p,CompoundTag n) {
@@ -36,7 +36,7 @@ public final class CreaturePreExplore {
         if(CreatureSearch.held(p).isEmpty())return;
         if(action.equals("preexplore_start")) {
             int radius=n.getInt("radius");
-            if(!ConfigHandler.GENERAL.allowCreaturePreExplore.get() || !p.isAlive() || radius<128 || radius>1024 || radius%16!=0){reply(p,receipt,"rejected");return;}
+            if(!CreatureConfig.GENERAL.allowCreaturePreExplore.get() || !p.isAlive() || radius<128 || radius>1024 || radius%16!=0){reply(p,receipt,"rejected");return;}
             if(task!=null && !task.finished){if(task.player==p)send(p,receipt);else reply(p,receipt,"busy");return;}
             task=new Task(p,receipt,radius);send(p,receipt);return;
         }
