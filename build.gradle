@@ -3,6 +3,8 @@ group = 'com.chaosthedude.explorerscompass'
 version = providers.gradleProperty('mod_version').get()
 base { archivesName = 'ExplorersCompassUnified-1.20.1-forge' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+// 单包过渡构建复用核心源码。独立产品通过同一 JarJar 构建取得这些类。
+sourceSets.main.java.srcDir(project(':runtime').file('src/main/java'))
 sourceSets {
     benchmark {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath

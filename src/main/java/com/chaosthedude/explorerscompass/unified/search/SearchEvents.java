@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.BudgetedSearchScheduler;
+
 import com.chaosthedude.explorerscompass.unified.CompassUnified;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.OnDatapackSyncEvent;
@@ -11,11 +13,28 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = CompassUnified.MOD_ID)
 public final class SearchEvents {
+    private static final BudgetedSearchScheduler SCHEDULER = new BudgetedSearchScheduler(System::nanoTime);
     private SearchEvents() {}
+    static void runSearchTick() {
+        long budget=SearchConfig.TICK_MILLIS.get()*1_000_000L;
+        long preparation=SearchService.takePreparationTime();
+        long deadline=SCHEDULER.deadline(budget,preparation);
+        TeleportService.maintain();
+        EndDungeonIndex.maintain(Math.min(deadline,System.nanoTime()+250_000L));
+        GoldenCrateIndex.maintain(Math.min(deadline,System.nanoTime()+100_000L));
+        com.chaosthedude.explorerscompass.unified.creature.search.CreatureIndex.drain(Math.min(deadline,System.nanoTime()+100_000L));
+        SCHEDULER.run(deadline,java.util.List.of(
+                new BudgetedSearchScheduler.Lane(TeleportService.active()?1:0, ignored -> TeleportService.active() && TeleportService.step()),
+                new BudgetedSearchScheduler.Lane(com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.taskCount(),
+                        com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch::step),
+                SearchService.searchLane(preparation,budget)),
+                com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore::step);
+        SearchService.publishTickProgress();
+    }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore.maintain(event.getServer());
-            SearchService.tick();com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.tick();
+            runSearchTick();com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.tick();
         }
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent event) {

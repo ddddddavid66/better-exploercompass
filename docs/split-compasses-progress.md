@@ -69,3 +69,11 @@ gradlew :runtime:test --offline
 
 旧 settings.gradle 备份位于仓库外 `maintenance/split-backups/settings.gradle.before-split`。
 本阶段不修改原实例、原存档、第三方 jar 和已交付的 1.2.8 文件。
+
+### 公共运行资源接入生产路径
+
+- `runtime` 子工程新增无产品依赖的 `BudgetedSearchScheduler`、`WorkerPool`；过渡根工程从同一源码接入，未复制实现。
+- 服务器装配层把传送、生物和结构／群系注册为预算内轮转通道，预探索仅使用剩余预算。准备耗时先扣除；轮转游标跨 tick 保留。
+- 旧 `SearchPool`、`VerificationSlots` 成为公共实现的薄适配；共享线程池仍有 256 有界队列，四槽门禁延续前台 FIFO、后台不得插队及幂等释放。
+- 根工程的搜索、双窗口、核对槽回归与 runtime 契约/调度测试均通过，日志 `maintenance/split-runtime-wiring-tests.log`。
+- 仍需将过渡装配移交 Forge 内嵌核心与两个产品，并实测单装、同装及整合包；本步骤不生成发布 jar。

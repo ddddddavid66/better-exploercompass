@@ -1,5 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
+import com.david.compass.runtime.BudgetedSearchScheduler;
+
 import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.util.CompassState;
@@ -295,16 +297,14 @@ public final class SearchService {
         session.job.prime();
     }
 
-    public static void tick() {
-        long budget=SearchConfig.TICK_MILLIS.get()*1_000_000L;
-        long preparation=pendingPreparationNanos;pendingPreparationNanos=0;
-        // 请求准备也消耗主线程时间，不能在它之后重新领取完整的 tick 预算。
-        long deadline=System.nanoTime()+Math.max(0,budget-preparation);
-        TeleportService.maintain();
-        EndDungeonIndex.maintain(Math.min(deadline, System.nanoTime() + 250_000L));
-        GoldenCrateIndex.maintain(Math.min(deadline, System.nanoTime() + 100_000L));
-        com.chaosthedude.explorerscompass.unified.creature.search.CreatureIndex.drain(Math.min(deadline,System.nanoTime()+100_000L));
-        
+    /** 开发验收工具保留此入口；正式服务器 tick 由装配层驱动。 */
+    public static void tick() { SearchEvents.runSearchTick(); }
+
+    static long takePreparationTime() {
+        long used=pendingPreparationNanos; pendingPreparationNanos=0; return used;
+    }
+
+    static BudgetedSearchScheduler.Lane searchLane(long preparation, long budget) {
         List<Session> round = new ArrayList<>();
         for(Session session:sessions.values()) {
             // 新结构任务保留一次核对的余量；较重的准备后首轮核对留到下一 tick。
@@ -312,22 +312,19 @@ public final class SearchService {
             if(!session.fresh || preparation<=budget/4 || session.job.biome())round.add(session);
             session.fresh=false;
         }
-        int idle = 0;
-        int turn=0;
-        while ((!round.isEmpty() || TeleportService.active() || com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.active())
-                && System.nanoTime()<deadline && idle<3*(round.size()+com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.taskCount()+2)) {
-            int kind=turn++%3;
-            if(kind==0){boolean progress=TeleportService.active() && TeleportService.step();idle=progress?0:idle+1;continue;}
-            if(kind==1){boolean progress=com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.active()
-                    && com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.step(deadline);idle=progress?0:idle+1;continue;}
-            if(round.isEmpty()){idle++;continue;}
-            Session session = round.get(Math.floorMod(cursor++, round.size()));
-            if (sessions.get(session.player.getUUID()) != session) { idle++; continue; }
-            if (!session.valid()) { cancel(session.player, true); idle++; continue; }
-            try {
-                boolean progress = session.job.step(); idle = progress ? 0 : idle + 1;
-                if (session.job.done()) finish(session);
-            } catch (Exception error) {
+        return new BudgetedSearchScheduler.Lane(round.size(), ignored -> stepSearch(round));
+    }
+
+    private static boolean stepSearch(List<Session> round) {
+        if (round.isEmpty()) return false;
+        Session session=round.get(Math.floorMod(cursor++,round.size()));
+        if (sessions.get(session.player.getUUID())!=session) return false;
+        if (!session.valid()) { cancel(session.player,true); return true; }
+        try {
+            boolean progress=session.job.step();
+            if (session.job.done()) { finish(session); return true; }
+            return progress;
+        } catch (Exception error) {
                 session.exceptions=com.chaosthedude.explorerscompass.unified.data.FailureReportText.clean(session.exceptions+com.chaosthedude.explorerscompass.unified.data.FailureReportText.exception(error),6000);
                 session.job.cancel();
                 if (session.job.asynchronous()) {
@@ -341,10 +338,11 @@ public final class SearchService {
                     CompassUnified.LOGGER.error("搜索 {} 兼容路径失败", session.token, error);
                     fail(session);status(session);lifecycle(session,true,"error",""); sessions.remove(session.player.getUUID());complete(session,null,"error");
                 }
-                idle++;
-            }
+            return false;
         }
-        while(System.nanoTime()<deadline && com.chaosthedude.explorerscompass.unified.creature.search.CreaturePreExplore.step(deadline)) { /* 剩余预算只用于低优先级预探索。 */ }
+    }
+
+    static void publishTickProgress() {
         for (Session session : sessions.values()) if (++session.ticks % 2 == 0
                 && (session.job.samples() != session.lastSamples || !session.job.stage().equals(session.lastStage))) status(session);
     }
@@ -479,7 +477,7 @@ public final class SearchService {
         for (Session session : List.copyOf(sessions.values())) cancel(session.player, true);
         WorldgenCache.clear(); EndDungeonAdapter.clear(); EndDungeonIndex.clearRuntime(); GoldenCrateAdapter.clear(); GoldenCrateIndex.clearRuntime();
     }
-    public static void shutdown() { stopAll(); TeleportService.shutdown(); biomeHistory.clear(); structureHistory.clear(); featureHistory.clear(); TeleportEvents.clear(); SearchPool.shutdown(); cursor = 0; }
+    public static void shutdown() { stopAll(); TeleportService.shutdown(); biomeHistory.clear(); structureHistory.clear(); featureHistory.clear(); TeleportEvents.clear(); SearchPool.shutdown(); VerificationSlots.reset(); cursor = 0; }
     public static boolean isBiome(ItemStack stack) { return stack.getTag() != null && "biome".equals(stack.getTag().getString(KIND)); }
     public static UUID token(ItemStack stack) { return stack.getTag() != null && stack.getTag().hasUUID(TOKEN) ? stack.getTag().getUUID(TOKEN) : null; }
     public static boolean owns(ServerPlayer player, ItemStack stack) { var session = sessions.get(player.getUUID()); return session != null && session.stack == stack && session.valid(); }
