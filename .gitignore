@@ -2,6 +2,11 @@
 .gradle/
 build/
 run*/
+# runtime 是源码子工程，不是 Minecraft run 实例目录。
+!modules/runtime/
+!modules/runtime/**
+modules/runtime/build/
+modules/runtime/.gradle/
 logs/
 world*/
 .analysis/
