@@ -44,6 +44,7 @@ public final class SearchEvents {
         com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.clear();
         com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.clear();
         SearchService.stopAll(); com.chaosthedude.explorerscompass.unified.network.CatalogService.clear();
+        com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork.invalidateWorldCatalog(server);
         for (var player : server.getPlayerList().getPlayers()) com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.send(player,
                 new com.chaosthedude.explorerscompass.unified.network.CatalogInvalidatedPacket());
     }

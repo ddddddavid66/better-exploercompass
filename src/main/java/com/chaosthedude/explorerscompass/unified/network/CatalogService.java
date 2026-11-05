@@ -26,7 +26,7 @@ public final class CatalogService {
     private record Cost(Pattern pattern, int amount) {}
     private static final Map<MinecraftServer, Snapshot> CACHE = new IdentityHashMap<>();
     private CatalogService() {}
-    public static void clear() { CACHE.clear(); }
+    public static void clear() { CACHE.clear(); com.chaosthedude.explorerscompass.unified.data.WorldDirectory.clear(); }
     private static Pattern pattern(String glob) {
         return Pattern.compile(Pattern.quote(glob).replace("*", "\\E.*\\Q").replace("?", "\\E.\\Q"));
     }
@@ -83,14 +83,11 @@ public final class CatalogService {
         if (endFeature && mapping.containsKey(featureKey)) groups.put(featureKey, featureKey);
         if (crateFeature && mapping.containsKey(crateKey)) groups.put(crateKey,crateKey);
         mapping.keySet().forEach(id -> groups.putIfAbsent(id, new ResourceLocation("explorerscompass:none")));
-        Map<ResourceLocation, Set<ResourceLocation>> dimensionBiomes = new LinkedHashMap<>();
+        var world = com.chaosthedude.explorerscompass.unified.data.WorldDirectory.get(level.getServer());
         Map<ResourceLocation, Set<ResourceLocation>> dimensionStructures = new LinkedHashMap<>();
         for (ServerLevel dimension : level.getServer().getAllLevels()) {
-            Set<ResourceLocation> available = new LinkedHashSet<>();
-            dimension.getChunkSource().getGenerator().getBiomeSource().possibleBiomes().forEach(holder -> {
-                var id = biomes.getKey(holder.value()); if (id != null) available.add(id);
-            });
-            var dimensionId = dimension.dimension().location(); dimensionBiomes.put(dimensionId, Set.copyOf(available));
+            var dimensionId = dimension.dimension().location();
+            var available = world.dimensions().getOrDefault(dimensionId, Set.of());
             var state = dimension.getChunkSource().getGeneratorState(); state.ensureStructuresGenerated();
             Set<ResourceLocation> placed = new LinkedHashSet<>();
             for (var entry : mapping.entrySet()) {
@@ -108,8 +105,8 @@ public final class CatalogService {
             }
             dimensionStructures.put(dimensionId, Set.copyOf(placed));
         }
-        var packet = new BiomeCatalogPacket(new UUID(0,0), biomes.keySet().stream().sorted().toList(), Map.copyOf(mapping),
-                level.dimension().location(), Map.copyOf(dimensionBiomes), Map.copyOf(dimensionStructures), Map.copyOf(groups), Map.copyOf(costs), false, 0, false);
+        var packet = new BiomeCatalogPacket(new UUID(0,0), world.biomes(), Map.copyOf(mapping),
+                level.dimension().location(), world.dimensions(), Map.copyOf(dimensionStructures), Map.copyOf(groups), Map.copyOf(costs), false, 0, false);
         CACHE.put(level.getServer(), new Snapshot(key, packet)); return packet;
     }
     private static int cost(ResourceLocation key, List<Cost> rules, int fallback) {

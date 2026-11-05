@@ -277,8 +277,7 @@ public final class FilterUi implements PopupLayer {
     }
 
     public static String biomeName(ResourceLocation key) {
-        String translation = Util.makeDescriptionId("biome", key);
-        return I18n.exists(translation) ? I18n.get(translation) : key.toString();
+        return BiomeNames.name(key);
     }
 
     private static int clamp(int value, int minimum, int maximum) {

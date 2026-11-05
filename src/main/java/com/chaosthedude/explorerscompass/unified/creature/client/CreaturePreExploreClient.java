@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import com.chaosthedude.explorerscompass.unified.creature.network.CreatureRequest;
-import com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork;
+import com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork;
 
 /** 与生物查询分离，预探索通知不能覆盖实体结果或地图蓝点。 */
 public final class CreaturePreExploreClient {
@@ -19,7 +19,7 @@ public final class CreaturePreExploreClient {
     public static void command(String action,int value){
         if(Minecraft.getInstance().getConnection()==null || pending!=null)return;
         pending=UUID.randomUUID();var n=new CompoundTag();n.putString("action","preexplore_"+action);n.putUUID("request",pending);
-        if(task!=null)n.putUUID("task",task);n.putInt("radius",value);UnifiedNetwork.CHANNEL.sendToServer(new CreatureRequest(n));
+        if(task!=null)n.putUUID("task",task);n.putInt("radius",value);CreatureNetwork.CHANNEL.sendToServer(new CreatureRequest(n));
     }
     public static boolean pending(){return pending!=null;}
     public static void accept(CompoundTag n){

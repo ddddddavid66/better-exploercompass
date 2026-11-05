@@ -53,7 +53,7 @@ public final class CreatureScreen extends Screen {
         @Override public void renderWidget(GuiGraphics g,int mx,int my,float delta){panel(g,getX(),getY(),getWidth(),getHeight(),isHoveredOrFocused()?0xff3f3b2d:0xff252627);g.drawCenteredString(Minecraft.getInstance().font,getMessage(),getX()+getWidth()/2,getY()+(getHeight()-8)/2,active?0xffe8ddb3:0xff777777);}
     }
     static void panel(GuiGraphics g,int x,int y,int w,int h,int fill){g.fill(x,y,x+w,y+h,0xff57472a);g.fill(x+1,y+1,x+w-1,y+h-1,0xffc5a659);g.fill(x+3,y+3,x+w-3,y+h-3,fill);}
-    private String name(ResourceLocation key,boolean dim){return key==null?"默认":dim?DimensionNames.name(key):FilterUi.biomeName(key);}
+    private String name(ResourceLocation key,boolean dim){return key==null?"默认":dim?DimensionNames.name(key):com.chaosthedude.explorerscompass.unified.client.BiomeNames.name(key);}
     private void refresh(){
         if(input==null)return;
         matches=CreatureClient.entries.stream().filter(e->e.matches(dimension,biome)).filter(e->texts.computeIfAbsent(e.entity(),id->SearchText.of(e.name()+" "+e.english()+" "+String.join(" ",e.aliases()),id.toString())).matches(input.getValue())).sorted(Comparator.comparing(CreatureEntry::name).thenComparing(e->e.entity().toString())).toList();
@@ -63,7 +63,7 @@ public final class CreatureScreen extends Screen {
         dimensionButton.setTooltip(Tooltip.create(Component.literal("维度 : "+name(dimension,true)+"\n小窗口可在左栏滚动查看其他筛选。")));
         biomeButton.setTooltip(Tooltip.create(Component.literal("群系 : "+name(biome,false)+"\n小窗口可在左栏滚动查看其他筛选。")));
         int rounds=ConfigHandler.CLIENT.creatureRounds.get();roundButton.setMessage(Component.literal("搜索次数 : "+(rounds==4?"默认":rounds)));
-        search.setMessage(Component.literal(CreatureClient.finished?"搜索":"停止"));search.active=!CreatureClient.finished || selected!=null && (dimension==null || dimension.equals(ClientSession.currentDimension())) && CreatureClient.entries.stream().anyMatch(e->e.entity().equals(selected) && e.dimensions().contains(ClientSession.currentDimension()));
+        search.setMessage(Component.literal(CreatureClient.finished?"搜索":"停止"));search.active=!CreatureClient.finished || CreatureWorldCatalog.ready() && selected!=null && (dimension==null || dimension.equals(CreatureWorldCatalog.currentDimension())) && CreatureClient.entries.stream().anyMatch(e->e.entity().equals(selected) && e.dimensions().contains(CreatureWorldCatalog.currentDimension()));
         teleport.setMessage(Component.literal(CreatureClient.habitatReady?"前往生境":CreatureClient.teleportPending()?"确认中…":CreatureClient.confirmation?"降级传送":"传送"));teleport.active=(CreatureClient.habitatReady || CreatureClient.finished && CreatureClient.selected()!=null) && CreatureClient.canTeleport && !CreatureClient.teleportPending();
         updateSideButtons();
     }
@@ -120,7 +120,7 @@ public final class CreatureScreen extends Screen {
         List<Component> parts=new ArrayList<>();parts.add(Component.literal(entry.name()).withStyle(ChatFormatting.GOLD));
         if(entry.paired() && !entry.appearances().isEmpty())for(var appearance:entry.appearances()){
             String dimension=appearance.dimension()==null?"维度待核实":DimensionNames.name(appearance.dimension());
-            String biomes=appearance.biomes().isEmpty()?"群系待核实":String.join("、",appearance.biomes().stream().map(FilterUi::biomeName).toList());
+            String biomes=appearance.biomes().isEmpty()?"群系待核实":String.join("、",appearance.biomes().stream().map(com.chaosthedude.explorerscompass.unified.client.BiomeNames::name).toList());
             String verified=switch(appearance.verification()){case "verified"->"";case "partial"->"（部分核实）";default->"（待核实）";};
             parts.add(Component.literal("生成于 "+dimension+"["+biomes+"]"+verified));
             parts.add(Component.literal(appearance.description().isBlank()?"生成／召唤方式待补充":appearance.description()));
@@ -128,7 +128,7 @@ public final class CreatureScreen extends Screen {
             // 旧目录是两个独立集合，不能将其笛卡尔积当成已核实的逐维度生成规则。
             String dimensions=entry.dimensions().isEmpty()?"待核实":String.join("、",entry.dimensions().stream().map(DimensionNames::name).toList());
             parts.add(Component.literal("已知维度："+dimensions+"（群系对应待核实）"));
-            if(!entry.biomes().isEmpty())parts.add(Component.literal("已知群系："+String.join("、",entry.biomes().stream().map(FilterUi::biomeName).toList())));
+            if(!entry.biomes().isEmpty())parts.add(Component.literal("已知群系："+String.join("、",entry.biomes().stream().map(com.chaosthedude.explorerscompass.unified.client.BiomeNames::name).toList())));
         }
         if(!entry.note().isBlank())parts.add(Component.literal("备注："+entry.note()).withStyle(ChatFormatting.GRAY));
         parts.add(Component.literal(entry.entity().toString()).withStyle(ChatFormatting.DARK_GRAY));
@@ -147,7 +147,7 @@ public final class CreatureScreen extends Screen {
         if(kind.equals("rounds")){number=new EditBox(font,x+12,91,180,20,Component.literal("兜底次数0～32"));number.setValue(Integer.toString(ConfigHandler.CLIENT.creatureRounds.get()));number.setMaxLength(2);number.setCanLoseFocus(false);addWidget(number);setFocused(number);return;}
         popupInput=new EditBox(font,x+12,70,190,20,Component.literal("搜索"));popupInput.setResponder(s->{popupScroll=0;pickerMatches();});popupInput.setCanLoseFocus(false);addWidget(popupInput);setFocused(popupInput);pickerMatches();
     }
-    private void pickerMatches(){var options=popup.equals("dimension")?ClientSession.dimensions():ClientSession.biomesIn(dimension);popupMatches=options.stream().filter(id->SearchText.of(name(id,popup.equals("dimension")),id.toString()).matches(popupInput.getValue())).sorted(Comparator.<ResourceLocation,Boolean>comparing(id->popup.equals("dimension")&&!id.equals(ClientSession.currentDimension())).thenComparing(id->name(id,popup.equals("dimension")))).toList();}
+    private void pickerMatches(){var options=popup.equals("dimension")?CreatureWorldCatalog.dimensions():CreatureWorldCatalog.biomesIn(dimension);popupMatches=options.stream().filter(id->SearchText.of(name(id,popup.equals("dimension")),id.toString()).matches(popupInput.getValue())).sorted(Comparator.<ResourceLocation,Boolean>comparing(id->popup.equals("dimension")&&!id.equals(CreatureWorldCatalog.currentDimension())).thenComparing(id->name(id,popup.equals("dimension")))).toList();}
     private int popupVisible(){int h=Math.min(260,height-75);return Math.max(0,(58+h-128)/20);}
     private void renderPopup(GuiGraphics g,int mx,int my,float d){
         int x=sidebar()+18,w=Math.min(240,width-x-12),h=Math.min(260,height-75);
@@ -158,7 +158,7 @@ public final class CreatureScreen extends Screen {
             popupInput.setWidth(w-24);popupInput.render(g,mx,my,d);g.drawString(font,"默认",x+12,100,0xffe8ddb3);
             g.enableScissor(x+8,120,x+w-8,58+h-8);
             try{for(int i=popupScroll;i<Math.min(popupMatches.size(),popupScroll+popupVisible());i++){
-                var id=popupMatches.get(i);g.drawString(font,clip(name(id,popup.equals("dimension"))+(popup.equals("dimension")&&id.equals(ClientSession.currentDimension())?"（当前）":""),w-25),x+12,121+(i-popupScroll)*20,0xffe8ddb3);
+                var id=popupMatches.get(i);g.drawString(font,clip(name(id,popup.equals("dimension"))+(popup.equals("dimension")&&id.equals(CreatureWorldCatalog.currentDimension())?"（当前）":""),w-25),x+12,121+(i-popupScroll)*20,0xffe8ddb3);
             }}finally{g.disableScissor();}
         }finally{g.flush();g.pose().popPose();}
     }
@@ -167,7 +167,7 @@ public final class CreatureScreen extends Screen {
         if(!popup.isEmpty()){int px=sidebar()+18,w=Math.min(240,width-px-12),h=Math.min(260,height-75);if(x<px || x>px+w || y<58 || y>58+h){closePicker();return true;}if(b!=0)return true;if(popup.equals("rounds")){number.mouseClicked(x,y,b);return true;}if(popupInput.mouseClicked(x,y,b))return true;
             ResourceLocation id=null;int row=(int)((y-120)/20),at=popupScroll+row;
             if(y>=120 && row<popupVisible() && at>=0 && at<popupMatches.size())id=popupMatches.get(at);else if(!(y>=96 && y<116))return true;
-            if(popup.equals("dimension")){dimension=id;ConfigHandler.CLIENT.creatureDimension.set(id==null?"":id.toString());ConfigHandler.CLIENT.creatureDimension.save();if(biome!=null && !ClientSession.biomesIn(dimension).contains(biome))biome=null;}
+            if(popup.equals("dimension")){dimension=id;ConfigHandler.CLIENT.creatureDimension.set(id==null?"":id.toString());ConfigHandler.CLIENT.creatureDimension.save();if(biome!=null && !CreatureWorldCatalog.biomesIn(dimension).contains(biome))biome=null;}
             else {biome=id;}ConfigHandler.CLIENT.creatureBiome.set(biome==null?"":biome.toString());ConfigHandler.CLIENT.creatureBiome.save();closePicker();scroll=0;refresh();return true;
         }
         if(super.mouseClicked(x,y,b))return true;int left=sidebar()+16,cell=78,cols=Math.max(1,(width-left-20)/cell);if(x>=left && x<width-17 && y>=57 && y<cardsBottom()){int index=scroll*cols+(int)((y-57)/cell)*cols+(int)((x-left)/cell);if(index<matches.size()){selected=matches.get(index).entity();refresh();return true;}}return false;

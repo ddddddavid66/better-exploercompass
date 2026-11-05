@@ -58,5 +58,14 @@ gradlew :runtime:test --offline
 - 根工程定向 57 项测试通过，记录在仓库外 `maintenance/split-direct-context-tests.log`。首次编译发现参数名遮蔽字段，已改为 `this.biomes` 后重编译测试通过。
 - 本步骤仍处于单包过渡状态；尚未完成两个产品注册/网络和 JarJar 装配，不标记发布或启动验收通过。
 
+### 产品网络与基础目录
+
+- 新建 `creaturecompass:main` / `creature-1`，迁移生物请求、进度和预探索消息。探险者通道切换为 `explorer-1`，不再注册生物消息。
+- 服务端 `WorldDirectory` 提供不可变基础维度—群系快照，结构目录复用它，但生物目录请求不会初始化结构放置或读取费用配置。
+- 生物 UI 不再调用探险者 `ClientSession`；新目录绑定当前连接与请求标识，重载后通过生物通道失效并重新请求。
+- 保留过渡构建的传送模式同步：模式通过生物请求发送，底层仍需迁移成各产品独立策略。
+- 新目录的 6 项编解码、不可变性、异常输入及依赖边界测试通过；未做独立模组启动验收。
+- 现阶段仍由单包入口注册两个通道；下一步移交给各自 Forge 产品入口，随后分离传送、生命周期和打包。旧正式 1.2.8 不受此分支的协议变化影响。
+
 旧 settings.gradle 备份位于仓库外 `maintenance/split-backups/settings.gradle.before-split`。
 本阶段不修改原实例、原存档、第三方 jar 和已交付的 1.2.8 文件。

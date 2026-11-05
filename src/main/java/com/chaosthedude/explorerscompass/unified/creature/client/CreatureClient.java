@@ -4,8 +4,8 @@ import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.unified.creature.catalog.*;
 import com.chaosthedude.explorerscompass.unified.creature.search.MobPoint;
 import com.chaosthedude.explorerscompass.unified.creature.network.CreatureRequest;
-import com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork;
-import com.chaosthedude.explorerscompass.unified.client.ClientSession;
+import com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork;
+
 import java.util.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.*;
@@ -33,9 +33,15 @@ public final class CreatureClient {
     private static final Map<Integer,List<CreatureEntry>> catalogParts=new HashMap<>();
     private static int catalogPartCount;
     private CreatureClient() {}
-    public static void open(){var mc=Minecraft.getInstance();connection=mc.getConnection();ClientSession.requestCatalog();catalog=UUID.randomUUID();catalogParts.clear();catalogPartCount=0;send(base("catalog",catalog));mc.setScreen(new CreatureScreen());}
+    public static void open(){var mc=Minecraft.getInstance();connection=mc.getConnection();catalog=UUID.randomUUID();catalogParts.clear();catalogPartCount=0;send(base("catalog",catalog));CreatureWorldCatalog.request();mc.setScreen(new CreatureScreen());}
+    public static void requestWorldCatalog() {if(catalog!=null)send(base("world_catalog",catalog));}
+    public static void acceptWorldCatalog(com.chaosthedude.explorerscompass.unified.creature.network.CreatureWorldCatalogPacket packet) {
+        if(Minecraft.getInstance().getConnection()!=connection || !Objects.equals(catalog,packet.request()))return;
+        CreatureWorldCatalog.accept(packet.current(),packet.directory());
+    }
     public static void accept(CompoundTag n) {
         var mc=Minecraft.getInstance();if(n==null || mc.getConnection()!=connection || !n.hasUUID("request"))return;
+        if(n.getString("action").equals("world_catalog_invalidated")){CreatureWorldCatalog.clear();CreatureWorldCatalog.request();return;}
         if(n.getString("action").equals("preexplore_status")){CreaturePreExploreClient.accept(n);return;}
         if(n.getString("action").equals("catalog")) {
             if(!n.getUUID("request").equals(catalog))return;
@@ -112,12 +118,13 @@ public final class CreatureClient {
     private static void clearPendingTeleport(){pendingTeleportRequest=null;pendingTeleportQuery=null;pendingTeleportScreen=null;pendingTeleportStarted=0;}
     public static MobPoint selected(){return points.isEmpty()?null:points.get(Math.floorMod(selection,points.size()));}
     public static void cycle(int delta){if(!points.isEmpty())selection=Math.floorMod(selection+delta,points.size());}
-    private static CompoundTag base(String action,UUID id){var n=new CompoundTag();n.putString("action",action);n.putUUID("request",id);return n;}
-    private static void send(CompoundTag n){if(Minecraft.getInstance().getConnection()!=null)UnifiedNetwork.CHANNEL.sendToServer(new CreatureRequest(n));}
-    public static void clear(){CreaturePreExploreClient.clear();entries=List.of();points=List.of();pendingParts.clear();catalogParts.clear();catalogPartCount=0;pointRevision=0;habitatReady=false;naturalWaitMillis=0;query=null;catalog=null;connection=null;state="idle";finished=true;confirmation=canTeleport=false;clearPendingTeleport();storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";round=rounds=chunks=selection=captured=captureTotal=chunksTotal=0;CreatureScreen.clearPreviews();}
+    private static CompoundTag base(String action,UUID id){var n=new CompoundTag();n.putString("action",action);n.putUUID("request",id);n.putString("landingMode",ConfigHandler.CLIENT.landingMode.get().name());return n;}
+    private static void send(CompoundTag n){if(Minecraft.getInstance().getConnection()!=null)CreatureNetwork.CHANNEL.sendToServer(new CreatureRequest(n));}
+    public static void clear(){CreatureWorldCatalog.clear();CreaturePreExploreClient.clear();entries=List.of();points=List.of();pendingParts.clear();catalogParts.clear();catalogPartCount=0;pointRevision=0;habitatReady=false;naturalWaitMillis=0;query=null;catalog=null;connection=null;state="idle";finished=true;confirmation=canTeleport=false;clearPendingTeleport();storedScanned=storedTotal=0;storedVerified=storedRejected=storedRegions=storedRegionsTotal=0;source="loaded";anchorSamples=anchorLimit=anchorMillis=storageMillis=chunkWaitMillis=0;anchorMode=anchorStage="";round=rounds=chunks=selection=captured=captureTotal=chunksTotal=0;CreatureScreen.clearPreviews();}
     public static void tick(){
         var mc=Minecraft.getInstance();if(connection!=null && connection!=mc.getConnection())clear();
         if(pendingTeleportRequest!=null && System.nanoTime()-pendingTeleportStarted>10_000_000_000L){clearPendingTeleport();if(mc.player!=null)mc.player.displayClientMessage(net.minecraft.network.chat.Component.literal("生物传送请求尚未确认，可重新尝试。"),true);}
+        CreatureWorldCatalog.tick();
         com.chaosthedude.explorerscompass.unified.creature.map.CreatureMaps.tick();
     }
     public static boolean dots(){return ConfigHandler.CLIENT.creatureDots.get();}

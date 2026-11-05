@@ -10,7 +10,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class UnifiedNetwork {
-    public static final String VERSION = "unified-8";
+    public static final String VERSION = "explorer-1";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(CompassUnified.MOD_ID, "unified"), () -> VERSION,
             UnifiedNetwork::acceptsVersion, UnifiedNetwork::acceptsVersion);
@@ -20,12 +20,6 @@ public final class UnifiedNetwork {
     public static boolean acceptsVersion(String remote) { return VERSION.equals(remote); }
 
     public static void register() {
-        CHANNEL.registerMessage(16,com.chaosthedude.explorerscompass.unified.creature.network.CreatureRequest.class,
-            com.chaosthedude.explorerscompass.unified.creature.network.CreatureRequest::encode,com.chaosthedude.explorerscompass.unified.creature.network.CreatureRequest::decode,
-            com.chaosthedude.explorerscompass.unified.creature.network.CreatureRequest::handle,Optional.of(NetworkDirection.PLAY_TO_SERVER));
-        CHANNEL.registerMessage(17,com.chaosthedude.explorerscompass.unified.creature.network.CreatureUpdate.class,
-            com.chaosthedude.explorerscompass.unified.creature.network.CreatureUpdate::encode,com.chaosthedude.explorerscompass.unified.creature.network.CreatureUpdate::decode,
-            com.chaosthedude.explorerscompass.unified.creature.network.CreatureUpdate::handle,Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(14, com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentRequest.class,
                 com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentRequest::encode,
                 com.chaosthedude.explorerscompass.unified.entertainment.EntertainmentRequest::decode,

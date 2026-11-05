@@ -49,6 +49,7 @@ public class ExplorersCompass {
 
 	private void commonSetup(FMLCommonSetupEvent event) {
         com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.register();
+        com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork.register();
     }
 
 	private void buildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {

@@ -2,7 +2,7 @@ package com.chaosthedude.explorerscompass.unified.creature.search;
 
 import com.chaosthedude.explorerscompass.config.ConfigHandler;
 import com.chaosthedude.explorerscompass.unified.creature.network.CreatureUpdate;
-import com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork;
+import com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork;
 import com.chaosthedude.explorerscompass.unified.search.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -111,12 +111,12 @@ public final class CreaturePreExplore {
     public static void cancel(UUID owner){if(task!=null && task.player.getUUID().equals(owner) && !task.finished)finish("cancelled");}
     public static void clear(){if(task!=null && !task.finished)finish("cancelled");task=null;}
     public static int tickets(){return task!=null && task.ticket?1:0;}
-    private static void reply(ServerPlayer p,UUID receipt,String state){var n=new CompoundTag();n.putString("action","preexplore_status");n.putUUID("request",receipt);n.putUUID("receipt",receipt);n.putString("state",state);n.putBoolean("finished",true);UnifiedNetwork.send(p,new CreatureUpdate(n));}
+    private static void reply(ServerPlayer p,UUID receipt,String state){var n=new CompoundTag();n.putString("action","preexplore_status");n.putUUID("request",receipt);n.putUUID("receipt",receipt);n.putString("state",state);n.putBoolean("finished",true);CreatureNetwork.send(p,new CreatureUpdate(n));}
     private static void send(ServerPlayer p,UUID receipt){
         if(task==null || task.player!=p){if(receipt!=null)reply(p,receipt,task!=null && !task.finished?"busy":"idle");return;}
         var q=task;var n=new CompoundTag();n.putString("action","preexplore_status");n.putUUID("request",q.id);if(receipt!=null)n.putUUID("receipt",receipt);
         n.putString("state",q.state);n.putBoolean("paused",q.paused);n.putBoolean("finished",q.finished);n.putString("dimension",q.level.dimension().location().toString());n.putInt("radius",q.radius);
         n.putInt("prepared",q.prepared.size());n.putInt("total",q.total);n.putInt("dependencies",q.dependencies.size());n.putInt("entities",q.entities.size());n.putLong("elapsedMillis",(System.nanoTime()-q.started)/1_000_000L);n.putDouble("tickMillis",q.tickMillis);
-        UnifiedNetwork.send(p,new CreatureUpdate(n));
+        CreatureNetwork.send(p,new CreatureUpdate(n));
     }
 }

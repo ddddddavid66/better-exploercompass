@@ -4,7 +4,7 @@ import com.chaosthedude.explorerscompass.ExplorersCompass;
 import com.chaosthedude.explorerscompass.unified.creature.CreatureItem;
 import com.chaosthedude.explorerscompass.unified.creature.catalog.*;
 import com.chaosthedude.explorerscompass.unified.creature.network.*;
-import com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork;
+import com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork;
 import com.chaosthedude.explorerscompass.unified.search.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -61,6 +61,15 @@ public final class CreatureSearch {
     public static void request(ServerPlayer player,CompoundTag n) {
         ItemStack stack=held(player);if(stack.isEmpty() || !n.hasUUID("request"))return;
         UUID token=n.getUUID("request");String action=n.getString("action");
+        if(action.equals("world_catalog") || action.equals("teleport") || action.equals("habitat_visit")) {
+            try { TeleportService.setMode(player.getUUID(),com.chaosthedude.explorerscompass.unified.data.LandingMode.valueOf(n.getString("landingMode"))); }
+            catch (IllegalArgumentException invalid) { return; }
+        }
+        if(action.equals("world_catalog")) {
+            CreatureNetwork.send(player,new CreatureWorldCatalogPacket(token,player.serverLevel().dimension().location(),
+                    com.chaosthedude.explorerscompass.unified.data.WorldDirectory.get(player.getServer())));
+            return;
+        }
         if(action.equals("catalog")) {
             for(var response:CreatureCatalogPackets.encode(token,CreatureCatalog.all(player.getServer()),
                     com.chaosthedude.explorerscompass.config.ConfigHandler.GENERAL.allowTeleport.get()))send(player,response);
@@ -361,7 +370,7 @@ public final class CreatureSearch {
         int parts=Math.max(1,(values.size()+255)/256);long revision=++q.resultRevision;
         for(int part=0;part<parts;part++) {var n=base(q);var rows=new ListTag();for(int i=part*256;i<Math.min(values.size(),(part+1)*256);i++)rows.add(values.get(i).encode());n.put("points",rows);n.putInt("part",part);n.putInt("parts",parts);n.putLong("revision",revision);send(q.player,n);}
     }
-    private static void send(ServerPlayer p,CompoundTag n){UnifiedNetwork.send(p,new CreatureUpdate(n));}
+    private static void send(ServerPlayer p,CompoundTag n){CreatureNetwork.send(p,new CreatureUpdate(n));}
     public static void cancel(UUID player){Query q=tasks.remove(player);if(q==null)return;if(q.anchorJob!=null)q.anchorJob.cancel();if(q.sorted!=null)q.sorted.cancel(true);if(q.plan!=null)q.plan.cancel(true);if(q.saved!=null)q.saved.close();release(q);releaseFlights(q);TeleportService.cancel(player);q.stage="cancelled";q.finished=true;publish(q);}
     public static void clear(){CreaturePreExplore.clear();for(var id:List.copyOf(tasks.keySet()))cancel(id);CreatureIndex.clear();SavedCreatureIndex.clear();CreatureHabitats.clear();CreatureCatalog.clear();}
     public static void destroyed(ServerLevel level,UUID entity){SavedCreatureIndex.destroyed(level,entity);for(var q:tasks.values())if(q.level==level && q.points.remove(entity)!=null){q.lastUpdate=0;}}
