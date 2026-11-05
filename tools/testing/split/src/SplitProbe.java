@@ -25,7 +25,7 @@ public final class SplitProbe {
     @Mod.EventBusSubscriber(modid=ID,value=Dist.CLIENT)
     public static final class Client {
         @SubscribeEvent public static void title(ScreenEvent.Init.Post event){
-            if(event.getScreen() instanceof TitleScreen && check("client"))Minecraft.getInstance().stop();
+            if(!Boolean.getBoolean("compass.split.full") && event.getScreen() instanceof TitleScreen && check("client"))Minecraft.getInstance().stop();
         }
     }
     private static boolean check(String side){

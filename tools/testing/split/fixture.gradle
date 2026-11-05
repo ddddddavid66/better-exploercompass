@@ -3,7 +3,7 @@ gradle.projectsEvaluated {
     p.sourceSets.create('splitProbe') {
         java.srcDir('tools/testing/split/src')
         resources.srcDir('tools/testing/split/resources')
-        compileClasspath += p.sourceSets.main.compileClasspath
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
     }
     p.tasks.register('splitProbeJar', Jar) {
         archiveBaseName='compass-split-probe'; archiveVersion='1.0'
@@ -11,4 +11,5 @@ gradle.projectsEvaluated {
         dependsOn 'splitProbeClasses'
     }
     p.reobf.create('splitProbeJar')
+    p.tasks.named('reobfSplitProbeJar').configure { libraries.from(p.sourceSets.main.output) }
 }
