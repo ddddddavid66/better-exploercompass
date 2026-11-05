@@ -40,5 +40,14 @@ gradlew :runtime:test --offline
 相等但身份不同的句柄、四槽上限、long 参数校验。
 此结果只证明新契约层，不代表两个模组已能启动；尚未做游戏内拆分验收。
 
+### 群系上下文提取
+
+- 从生产 `WorldgenCache` 提取 `BiomeGenerationContext`，将群系缓存、列采样、Alex 作用域与共享失效清理和结构字段分离。
+- 过渡期旧缓存继承群系上下文，保留现有调用入口；这不是最终跨模块解耦，群系搜索的前缀类型和产品装配仍待迁移。
+- 对照仓库外原文件，逐字确认采样方法保持原样，仅调整作用域方法可见性以支持过渡继承。
+- 生产 `compileJava` 通过；原搜索边界 54 项测试通过，runtime 9 项测试另行执行通过。
+- 首次组合测试命令把根测试过滤条件传播到 runtime，导致 runtime 报“无匹配测试”；已单独重跑 runtime 成功，该命令错误未当作测试通过。
+- 机器记录：仓库外 `.analysis/split/biome-extraction-validation.json`。未启动游戏，不将编译/单测当作独立安装验收。
+
 旧 settings.gradle 备份位于仓库外 `maintenance/split-backups/settings.gradle.before-split`。
 本阶段不修改原实例、原存档、第三方 jar 和已交付的 1.2.8 文件。

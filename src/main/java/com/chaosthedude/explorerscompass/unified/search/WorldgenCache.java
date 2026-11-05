@@ -12,12 +12,10 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
 
 /** 主线程创建不可变生成上下文；生命周期随世界与数据包重载结束。 */
-final class WorldgenCache {
+final class WorldgenCache extends BiomeGenerationContext {
     private static final Map<ServerLevel, WorldgenCache> WORLDS = new IdentityHashMap<>();
     private StructurePredictor predictor;
     private final ServerLevel level;
-    private final boolean sourceSafe;
-    private final GenerationStamp stamp;
     private record PredictionKey(Structure structure, long chunk) {}
     private static final class Prediction {
         final net.minecraft.core.BlockPos point;
@@ -26,12 +24,6 @@ final class WorldgenCache {
     }
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<PredictionKey, Prediction> predictions =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
-    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Long, Biome> biomePredictions =
-            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(32_768);
-    private final net.minecraft.world.level.biome.BiomeSource biomeSource;
-    private final net.minecraft.world.level.biome.Climate.Sampler noise;
-    private final ColumnClimate columns;
-    private final AlexBiomeScope.Context alex;
     private final Map<Structure, Predicate<Holder<Biome>>> biomeRules = new IdentityHashMap<>();
     private final Map<Structure, StartPrediction> dungeons = new IdentityHashMap<>();
     private final Map<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement,Boolean> regionPolicies=new IdentityHashMap<>();
@@ -77,14 +69,8 @@ final class WorldgenCache {
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private WorldgenCache(ServerLevel level) {
-        this.level=level;stamp=GenerationStamp.capture(level);
-        alex=BiomeSourceSafety.prepare(level).allowed()?AlexBiomeScope.prepare(level.getSeed()):null;
-        biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
-        noise = level.getChunkSource().randomState().sampler();
-        columns=ColumnClimate.prepare(level,noise);
-        sourceSafe=BiomeSourceSafety.prepare(level).allowed();
-        // 群系请求不承担结构初始化成本；预测器仅由结构计划在主线程按需准备。
-
+        super(level);
+        this.level=level;
     }
     static WorldgenCache get(ServerLevel level) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("生成缓存只能由服务端线程创建");
@@ -133,46 +119,5 @@ final class WorldgenCache {
             }
         }).point();
     }
-    Biome predictBiome(int x, int y, int z) {
-        // Quart 坐标和真实采样器严格隔离；只缓存审核过的不可变生成查询，仍逐点检查。
-        return predictBiome(x,y,z,null);
-    }
-    private Biome predictBiome(int x,int y,int z,Runnable onQuery) {
-        long key=net.minecraft.core.BlockPos.asLong(x,y,z);
-        return biomePredictions.get(key,ignored->streamBiome(x,y,z,onQuery));
-    }
-    final class BiomeColumn {
-        private final int x,z;
-        private final ColumnClimate.Column climate;
-        private BiomeColumn(int x,int z){this.x=x;this.z=z;climate=columns==null?null:columns.column(x,z);}
-        Biome predict(int y){return predict(y,null);}
-        Biome predict(int y,Runnable onQuery){return climate==null?predictBiome(x,y,z,onQuery):columns.with(climate,()->predictBiome(x,y,z,onQuery));}
-    }
-    BiomeColumn biomeColumn(int x,int z){return new BiomeColumn(x,z);}
-    /** 流式扫描不污染高复用LRU；调用方独占列游标，来源作用域仍完整保留。 */
-    Biome streamBiome(int x,int y,int z){return streamBiome(x,y,z,null);}
-    private Biome streamBiome(int x,int y,int z,Runnable onQuery){return scoped(()->{
-        if(onQuery!=null)onQuery.run();
-        return biomeSource.getNoiseBiome(x,y,z,noise).value();
-    });}
-    final class StreamingColumn {
-        private final int x,z;
-        private final ColumnClimate.Column climate;
-        private final Runnable onQuery;
-        StreamingColumn(int x,int z,Runnable onQuery){this.x=x;this.z=z;this.onQuery=onQuery;climate=columns==null?null:columns.column(x,z);}
-        Biome predict(int y){return climate==null?streamBiome(x,y,z,onQuery):columns.with(climate,()->streamBiome(x,y,z,onQuery));}
-    }
-    StreamingColumn streamingColumn(int x,int z){return streamingColumn(x,z,null);}
-    StreamingColumn streamingColumn(int x,int z,Runnable onQuery){return new StreamingColumn(x,z,onQuery);}
-    <T> T inColumn(int x,int z,java.util.function.Supplier<T> action) {return columns==null?action.get():columns.with(x,z,action);}
-    boolean allowedBiome(int x,int y,int z,Predicate<Holder<Biome>> allowed) {
-        long key=net.minecraft.core.BlockPos.asLong(x,y,z);
-        Biome biome=predictBiome(x,y,z);
-        return allowed.test(net.minecraft.core.Holder.direct(biome));
-    }
-    Biome peekBiome(int x,int y,int z) {
-        return biomePredictions.peek(net.minecraft.core.BlockPos.asLong(x,y,z));
-    }
-    private <T> T scoped(Supplier<T> action){return alex==null?action.get():alex.with(action);}
-    static void clear() { GenerationStamp.invalidate(); WORLDS.clear(); AetherSamplingHints.clear(); BiomeSourceSafety.clear(); AlexBiomeScope.clear(); }
+    static void clear() { WORLDS.clear(); BiomeGenerationContext.clearSharedState(); }
 }
