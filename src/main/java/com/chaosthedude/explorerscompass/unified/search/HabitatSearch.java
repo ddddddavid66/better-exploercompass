@@ -27,7 +27,7 @@ final class HabitatSearch extends SearchJob {
         var budget=new SamplingBudget(Math.max(0,quota));budgets.add(budget);quotaDisabled=quota<=0;
         var geometry=new RectFrontier.Geometry(origin.getX(),origin.getZ(),profile.spacing(),origin.getX(),origin.getZ(),origin.getX(),origin.getZ());
         var lanes=new ArrayList<ScanCoordinator.Lane<SearchCandidate>>();
-        for(var partition:RectFrontier.partition(geometry.domain(radius),background?SearchConfig.threads():1)) {
+        for(var partition:RectFrontier.partition(geometry.domain(radius),background?SearchPool.parallelism():1)) {
             BiomeColumnLane.Sampler sampler=(dx,dz,y)->{
                 int x=origin.getX()+dx*profile.spacing(),z=origin.getZ()+dz*profile.spacing();
                 if(this.excluded.contains(ChunkPos.asLong(x>>4,z>>4)))return List.of();

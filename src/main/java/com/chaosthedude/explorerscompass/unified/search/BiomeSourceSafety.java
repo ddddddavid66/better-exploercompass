@@ -51,7 +51,7 @@ final class BiomeSourceSafety {
         Result result=new BiomeSourceSafety(level).inspect();WORLDS.put(level,result);
         RETRY.put(level,tick+20);
         if(previous==null || previous.status()!=result.status() || !previous.reason().equals(result.reason()))
-            com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.info("维度 {} 搜索来源能力 {}：{}",level.dimension().location(),result.status(),result.reason());
+            org.apache.logging.log4j.LogManager.getLogger("compass_runtime").info("维度 {} 搜索来源能力 {}：{}",level.dimension().location(),result.status(),result.reason());
         return result;
     }
     /** 只复查临时未就绪；未知能力必须保持拒绝，不能随时间自动放行。 */

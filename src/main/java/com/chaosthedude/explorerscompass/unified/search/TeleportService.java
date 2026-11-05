@@ -1,11 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.search;
 
-import com.chaosthedude.explorerscompass.ExplorersCompass;
-import com.chaosthedude.explorerscompass.config.ConfigHandler;
-import com.chaosthedude.explorerscompass.util.CompassState;
 import com.chaosthedude.explorerscompass.unified.data.LandingColumns;
 import com.chaosthedude.explorerscompass.unified.data.LandingMode;
-import com.chaosthedude.explorerscompass.unified.network.*;
 import java.util.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -18,6 +14,22 @@ import net.minecraft.world.phys.Vec3;
 
 /** 群系/结构统一传送。所有世界读取都在主线程且区块已就绪。 */
 public final class TeleportService {
+    public enum State { PREPARING, NEEDS_CONFIRMATION, FALLBACK_PREPARING, FAILED_RETRYABLE, SUCCEEDED, CANCELLED }
+    public record RecordedTarget(UUID token, ResourceLocation key, boolean biome, int x, Integer y, int z) {}
+    /** 产品拥有目标读写、权限及事件；核心只处理实际世界与票据。 */
+    public interface RecordedCompass {
+        default RecordedTarget read(ServerPlayer player,ItemStack stack){return null;}
+        default ResourceLocation biome(ItemStack stack){return null;}
+        default UUID token(ItemStack stack){return null;}
+        default boolean allowedReturn(ServerPlayer player,ItemStack stack){return false;}
+        default void bindLegacy(ServerPlayer player,ItemStack stack,UUID token){}
+        default void status(ServerPlayer player,UUID token,State state,long revision,String reason){}
+        default void moved(ServerPlayer player,boolean biome,ResourceLocation key,ResourceLocation dimension,Vec3 point){}
+    }
+    private static final org.apache.logging.log4j.Logger LOGGER=org.apache.logging.log4j.LogManager.getLogger("compass_runtime");
+    private static volatile RecordedCompass recorded=new RecordedCompass(){};
+    public static void bindRecordedCompass(RecordedCompass adapter){recorded=Objects.requireNonNull(adapter);}
+
     public enum TravelResult { MOVED, NO_POSITION, BUDGET_EXHAUSTED, TIMED_OUT, CANCELLED, ERROR }
     public record TravelOutcome(TravelResult result,List<BlockPos> provenUnusable) {}
     private static final TicketType<UUID> PREPARE=TicketType.create("compassfilters_landing",Comparator.<UUID>naturalOrder());
@@ -56,10 +68,11 @@ public final class TeleportService {
             this.external=external;
             returning=returnPoint!=null;
             this.player=player;level=player.serverLevel();this.stack=stack;this.token=token;
-            biome=!returning && SearchService.isBiome(stack); key=external==null?target(stack):null;
-            if(returning){x=returnPoint.getX();z=returnPoint.getZ();}
-            else {var compass=ExplorersCompass.explorersCompass;x=compass.getFoundStructureX(stack);z=compass.getFoundStructureZ(stack);}
-            legacyHeight=!returning && !stack.getTag().contains(SearchService.FOUND_Y);sourceY=returning?returnPoint.getY():stack.getTag().getInt(SearchService.FOUND_Y);
+            var target=returning?null:Objects.requireNonNull(recorded.read(player,stack));
+            biome=target!=null && target.biome(); key=target==null?null:target.key();
+            x=target==null?returnPoint.getX():target.x();z=target==null?returnPoint.getZ():target.z();
+            legacyHeight=target!=null && target.y()==null;
+            sourceY=target==null?returnPoint.getY():legacyHeight?0:target.y();
             treasure=!returning && !biome && key!=null && key.toString().equals("minecraft:buried_treasure");
             mode=external==null?modes.getOrDefault(player.getUUID(),LandingMode.DEFAULT):external.mode();fallback=mode==LandingMode.RELAXED_ONLY;
             heights=fallback?relaxedHeights:strictHeights;
@@ -69,10 +82,9 @@ public final class TeleportService {
         boolean valid() {
             if(external!=null)return player.serverLevel()==level && external.valid() && external.allowed();
             if(returning)return allowedTravel(player,stack) && player.serverLevel()==level;
-            var compass=ExplorersCompass.explorersCompass;
-            return eligible(player,stack,token) && player.serverLevel()==level && key.equals(target(stack))
-                && x==compass.getFoundStructureX(stack) && z==compass.getFoundStructureZ(stack)
-                && (legacyHeight || sourceY==stack.getTag().getInt(SearchService.FOUND_Y));
+            var current=recorded.read(player,stack);
+            return player.serverLevel()==level && current!=null && token.equals(current.token()) && key.equals(current.key())
+                    && biome==current.biome() && x==current.x() && z==current.z() && (legacyHeight || Objects.equals(sourceY,current.y()));
         }
     }
     private TeleportService() {}
@@ -109,22 +121,11 @@ public final class TeleportService {
         task.landing=task.fallback?task.relaxedLanding:task.strictLanding;
         task.expires=task.player.getServer().getTickCount()+100;
         task.requestDeadline=0;task.checkNanos=0;
-        status(task,TeleportStatusPacket.State.CANCELLED,"mode_changed");
-    }
-    private static ResourceLocation target(ItemStack stack) {
-        return SearchService.isBiome(stack)?ResourceLocation.tryParse(stack.getTag().getString(SearchService.BIOME_KEY)):ExplorersCompass.explorersCompass.getStructureKey(stack);
-    }
-    private static boolean baseEligible(ServerPlayer player,ItemStack stack) {
-        if(player.isRemoved() || !player.isAlive() || stack.isEmpty() || stack.getItem()!=ExplorersCompass.explorersCompass
-            || (player.getMainHandItem()!=stack && player.getOffhandItem()!=stack)
-            || ExplorersCompass.explorersCompass.getState(stack)!=CompassState.FOUND
-            || !ConfigHandler.GENERAL.allowTeleport.get()) return false;
-        if(stack.getTag()==null || target(stack)==null) return false;
-        String dimension=stack.getTag().getString(SearchService.TARGET_DIMENSION);
-        return (dimension.isEmpty() && !SearchService.isBiome(stack)) || dimension.equals(player.level().dimension().location().toString());
+        status(task,State.CANCELLED,"mode_changed");
     }
     public static boolean eligible(ServerPlayer player,ItemStack stack,UUID token) {
-        return token!=null && baseEligible(player,stack) && token.equals(SearchService.token(stack));
+        var target=recorded.read(player,stack);
+        return token!=null && target!=null && token.equals(target.token());
     }
     public static void prepare(ServerPlayer player,ItemStack stack,UUID token) {
         if(!eligible(player,stack,token))return;
@@ -134,15 +135,16 @@ public final class TeleportService {
         return request(player,stack,token,UUID.randomUUID(),false);
     }
     public static boolean request(ServerPlayer player,ItemStack stack,UUID supplied,UUID requestId,boolean fallback) {
-        if(!baseEligible(player,stack)) {message(player,"filters.teleport_unavailable");return false;}
-        UUID actual=SearchService.token(stack);
+        var target=recorded.read(player,stack);
+        if(target==null) {message(player,"filters.teleport_unavailable");return false;}
+        UUID actual=target.token();
         if(supplied!=null && !supplied.equals(actual) || supplied==null && actual!=null) return false;
         // 旧结构目标首次请求由服务端赋标识；客户端不能把第一次点击伪装成降级。
         if(actual==null) {
-            if(SearchService.isBiome(stack) || fallback && mode(player.getUUID())!=LandingMode.RELAXED_ONLY)return false;
-            actual=UUID.randomUUID();stack.getOrCreateTag().putUUID("ECFiltersSearchToken",actual);
+            if(target.biome() || fallback && mode(player.getUUID())!=LandingMode.RELAXED_ONLY)return false;
+            actual=UUID.randomUUID();
         }
-        if(!stack.getTag().contains(SearchService.TARGET_DIMENSION))stack.getTag().putString(SearchService.TARGET_DIMENSION,player.level().dimension().location().toString());
+        recorded.bindLegacy(player,stack,actual);
         long now=System.nanoTime();var ledger=requests.computeIfAbsent(player.getUUID(),ignored->new LinkedHashMap<>());
         ledger.values().removeIf(time->now-time>CONFIRM_NANOS);
         if(ledger.containsKey(requestId))return true;
@@ -156,8 +158,8 @@ public final class TeleportService {
         if(task.waiting && now>=task.confirmationUntil) {finish(task,"expired",0);prepare(player,stack,actual);task=tasks.get(player.getUUID());}
         if(task.mode==LandingMode.SAFE_ONLY)fallback=false;
         if(task.mode==LandingMode.RELAXED_ONLY)fallback=true;
-        if(fallback && task.mode==LandingMode.DEFAULT && !task.waiting) {status(task,TeleportStatusPacket.State.CANCELLED,"confirmation_required");return false;}
-        if(task.waiting && !fallback && task.mode==LandingMode.DEFAULT) {status(task,TeleportStatusPacket.State.NEEDS_CONFIRMATION,"confirm");return true;}
+        if(fallback && task.mode==LandingMode.DEFAULT && !task.waiting) {status(task,State.CANCELLED,"confirmation_required");return false;}
+        if(task.waiting && !fallback && task.mode==LandingMode.DEFAULT) {status(task,State.NEEDS_CONFIRMATION,"confirm");return true;}
         boolean retry=task.waiting;
         task.waiting=false;task.clicked=true;task.fallback=fallback;task.phase="";
         if(retry && !fallback && Arrays.stream(task.strictHeights).allMatch(h->h>=33)) {
@@ -183,7 +185,8 @@ public final class TeleportService {
     }
     private static boolean travel(ServerPlayer player,ItemStack stack,java.util.function.Consumer<TravelResult> completion,
                                   java.util.function.Consumer<TravelOutcome> detailed) {
-        UUID token=SearchService.token(stack);
+        var target=recorded.read(player,stack);
+        UUID token=target==null?null:target.token();
         if(!eligible(player,stack,token))return false;
         Task prepared=tasks.get(player.getUUID());
         if(prepared==null || !prepared.valid() || !prepared.token.equals(token) || prepared.handoffUntil>0)prepare(player,stack,token);
@@ -197,26 +200,24 @@ public final class TeleportService {
         beginTravelStage(task,resumed?task.fallback:task.mode==LandingMode.RELAXED_ONLY);return true;
     }
     public static boolean allowedTravel(ServerPlayer player,ItemStack stack) {
-        return !player.isRemoved() && player.isAlive() && stack.getItem()==ExplorersCompass.explorersCompass
-                && (player.getMainHandItem()==stack || player.getOffhandItem()==stack)
-                && ConfigHandler.GENERAL.allowTeleport.get();
+        return recorded.allowedReturn(player,stack);
     }
     /** 返回也复用同一票据、落点检查与调度预算，但不写目标和不累计次数。 */
     public static boolean returnTravel(ServerPlayer player,ItemStack stack,Vec3 origin,float yaw,float pitch,
                                         java.util.function.Consumer<Boolean> completion) {
         if(!allowedTravel(player,stack))return false;
         cancel(player.getUUID());
-        UUID token=SearchService.token(stack);
+        UUID token=recorded.token(stack);
         Task task=new Task(player,stack,token==null?UUID.randomUUID():token,BlockPos.containing(origin));
         task.travel=true;
         task.clicked=true;task.completion=result->completion.accept(result==TravelResult.MOVED);task.returnYaw=yaw;task.returnPitch=pitch;
         task.requestDeadline=System.nanoTime()+REQUEST_NANOS;task.attemptStarted=System.nanoTime();
         task.waitStarted=System.nanoTime();task.expires=player.getServer().getTickCount()+200;
         if(LandingChecks.ready(player,task.level,BlockPos.containing(origin),false)) {
-            if(LandingChecks.standing(player,task.level,ItemStack.EMPTY,origin,false))task.strictLanding=origin;
+            if(LandingChecks.standing(player,task.level,null,origin,false))task.strictLanding=origin;
             // 降级返回也先复用原坐标，避免切换阶段时丢失已验证的出发位置。
-            if(LandingChecks.standing(player,task.level,ItemStack.EMPTY,origin,true)
-                    || LandingChecks.waterStanding(player,task.level,ItemStack.EMPTY,origin))task.relaxedLanding=origin;
+            if(LandingChecks.standing(player,task.level,null,origin,true)
+                    || LandingChecks.waterStanding(player,task.level,origin))task.relaxedLanding=origin;
         }
         tasks.put(player.getUUID(),task);beginTravelStage(task,task.mode==LandingMode.RELAXED_ONLY);return true;
     }
@@ -230,7 +231,7 @@ public final class TeleportService {
         task.waitStarted=now;task.waitNanos=0;task.expires=task.player.getServer().getTickCount()+200;
         phase(task,task.ticket?"waiting_chunks":"waiting_slots");
     }
-    private static ItemStack landingStack(Task task){return task.returning?ItemStack.EMPTY:task.stack;}
+    private static ResourceLocation landingBiome(Task task){return task.biome?task.key:null;}
     private static void completed(Task task,TravelResult result) {
         var callback=task.completion;var detailed=task.detailedCompletion;task.completion=null;task.detailedCompletion=null;
         var proof=result==TravelResult.NO_POSITION && task.heightProbe!=null?task.heightProbe.provenUnusableColumn():List.<BlockPos>of();
@@ -341,7 +342,7 @@ public final class TeleportService {
                 task.origin=task.origin.atY(chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,task.x&15,task.z&15)+1);task.heightResolved=true;
             }
             if(aetherBiome(task)) {
-                if(task.heightProbe==null)task.heightProbe=new AetherHeightProbe(task.player,task.stack,task.key,task.origin,task.fallback);
+                if(task.heightProbe==null)task.heightProbe=new AetherHeightProbe(task.player,task.key,task.origin,task.fallback);
                 if(task.heightProbe.pending(task.fallback)) {
                     phase(task,"height_probe");long before=System.nanoTime();
                     int checked=task.heightProbe.checked();Vec3 found=task.heightProbe.step(quantum,task.fallback);task.checkNanos+=System.nanoTime()-before;
@@ -393,11 +394,11 @@ public final class TeleportService {
                 try {
                     point=point.atY(y);progress[index]++;
                     if(task.external!=null && !task.external.accepts(Vec3.atBottomCenterOf(point))){if(System.nanoTime()>=quantum)return true;continue;}
-                    landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback,requiresBiome(task));
-                    if(landing==null && surface && task.fallback)landing=LandingChecks.waterSurface(task.player,task.level,landingStack(task),point);
+                    landing=LandingChecks.find(task.player,task.level,landingBiome(task),point,task.fallback,requiresBiome(task));
+                    if(landing==null && surface && task.fallback)landing=LandingChecks.waterSurface(task.player,task.level,point);
                     if(landing!=null && (!travelBiome(task,landing) || !preferredTravelLanding(task,landing)))landing=null;
                     if(!task.fallback && task.relaxedLanding==null)
-                        task.relaxedLanding=LandingChecks.find(task.player,task.level,task.stack,point,true,requiresBiome(task));
+                        task.relaxedLanding=LandingChecks.find(task.player,task.level,landingBiome(task),point,true,requiresBiome(task));
                 } finally {task.checkNanos+=System.nanoTime()-before;}
                 work=true;
                 if(landing!=null) {
@@ -425,7 +426,7 @@ public final class TeleportService {
             }
             return work;
         } catch(RuntimeException error) {
-            ExplorersCompass.LOGGER.warn("落点检查失败",error);
+            LOGGER.warn("落点检查失败",error);
             if(task.clicked)failed(task,"error");else finish(task,"error",0);return true;
         }
     }
@@ -448,15 +449,15 @@ public final class TeleportService {
         BlockPos point=new BlockPos(task.x,y,task.z);
         if(!LandingChecks.ready(task.player,task.level,point,false))return false;
         if(task.chunksReady==0)task.chunksReady=System.nanoTime();
-        Vec3 landing=LandingChecks.find(task.player,task.level,landingStack(task),point,task.fallback,requiresBiome(task));
+        Vec3 landing=LandingChecks.find(task.player,task.level,landingBiome(task),point,task.fallback,requiresBiome(task));
         if(landing==null) {if(task.clicked)failed(task,"no_position");else finish(task,"no_position",0);return true;}
         task.landing=landing;if(task.fallback)task.relaxedLanding=landing;else task.strictLanding=landing;
         if(task.clicked)move(task);return true;
     }
     private static boolean recheck(Task task,Vec3 point,boolean relaxed) {
-        if(task.external!=null && task.external.creature() && relaxed)return task.external.accepts(point) && CreatureLanding.allowed(task.player,task.level,point);
-        return (task.external==null || task.external.accepts(point)) && travelBiome(task,point) && (LandingChecks.standing(task.player,task.level,landingStack(task),point,relaxed,requiresBiome(task))
-                || relaxed && LandingChecks.waterStanding(task.player,task.level,landingStack(task),point));
+        if(task.external!=null && task.external.creature() && relaxed)return task.external.accepts(point) && LandingChecks.allowsUnanchored(task.player,task.level,point);
+        return (task.external==null || task.external.accepts(point)) && travelBiome(task,point) && (LandingChecks.standing(task.player,task.level,landingBiome(task),point,relaxed,requiresBiome(task))
+                || relaxed && LandingChecks.waterStanding(task.player,task.level,point));
     }
     private static void refreshCreature(Task task){
         BlockPos current=task.external.position();
@@ -490,17 +491,17 @@ public final class TeleportService {
         }
         summary(task,reason);task.clicked=false;task.waiting=true;task.confirmationUntil=System.nanoTime()+CONFIRM_NANOS;task.expires=task.player.getServer().getTickCount()+100;
         boolean confirm=!task.fallback && task.mode==LandingMode.DEFAULT;
-        status(task,confirm?TeleportStatusPacket.State.NEEDS_CONFIRMATION:TeleportStatusPacket.State.FAILED_RETRYABLE,reason);
+        status(task,confirm?State.NEEDS_CONFIRMATION:State.FAILED_RETRYABLE,reason);
         if(task.player.connection!=null)task.player.displayClientMessage(Component.translatable(confirm?"filters.teleport_confirm":"filters.teleport_retry")
                 .append(" ").append(Component.translatable("filters.teleport_reason_"+reason)),true);
     }
     private static void phase(Task task,String phase) {
         if(task.phase.equals(phase))return;task.phase=phase;
-        status(task,task.fallback?TeleportStatusPacket.State.FALLBACK_PREPARING:TeleportStatusPacket.State.PREPARING,phase);
+        status(task,task.fallback?State.FALLBACK_PREPARING:State.PREPARING,phase);
     }
-    private static void status(Task task,TeleportStatusPacket.State state,String reason) {
-        if(task.external!=null){task.external.state(reason,state==TeleportStatusPacket.State.NEEDS_CONFIRMATION);return;}
-        UnifiedNetwork.send(task.player,new TeleportStatusPacket(task.token,state,++revision,reason));
+    private static void status(Task task,State state,String reason) {
+        if(task.external!=null){task.external.state(reason,state==State.NEEDS_CONFIRMATION);return;}
+        recorded.status(task.player,task.token,state,++revision,reason);
     }
     private static void move(Task task) {
         if(!task.valid() || task.player.connection==null){finish(task,"cancelled",0);return;}
@@ -510,42 +511,46 @@ public final class TeleportService {
         task.player.setDeltaMovement(0,0,0);task.player.fallDistance=0;
         if(aetherBiome(task) && !task.key.equals(loadedBiome(task.player))) {
             // 其它模组可能改写实际落点。先保留同一逻辑请求做高度复核，不发成功计数或旧回调。
-            task.origin=task.player.blockPosition().immutable();task.heightProbe=new AetherHeightProbe(task.player,task.stack,task.key,task.origin,task.fallback);task.landing=null;
+            task.origin=task.player.blockPosition().immutable();task.heightProbe=new AetherHeightProbe(task.player,task.key,task.origin,task.fallback);task.landing=null;
             phase(task,"height_probe");return;
         }
         task.level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT,new ChunkPos(BlockPos.containing(point)),1,task.player.getId());
-        if(!task.returning && task.external==null)TeleportEvents.succeeded(task.player,task.biome?TeleportSucceededPacket.Kind.BIOME:TeleportSucceededPacket.Kind.STRUCTURE,task.key,task.level.dimension().location(),point.x,point.y,point.z);
+        if(!task.returning && task.external==null)recorded.moved(task.player,task.biome,task.key,task.level.dimension().location(),point);
         if(task.external!=null)task.external.moved();
-        boolean water=LandingChecks.waterStanding(task.player,task.level,task.stack,point);
+        boolean water=LandingChecks.waterStanding(task.player,task.level,point);
         if(water)message(task.player,"filters.teleport_water_surface");
-        status(task,TeleportStatusPacket.State.SUCCEEDED,water?"water_moved":task.fallback?"fallback_moved":"moved");
+        status(task,State.SUCCEEDED,water?"water_moved":task.fallback?"fallback_moved":"moved");
         summary(task,water?"water_moved":"moved");
-        if(task.heightProbe!=null)ExplorersCompass.LOGGER.info("天境高度复核 {} biome={} {}",task.token,task.key,task.heightProbe.summary());
+        if(task.heightProbe!=null)LOGGER.info("天境高度复核 {} biome={} {}",task.token,task.key,task.heightProbe.summary());
         task.clicked=false;task.waiting=true;task.handoffUntil=task.player.getServer().getTickCount()+40;
         completed(task,TravelResult.MOVED);
     }
     private static void summary(Task task,String result) {
         long now=System.nanoTime(),waiting=task.waitNanos+(task.waitStarted==0?0:now-task.waitStarted);
-        ExplorersCompass.LOGGER.info("传送 {} 阶段摘要：result={}, phase={}, elapsed_ms={}, waiting_ms={}, checking_ms={}",
+        LOGGER.info("传送 {} 阶段摘要：result={}, phase={}, elapsed_ms={}, waiting_ms={}, checking_ms={}",
                 task.token,result,task.phase,(now-task.attemptStarted)/1e6,waiting/1e6,task.checkNanos/1e6);
-        if(task.heightProbe!=null)ExplorersCompass.LOGGER.info("天境高度复核诊断 {} biome={} {}",task.token,task.key,task.heightProbe.summary());
+        if(task.heightProbe!=null)LOGGER.info("天境高度复核诊断 {} biome={} {}",task.token,task.key,task.heightProbe.summary());
+    }
+    public static boolean safeUnfiltered(ServerPlayer player,ServerLevel level,BlockPos point) {
+        if(!level.getServer().isSameThread())throw new IllegalStateException("落点检查必须在服务端线程");
+        return LandingChecks.find(player,level,null,point,false)!=null;
     }
     public static boolean safe(ServerPlayer player,ServerLevel level,ItemStack stack,BlockPos point) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("落点检查必须在服务端线程");
-        return LandingChecks.find(player,level,stack,point,false)!=null;
+        return LandingChecks.find(player,level,recorded.biome(stack),point,false)!=null;
     }
     public static Vec3 relaxed(ServerPlayer player,ServerLevel level,ItemStack stack,BlockPos point) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("落点检查必须在服务端线程");
-        return LandingChecks.find(player,level,stack,point,true);
+        return LandingChecks.find(player,level,recorded.biome(stack),point,true);
     }
     public static boolean safeAt(ServerPlayer player,ServerLevel level,ItemStack stack,Vec3 point) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("落点检查必须在服务端线程");
-        return LandingChecks.standing(player,level,stack,point,false);
+        return LandingChecks.standing(player,level,recorded.biome(stack),point,false);
     }
     private static void finish(Task task,String reason,long moved) {
         if(tasks.remove(task.player.getUUID(),task)) {
             release(task);
-            if(moved==0 && task.handoffUntil==0)status(task,TeleportStatusPacket.State.CANCELLED,reason);
+            if(moved==0 && task.handoffUntil==0)status(task,State.CANCELLED,reason);
             completed(task,reason.equals("cancelled")?TravelResult.CANCELLED:reason.equals("error")?TravelResult.ERROR:TravelResult.NO_POSITION);
         }
     }

@@ -6,7 +6,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -15,7 +14,6 @@ import net.minecraft.world.phys.Vec3;
 final class AetherHeightProbe {
     private final ServerPlayer player;
     private final ServerLevel level;
-    private final ItemStack stack;
     private final ResourceLocation target;
     private final BlockPos origin;
     private final int minimum,maximum,span;
@@ -33,8 +31,8 @@ final class AetherHeightProbe {
         boolean done(){return column>=columns.size();}
         BlockPos point(){return columns.get(column);}
     }
-    AetherHeightProbe(ServerPlayer player,ItemStack stack,ResourceLocation target,BlockPos origin,boolean relaxed){
-        this.player=player;level=player.serverLevel();this.stack=stack;this.target=target;this.origin=origin;this.relaxed=relaxed;
+    AetherHeightProbe(ServerPlayer player,ResourceLocation target,BlockPos origin,boolean relaxed){
+        this.player=player;level=player.serverLevel();this.target=target;this.origin=origin;this.relaxed=relaxed;
         minimum=level.getMinBuildHeight()+4;maximum=level.getMaxBuildHeight()-(int)Math.ceil(player.getBbHeight());
         span=Math.max(Math.abs(origin.getY()-minimum),Math.abs(maximum-origin.getY()));resetGroups();
     }
@@ -59,7 +57,7 @@ final class AetherHeightProbe {
         waiting=null;
         if(nowRelaxed!=relaxed){relaxed=nowRelaxed;resetGroups();previous=null;}
         if(relaxed && relaxedHint!=null){var hint=relaxedHint;relaxedHint=null;
-            if(matches(hint) && (LandingChecks.standing(player,level,stack,hint,true) || LandingChecks.waterStanding(player,level,stack,hint)))return hint;
+            if(matches(hint) && (LandingChecks.standing(player,level,target,hint,true) || LandingChecks.waterStanding(player,level,hint)))return hint;
         }
         while(System.nanoTime()<deadline){
             if(active==null || active.done()){
@@ -91,11 +89,11 @@ final class AetherHeightProbe {
             if(biome!=null && !biome.equals(previous)){changes++;previous=biome;}
             if(!target.equals(biome) && !(solid && target.equals(biome(p.below()))))continue;targetMatches++;
             if(!solid && !water)continue;supports++;
-            Vec3 found=LandingChecks.find(player,level,stack,p,relaxed);
-            if(found==null && relaxed && water)found=LandingChecks.waterSurface(player,level,stack,p);
+            Vec3 found=LandingChecks.find(player,level,target,p,relaxed);
+            if(found==null && relaxed && water)found=LandingChecks.waterSurface(player,level,p);
             if(found!=null && matches(found))return found;
-            if(!relaxed && relaxedHint==null){var hint=LandingChecks.find(player,level,stack,p,true);
-                if(hint==null && water)hint=LandingChecks.waterSurface(player,level,stack,p);
+            if(!relaxed && relaxedHint==null){var hint=LandingChecks.find(player,level,target,p,true);
+                if(hint==null && water)hint=LandingChecks.waterSurface(player,level,p);
                 if(hint!=null && matches(hint))relaxedHint=hint;
             }
         }

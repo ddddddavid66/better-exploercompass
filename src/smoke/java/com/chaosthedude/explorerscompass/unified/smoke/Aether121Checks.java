@@ -219,7 +219,7 @@ public final class Aether121Checks {
         check(player.serverLevel()==level && possible,"actual player entered target dimension before search");
         ensureCompass(player);
         check(!SearchRules.broken(player.getMainHandItem()),"test compass usable");
-        frozen=BiomeQueryFactory.prepare(level,queryOrigin,target);
+        frozen=BiomeQueryFactory.prepare(level,queryOrigin,target,SearchConfig.biomeParameters());
         check(frozen.profile().aether(),"shared Aether profile "+target);
         if(targetIndex==0 && Boolean.getBoolean("unified.aether121.resume")) {
             check(Files.exists(Path.of("launch121-aether-3.log")),"preserved earlier ordinary/travel comparison evidence");

@@ -79,7 +79,7 @@ public final class BiomeSearch extends SearchJob {
         List<Integer> heights = profile.heights();
         cachedOrigin=cache!=null && cache.peekBiome(QuartPos.fromBlock(origin.getX()),
                 QuartPos.fromBlock(initialY),QuartPos.fromBlock(origin.getZ()))==biome;
-        int workers = background ? SearchConfig.threads() : 1;
+        int workers = background ? SearchPool.parallelism() : 1;
         List<ScanCoordinator.Lane<SearchCandidate>> lanes = new ArrayList<>();
         var geometry = new RectFrontier.Geometry(origin.getX(), origin.getZ(), spacing,
                 origin.getX(), origin.getZ(), origin.getX(), origin.getZ());

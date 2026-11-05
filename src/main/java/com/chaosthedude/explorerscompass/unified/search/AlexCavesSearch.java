@@ -28,7 +28,7 @@ final class AlexCavesSearch extends SearchJob {
         var source=level.getChunkSource().getGenerator().getBiomeSource();var sampler=level.getChunkSource().randomState().sampler();
         var geometry=new RectFrontier.Geometry(start.getX(),start.getZ(),spacing,start.getX(),start.getZ(),start.getX(),start.getZ());
         List<ScanCoordinator.Lane<SearchCandidate>> lanes=new ArrayList<>();
-        if(maximum>0)for(var partition:RectFrontier.partition(geometry.domain(radius),async && adapter!=null?SearchConfig.threads():1)) {
+        if(maximum>0)for(var partition:RectFrontier.partition(geometry.domain(radius),async && adapter!=null?SearchPool.parallelism():1)) {
             var center=new net.minecraft.world.phys.Vec3[1];
             lanes.add(new BiomeColumnLane(geometry,partition,(long)radius*radius,budget,List.copyOf(heights),1,async && adapter!=null,(dx,dz,y)-> {
                 int x=start.getX()+dx*spacing,z=start.getZ()+dz*spacing;

@@ -76,6 +76,7 @@ public final class AdventureTravel {
             var visits=AdventureRequirements.read(advancement);
             if(player.getAdvancements().getOrStartProgress(advancement).isDone()){message(player,"entertainment.already_done");return;}
             if(visits.isEmpty()){message(player,"entertainment.no_biomes");return;}
+            com.chaosthedude.explorerscompass.unified.search.SearchReplacement.replace(ExplorersCompass.MODID,player);
             SearchService.cancel(player,true);Task task=new Task(player,stack,advancement,visits,feature);
             tasks.put(player.getUUID(),task);
             publish(task,true);

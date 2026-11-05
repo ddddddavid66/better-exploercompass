@@ -50,7 +50,16 @@ public class ExplorersCompass {
 
 	private void commonSetup(FMLCommonSetupEvent event) {
         com.chaosthedude.explorerscompass.unified.network.UnifiedNetwork.register();
+        com.chaosthedude.explorerscompass.unified.search.ExplorerLandingAdapter.register();
+        com.chaosthedude.explorerscompass.unified.search.SearchPool.configure(com.chaosthedude.explorerscompass.unified.search.SearchConfig::threads);
         com.chaosthedude.explorerscompass.unified.creature.network.CreatureNetwork.register();
+        com.chaosthedude.explorerscompass.unified.search.SearchReplacement.register(MODID,player->{
+            com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.replaced");
+            com.chaosthedude.explorerscompass.unified.search.SearchService.cancel(player,true);
+        });
+        com.chaosthedude.explorerscompass.unified.search.SearchReplacement.register(
+                com.chaosthedude.explorerscompass.unified.creature.CreatureIdentity.MOD_ID,
+                player->com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(player.getUUID()));
     }
 
 	private void buildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {

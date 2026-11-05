@@ -21,6 +21,9 @@ public final class SearchConfig {
         DEPTH_INTERVAL = builder.defineInRange("biomeDepthSampleInterval", 4, 1, 64);
         builder.pop();
     }
+    public static com.david.compass.runtime.SearchParameters biomeParameters() {
+        return new com.david.compass.runtime.SearchParameters(RADIUS.get(),BIOME_SAMPLES.get(),SPACING.get(),VERTICAL.get(),DEPTH_INTERVAL.get(),ASYNC_BIOMES.get());
+    }
     private SearchConfig() {}
     public static int threads() {
         int configured = THREADS.get();

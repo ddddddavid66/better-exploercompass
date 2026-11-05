@@ -207,12 +207,12 @@ public final class Optional111Checks {
         for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)level.getChunk((pos.getX()>>4)+x,(pos.getZ()>>4)+z);
         for(int y=-4;y<=3;y++)level.setBlockAndUpdate(pos.offset(0,y,0),y<=0?Blocks.WATER.defaultBlockState():Blocks.AIR.defaultBlockState());
         var type=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingChecks");
-        var surface=type.getDeclaredMethod("waterSurface",ServerPlayer.class,net.minecraft.server.level.ServerLevel.class,ItemStack.class,BlockPos.class);surface.setAccessible(true);
-        var recheck=type.getDeclaredMethod("waterStanding",ServerPlayer.class,net.minecraft.server.level.ServerLevel.class,ItemStack.class,net.minecraft.world.phys.Vec3.class);recheck.setAccessible(true);
-        var water=surface.invoke(null,player,level,stack,pos.above());
-        if(water==null || !(boolean)recheck.invoke(null,player,level,stack,water))throw new AssertionError("water surface prepare/recheck");
+        var surface=type.getDeclaredMethod("waterSurface",ServerPlayer.class,net.minecraft.server.level.ServerLevel.class,BlockPos.class);surface.setAccessible(true);
+        var recheck=type.getDeclaredMethod("waterStanding",ServerPlayer.class,net.minecraft.server.level.ServerLevel.class,net.minecraft.world.phys.Vec3.class);recheck.setAccessible(true);
+        var water=surface.invoke(null,player,level,pos.above());
+        if(water==null || !(boolean)recheck.invoke(null,player,level,water))throw new AssertionError("water surface prepare/recheck");
         level.setBlockAndUpdate(pos.above(),Blocks.STONE.defaultBlockState());
-        if((boolean)recheck.invoke(null,player,level,stack,water))throw new AssertionError("water landing must reject obstructed head");
+        if((boolean)recheck.invoke(null,player,level,water))throw new AssertionError("water landing must reject obstructed head");
         TeleportService.setMode(player.getUUID(),LandingMode.RELAXED_ONLY);
         if(TeleportService.ticketCount()!=0 || slots()!=0)throw new AssertionError("tickets after checks");
     }

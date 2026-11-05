@@ -94,7 +94,7 @@ public final class CreaturePreExplore {
             if(q.at>=q.plan.size()){finish("complete");return true;}
             if(VerificationSlots.queued()>0)return false;
             q.pending=q.plan.get(q.at++);q.waiting=System.nanoTime();q.state="waiting_slots";return true;
-        }catch(Exception e){com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.warn("区块预探索失败",e);finish("error");return true;}
+        }catch(Exception e){com.chaosthedude.explorerscompass.unified.creature.CreatureIdentity.LOGGER.warn("区块预探索失败",e);finish("error");return true;}
     }
     public static List<ChunkPos> plan(BlockPos origin,int radius,double minX,double maxX,double minZ,double maxZ){
         var result=new ArrayList<ChunkPos>();

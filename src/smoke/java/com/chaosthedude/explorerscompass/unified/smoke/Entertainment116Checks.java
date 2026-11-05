@@ -210,11 +210,11 @@ public final class Entertainment116Checks {
             Class<?> guard=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingSafety");var invalidate=guard.getDeclaredMethod("invalidate",ServerLevel.class);invalidate.setAccessible(true);invalidate.invoke(null,level);
             check(!TeleportService.safeAt(p,level,ItemStack.EMPTY,new Vec3(x+.5,y-.5,z+.5)),"above bedrock barrier rejected");
             level.setBlock(new BlockPos(x,y-3,z),Blocks.AIR.defaultBlockState(),2);invalidate.invoke(null,level);
-            var water=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingChecks").getDeclaredMethod("waterStanding",ServerPlayer.class,ServerLevel.class,ItemStack.class,Vec3.class);water.setAccessible(true);
+            var water=Class.forName("com.chaosthedude.explorerscompass.unified.search.LandingChecks").getDeclaredMethod("waterStanding",ServerPlayer.class,ServerLevel.class,Vec3.class);water.setAccessible(true);
             for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)level.setBlock(new BlockPos(x+dx,y-1,z+dz),Blocks.WATER.defaultBlockState(),2);
-            check(!(boolean)water.invoke(null,p,level,ItemStack.EMPTY,new Vec3(x+.5,y-1+level.getFluidState(new BlockPos(x,y-1,z)).getHeight(level,new BlockPos(x,y-1,z))-.25,z+.5)),"bottomless source water rejected");
+            check(!(boolean)water.invoke(null,p,level,new Vec3(x+.5,y-1+level.getFluidState(new BlockPos(x,y-1,z)).getHeight(level,new BlockPos(x,y-1,z))-.25,z+.5)),"bottomless source water rejected");
             for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)level.setBlock(new BlockPos(x+dx,y-2,z+dz),Blocks.STONE.defaultBlockState(),2);
-            check((boolean)water.invoke(null,p,level,ItemStack.EMPTY,new Vec3(x+.5,y-1+level.getFluidState(new BlockPos(x,y-1,z)).getHeight(level,new BlockPos(x,y-1,z))-.25,z+.5)),"supported source pool accepted");
+            check((boolean)water.invoke(null,p,level,new Vec3(x+.5,y-1+level.getFluidState(new BlockPos(x,y-1,z)).getHeight(level,new BlockPos(x,y-1,z))-.25,z+.5)),"supported source pool accepted");
             notes.add("PASS local island/slab/bedrock/water boundary checks");
         }finally{for(var e:old.entrySet())level.setBlock(e.getKey(),e.getValue(),2);}
     }

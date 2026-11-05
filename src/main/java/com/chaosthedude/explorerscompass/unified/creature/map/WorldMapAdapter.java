@@ -13,7 +13,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import com.chaosthedude.explorerscompass.ExplorersCompass;
+import com.chaosthedude.explorerscompass.unified.creature.CreatureIdentity;
 import java.lang.reflect.Field;
 /** 公开地图扩展层；不修改原生雷达、路径点及洞穴模式。 */
 public final class WorldMapAdapter extends MapElementRenderer<MobPoint,Object,WorldMapAdapter> {
@@ -89,7 +89,7 @@ public final class WorldMapAdapter extends MapElementRenderer<MobPoint,Object,Wo
     }
     private static void clearCenter(){pendingMap=null;pendingPoint=null;pendingQuery=null;}
     private static void cameraFailure(Exception error){
-        if(cameraFailed)return;cameraFailed=true;ExplorersCompass.LOGGER.warn("生物地图自动居中不可用；蓝点和搜索仍可使用",error);
+        if(cameraFailed)return;cameraFailed=true;CreatureIdentity.LOGGER.warn("生物地图自动居中不可用；蓝点和搜索仍可使用",error);
         var player=Minecraft.getInstance().player;if(player!=null)player.displayClientMessage(Component.literal("地图自动居中接口不可用，生物蓝点仍可显示，详情见日志。"),false);
     }
     public int getOrder(){return 1000;}

@@ -1,6 +1,6 @@
 package com.chaosthedude.explorerscompass.unified.creature.search;
 
-import com.chaosthedude.explorerscompass.ExplorersCompass;
+import com.chaosthedude.explorerscompass.unified.creature.CreatureIdentity;
 import com.david.compass.runtime.SearchParameters;
 import com.chaosthedude.explorerscompass.unified.creature.CreatureConfig;
 import com.chaosthedude.explorerscompass.unified.data.LandingMode;
@@ -95,8 +95,7 @@ public final class CreatureSearch {
                 || !entry.matches(player.serverLevel().dimension().location(),biome)) {
             var rejected=new CompoundTag();rejected.putString("action","results");rejected.putUUID("request",token);rejected.putString("state","rejected_dimension_or_filter");rejected.putBoolean("finished",true);rejected.put("points",new ListTag());send(player,rejected);return;
         }
-        com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.replaced");
-        SearchService.cancel(player,true);cancel(player.getUUID());
+        SearchReplacement.replace(CreatureIdentity.MOD_ID,player);cancel(player.getUUID());
         Query q=new Query(player,stack,token,type,biome,rounds);q.mode=mode(n,LandingMode.DEFAULT);tasks.put(player.getUUID(),q);beginCapture(q);publish(q);
     }
     private static LandingMode mode(CompoundTag tag,LandingMode fallback) {
@@ -115,7 +114,7 @@ public final class CreatureSearch {
             boolean work=advance(q,quantum);long now=System.nanoTime();
             if(!q.finished && now-q.lastProgressPacket>=200_000_000L){q.lastProgressPacket=now;send(q.player,base(q));}
             return work;
-        }catch(Exception error){ExplorersCompass.LOGGER.warn("生物搜索 {} 异常",q.token,error);done(q,"error");return true;}
+        }catch(Exception error){CreatureIdentity.LOGGER.warn("生物搜索 {} 异常",q.token,error);done(q,"error");return true;}
     }
     private static boolean advance(Query q,long deadline) throws Exception {
         if(q.visit!=null){
@@ -131,7 +130,7 @@ public final class CreatureSearch {
                 boolean observed=q.visit.state.startsWith("natural_spawn_");
                 if(observed){
                     q.habitatExcluded.add(q.visit.center.toLong());
-                    ExplorersCompass.LOGGER.info("CREATURE habitat {} type={} state={} population={}/{}",q.token,q.type,q.visit.state,q.visit.population,q.visit.capacity);
+                    CreatureIdentity.LOGGER.info("CREATURE habitat {} type={} state={} population={}/{}",q.token,q.type,q.visit.state,q.visit.population,q.visit.capacity);
                 }
                 release(q);q.pending=null;q.visit=null;
                 if(observed){q.anchor=null;q.chunks=null;q.plan=null;q.planner=null;q.anchorOffset=q.checked;beginCapture(q);}
@@ -230,7 +229,7 @@ public final class CreatureSearch {
                 q.stage="locating_biome";boolean work;
                 try{work=q.anchorJob.step();}catch(Exception error){
                     if(!q.anchorJob.asynchronous())throw error;
-                    ExplorersCompass.LOGGER.warn("生物适生区后台查询失败，保留完整来源改为兼容查询",error);
+                    CreatureIdentity.LOGGER.warn("生物适生区后台查询失败，保留完整来源改为兼容查询",error);
                     q.anchorBase=q.anchorSamples;q.anchorJob.cancel();
                     q.anchorJob=BiomeQueryFactory.habitats(q.level,q.origin,q.anchorBiomes,excludedHabitats(q),q.radius,Math.max(0,q.settings.sampleLimit()-q.anchorBase),false,q.settings).asFallback();return true;
                 }
@@ -256,7 +255,7 @@ public final class CreatureSearch {
             }else q.planner.step(Math.max(1,deadline-System.nanoTime()));
             if(!q.planner.done())return true;
             q.chunks=q.planner.result();q.plannedAt=0;q.patchKind=q.planner.kind();
-            ExplorersCompass.LOGGER.info("CREATURE_PATCH {} type={} kind={} centers={}",q.token,q.type,q.patchKind,q.chunks.size());publish(q);
+            CreatureIdentity.LOGGER.info("CREATURE_PATCH {} type={} kind={} centers={}",q.token,q.type,q.patchKind,q.chunks.size());publish(q);
         }
         return neighborStep(q,deadline);
     }
@@ -292,7 +291,7 @@ public final class CreatureSearch {
                 if(!actual.equals(work.retainedCenter)){
                     q.level.getChunkSource().addRegionTicket(TICKET,actual,1,work.ticketId);
                     q.level.getChunkSource().removeRegionTicket(TICKET,work.retainedCenter,1,work.ticketId);
-                    ExplorersCompass.LOGGER.info("CREATURE_PIN {} source={} actual={} uuid={}",q.token,work.retainedCenter,actual,nearest.uuid());work.retainedCenter=actual;
+                    CreatureIdentity.LOGGER.info("CREATURE_PIN {} source={} actual={} uuid={}",q.token,work.retainedCenter,actual,nearest.uuid());work.retainedCenter=actual;
                 }
                 for(var other:List.copyOf(q.flights))if(other!=work){release(q,other);q.flights.remove(other);}
                 q.source="neighbor";done(q,"found");return true;
@@ -347,7 +346,7 @@ public final class CreatureSearch {
             if(!actual.equals(q.pending)){q.level.getChunkSource().addRegionTicket(TICKET,actual,1,q.token);q.level.getChunkSource().removeRegionTicket(TICKET,q.pending,1,q.token);q.pending=actual;}
         }
         if(stage.equals("found"))q.resultLeaseUntil=System.nanoTime()+60_000_000_000L;else {release(q);releaseFlights(q);}
-        if(q.anchorJob!=null)q.anchorJob.cancel();if(q.saved!=null)q.saved.close();q.finished=true;q.stage=stage;publish(q);if(!q.terminal){q.terminal=true;ExplorersCompass.LOGGER.info("CREATURE {} type={} biome={} state={} rounds={}/{} chunks={} count={} source={} stored={}/{} verified={} rejected={} elapsed_ms={}",q.token,q.type,q.biome,stage,q.round,q.rounds,q.checked,q.points.size(),q.source,q.storedScanned,q.storedTotal,q.storedVerified,q.storedRejected,(System.nanoTime()-q.started)/1e6);}}
+        if(q.anchorJob!=null)q.anchorJob.cancel();if(q.saved!=null)q.saved.close();q.finished=true;q.stage=stage;publish(q);if(!q.terminal){q.terminal=true;CreatureIdentity.LOGGER.info("CREATURE {} type={} biome={} state={} rounds={}/{} chunks={} count={} source={} stored={}/{} verified={} rejected={} elapsed_ms={}",q.token,q.type,q.biome,stage,q.round,q.rounds,q.checked,q.points.size(),q.source,q.storedScanned,q.storedTotal,q.storedVerified,q.storedRejected,(System.nanoTime()-q.started)/1e6);}}
     private static MobPoint nearest(Query q){return q.points.values().stream().min(Comparator.<MobPoint>comparingDouble(p->p.distance(q.origin.getX(),q.origin.getZ())).thenComparing(p->p.uuid().toString())).orElseThrow();}
     private static void teleport(Query q) {
         UUID id=q.teleport;var e=q.level.getEntity(id);var point=CreatureIndex.point(q.level,e);

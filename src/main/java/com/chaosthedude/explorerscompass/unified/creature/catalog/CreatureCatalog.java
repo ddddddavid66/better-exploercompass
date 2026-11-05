@@ -1,7 +1,7 @@
 package com.chaosthedude.explorerscompass.unified.creature.catalog;
 
 import com.google.gson.*;
-import com.chaosthedude.explorerscompass.ExplorersCompass;
+import com.chaosthedude.explorerscompass.unified.creature.CreatureIdentity;
 import java.io.*;
 import java.util.*;
 import net.minecraft.core.registries.Registries;
@@ -37,7 +37,7 @@ public final class CreatureCatalog {
                     if(!ForgeRegistries.ENTITY_TYPES.containsKey(id)){deferred.put(id,text(o,"name")+"：当前未注册该实体 ID（翻译键不是注册证明）");continue;}
                     if(ForgeRegistries.ENTITY_TYPES.getValue(id)!=EntityType.PLAYER)parsed.put(id,o);
                 }
-            }catch(Exception error){ExplorersCompass.LOGGER.warn("生物目录无法读取 {}",resource.getKey(),error);}
+            }catch(Exception error){CreatureIdentity.LOGGER.warn("生物目录无法读取 {}",resource.getKey(),error);}
         });
         // 单次遍历生效出生表，只补维度；文档未写的群系继续保留空集合。
         Map<ResourceLocation,Set<ResourceLocation>> spawnDimensions=new HashMap<>(),biomeDimensions=new HashMap<>();
@@ -82,7 +82,7 @@ public final class CreatureCatalog {
         });
         entries=Collections.unmodifiableMap(result);
         pending=Collections.unmodifiableMap(deferred);
-        ExplorersCompass.LOGGER.info("生物目录：{} 条已安装类型，{} 条维度已核实，其余暂缓",parsed.size(),entries.size());
+        CreatureIdentity.LOGGER.info("生物目录：{} 条已安装类型，{} 条维度已核实，其余暂缓",parsed.size(),entries.size());
     }
     /** 发布时无损压缩大目录；数据包仍可用同一路径的普通JSON覆盖。 */
     private static Reader reader(InputStream input)throws IOException {

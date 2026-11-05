@@ -102,13 +102,13 @@ public final class Fresh123Checks {
                 case 31->{if(CreaturePreExploreClient.pending() || CreaturePreExploreClient.radius!=1024 || CreaturePreExplore.tickets()==0)return;check(!CreaturePreExploreClient.finished,"stop test still active");CreaturePreExploreClient.command("stop",0);next(32,10);}
                 case 32->{check(CreaturePreExploreClient.finished && CreaturePreExplore.tickets()==0,"stop releases task ticket");notes.add("STOP tickets=0");next(6,10);}
                 case 33->{checked=false;server.execute(()->guard(()->{var p=server.getPlayerList().getPlayer(uuid);var l=p.serverLevel();var at=p.blockPosition();var id=l.getChunkSource().getGenerator().getBiomeSource().getNoiseBiome(at.getX()>>2,at.getY()>>2,at.getZ()>>2,l.getChunkSource().randomState().sampler()).unwrapKey().orElseThrow().location();
-                    probeJob=BiomeQueryFactory.habitats(l,at,Set.of(id),Set.of(),512,10000,true);probeJob.prime();}));next(34,5);}
+                    probeJob=BiomeQueryFactory.habitats(l,at,Set.of(id),Set.of(),512,10000,true,com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.GENERAL.snapshot());probeJob.prime();}));next(34,5);}
                 case 34->{if(checked){next(30,5);return;}server.execute(()->guard(()->{if(checked || probeJob==null)return;probeJob.step();if(probeJob.nextCandidate()!=null){check(probeJob.mode().equals("async"),"scoped normal habitat entry");notes.add("HABITAT_PROBE mode=async found=true samples="+probeJob.samples());probeJob.cancel();checked=true;}}));}
             }
         }catch(Throwable e){e.printStackTrace();finish(mc,"FAILED phase="+phase+" "+e);}
     }
     private static void scopeCheck(net.minecraft.server.level.ServerLevel level)throws Exception{
-        BiomeQueryFactory.prepare(level,level.getSharedSpawnPos(),new ResourceLocation("minecraft:plains"));
+        BiomeQueryFactory.prepare(level,level.getSharedSpawnPos(),new ResourceLocation("minecraft:plains"),com.chaosthedude.explorerscompass.unified.creature.CreatureConfig.GENERAL.snapshot());
         var source=level.getChunkSource().getGenerator().getBiomeSource();var sampler=level.getChunkSource().randomState().sampler();
         source.getNoiseBiome(0,20,0,sampler); // 正常官方查询先建立真实种子基线，不能拿未初始化的42作断言。
         var owner=Class.forName("com.github.alexmodguy.alexscaves.server.level.biome.ACBiomeRarity");var f=owner.getDeclaredField("VORONOI_GENERATOR");f.setAccessible(true);var original=f.get(null);var seed=original.getClass().getMethod("getSeed");long before=((Number)seed.invoke(original)).longValue();

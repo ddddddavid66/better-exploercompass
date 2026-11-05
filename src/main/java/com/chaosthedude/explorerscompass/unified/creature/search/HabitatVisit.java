@@ -60,7 +60,7 @@ final class HabitatVisit {
             }else{
                 double distance=pos.distSqr(spawn);
                 // 正常刷怪排除玩家附近24格；站在可加载生境的距离，不能站到刷怪点上。
-                if(!observerDistance(distance) || !TeleportService.safe(player,level,stack,pos))continue;
+                if(!observerDistance(distance) || !TeleportService.safeUnfiltered(player,level,pos))continue;
                 observer=pos;ready=true;state="habitat_ready";return true;
             }
         }

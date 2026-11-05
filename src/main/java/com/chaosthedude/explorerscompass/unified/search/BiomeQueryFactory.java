@@ -31,10 +31,6 @@ public final class BiomeQueryFactory {
         var plan=prepare(level,origin,target,settings);
         return new HabitatSearch(level,origin,targets,excluded,radius,quota,async,plan.profile);
     }
-    public static Plan prepare(ServerLevel level,BlockPos origin,ResourceLocation target) {
-        return prepare(level,origin,target,new com.david.compass.runtime.SearchParameters(SearchConfig.RADIUS.get(),
-                SearchConfig.BIOME_SAMPLES.get(),SearchConfig.SPACING.get(),SearchConfig.VERTICAL.get(),SearchConfig.DEPTH_INTERVAL.get(),SearchConfig.ASYNC_BIOMES.get()));
-    }
     public static Plan prepare(ServerLevel level,BlockPos origin,ResourceLocation target,com.david.compass.runtime.SearchParameters settings) {
         if(!level.getServer().isSameThread())throw new IllegalStateException("群系计划只能在服务端线程准备");
         BiomeSourceSafety.prepare(level);
@@ -51,9 +47,5 @@ public final class BiomeQueryFactory {
         if(AlexCavesAdapter.target(plan.target))return new AlexCavesSearch(plan.level,plan.origin,plan.target,excluded,radius,
                 Math.max(0,configuredQuota),plan.profile.spacing(),async,AlexCavesAdapter.prepare(plan.level,plan.target));
         return new BiomeSearch(plan.level,plan.origin,plan.target,excluded,radius,Math.max(0,quota),async,exact,innerRadius,plan.profile);
-    }
-    public static SearchJob create(ServerLevel level,BlockPos origin,ResourceLocation target,List<BlockPos> excluded,
-                                   int radius,long configuredQuota,boolean async,boolean exact,int innerRadius) {
-        return create(prepare(level,origin,target),excluded,radius,configuredQuota,async,exact,innerRadius);
     }
 }

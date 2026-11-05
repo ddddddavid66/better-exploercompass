@@ -225,7 +225,7 @@ public final class SearchService {
         if(request==null)com.chaosthedude.explorerscompass.unified.entertainment.AdventureTravel.interrupt(player,"entertainment.replaced");
         cancel(player,true);
         List<BlockPos> previous=request==null?biomeHistory.getOrDefault(new CacheKey(player.getUUID(),player.level().dimension().location(),key),List.of()):failed;
-        var plan=window.plan()==null?BiomeQueryFactory.prepare(player.serverLevel(),origin,key):window.plan();
+        var plan=window.plan()==null?BiomeQueryFactory.prepare(player.serverLevel(),origin,key,SearchConfig.biomeParameters()):window.plan();
         if(!plan.origin().equals(origin) || !plan.target().equals(key))throw new IllegalArgumentException("群系计划与本请求不匹配");
         SearchJob job=BiomeQueryFactory.create(plan,previous,window.radius(),Math.max(0,sampleLimit),
                 SearchConfig.ASYNC_BIOMES.get(),request!=null,window.innerRadius());
@@ -272,7 +272,7 @@ public final class SearchService {
                 && (player.getMainHandItem() == stack || player.getOffhandItem() == stack);
     }
     private static void begin(Session session) {
-        com.chaosthedude.explorerscompass.unified.creature.search.CreatureSearch.cancel(session.player.getUUID());
+        SearchReplacement.replace(ExplorersCompass.MODID,session.player);
         CompoundTag tag = session.stack.getOrCreateTag();
         tag.remove(KIND); tag.remove(BIOME_KEY); tag.remove(FOUND_Y); tag.remove(TARGET_DIMENSION); tag.remove("ECUnifiedFeatureExpanded");
         if (session.job instanceof EndDungeonSearch || session.job instanceof GoldenCrateSearch) tag.putString(KIND,"feature");

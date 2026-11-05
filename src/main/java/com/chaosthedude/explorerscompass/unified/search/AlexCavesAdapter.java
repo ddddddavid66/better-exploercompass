@@ -66,7 +66,7 @@ final class AlexCavesAdapter {
         if(!level.getServer().isSameThread())throw new IllegalStateException("主线程准备 Alex 生成快照");
         try{return new AlexCavesAdapter(level,id);}
         catch(ReflectiveOperationException|RuntimeException error) {
-            com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.warn("{} 使用四格高度兼容查询: {}",id,error.toString());return null;
+            org.apache.logging.log4j.LogManager.getLogger("compass_runtime").warn("{} 使用四格高度兼容查询: {}",id,error.toString());return null;
         }
     }
     private static double number(Object owner,String name) throws ReflectiveOperationException {
