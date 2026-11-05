@@ -12,9 +12,10 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
 
 /** 主线程创建不可变生成上下文；生命周期随世界与数据包重载结束。 */
-final class WorldgenCache extends BiomeGenerationContext {
+final class WorldgenCache {
     private static final Map<ServerLevel, WorldgenCache> WORLDS = new IdentityHashMap<>();
     private StructurePredictor predictor;
+    private final BiomeGenerationContext biomes;
     private final ServerLevel level;
     private record PredictionKey(Structure structure, long chunk) {}
     private static final class Prediction {
@@ -51,7 +52,7 @@ final class WorldgenCache extends BiomeGenerationContext {
             return x==origin.getX() && z==origin.getZ() && upper<=maximum && cost<=quota && currentExcluded.containsAll(excluded);
         }
     }
-    // 结构键只含注册 ID；群系键含起点和采样参数，两个键空间不会相等。合计上限 256。
+    // 仅保存结构前缀；群系完整结果由公共群系上下文独立管理。
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<List<?>,Prefix> prefixes=
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private static final class PlanKey {
@@ -69,15 +70,14 @@ final class WorldgenCache extends BiomeGenerationContext {
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Structure, SearchCandidate> hints =
             new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
     private WorldgenCache(ServerLevel level) {
-        super(level);
+        biomes=BiomeGenerationContext.get(level);
         this.level=level;
     }
     static WorldgenCache get(ServerLevel level) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("生成缓存只能由服务端线程创建");
+        var biomes=BiomeGenerationContext.get(level);
         WorldgenCache known=WORLDS.get(level);
-        if(known==null || !known.stamp.current(level) || known.biomeSource!=level.getChunkSource().getGenerator().getBiomeSource()
-                || known.noise!=level.getChunkSource().randomState().sampler()
-                || known.sourceSafe!=BiomeSourceSafety.prepare(level).allowed()) {
+        if(known==null || known.biomes!=biomes) {
             known=new WorldgenCache(level);WORLDS.put(level,known);
         }
         return known;
@@ -111,7 +111,7 @@ final class WorldgenCache extends BiomeGenerationContext {
         // 缓存正/负生成预测，绝不缓存真实区块核对；快照失效后旧任务只能写入自己的旧缓存。
         return predictions.get(new PredictionKey(structure, chunk.toLong()), ignored -> {
             try {
-                var point = scoped(()->predictor.predict(structure, biomes, chunk));
+                var point = this.biomes.scoped(()->predictor.predict(structure, biomes, chunk));
                 return new Prediction(point == null ? null : point.immutable());
             }catch(HeightBiomeFilter.Rejected impossible) {
                 // 全高度群系证明同样属于负生成结果；不能让它逃出缓存并在下次重算。

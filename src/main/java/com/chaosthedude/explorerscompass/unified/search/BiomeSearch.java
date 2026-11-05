@@ -21,9 +21,9 @@ public final class BiomeSearch extends SearchJob {
     private final BiomeSamplingProfile profile;
     private boolean cachedOrigin,memoHit;
     private final List<BiomeSamplingMetrics> metrics=new ArrayList<>();
-    private WorldgenCache context;
+    private BiomeGenerationContext context;
     private List<?> memoKey;
-    private WorldgenCache.Prefix memo;
+    private BiomeGenerationContext.Memo memo;
     public BiomeSearch(ServerLevel level, BlockPos start, ResourceLocation target, List<BlockPos> excluded,
                        int radius, long maxSamples, int spacing, int vertical, int depthInterval, boolean async) {
         this(level,start,target,excluded,radius,maxSamples,spacing,vertical,depthInterval,async,false);
@@ -47,7 +47,7 @@ public final class BiomeSearch extends SearchJob {
                 .withTieBreaker(Comparator.<SearchCandidate>comparingInt(candidate -> Math.abs(candidate.position().getY() - start.getY()))
                         .thenComparing(COORDINATES)).withBatch(1024, 4_000_000L)
                 .withEagerCandidates(false).withUnconditionalConfirmation();
-        if(memo!=null)scan.withProvenSample(memo.candidates.get(0));
+        if(memo!=null)scan.withProvenSample(new SearchCandidate(memo.position,target,null,null,null,memo.upper));
     }
     private List<ScanCoordinator.Lane<SearchCandidate>> createLanes() {
         if (radius <= 0 || maxSamples <= 0) return List.of();
@@ -55,13 +55,13 @@ public final class BiomeSearch extends SearchJob {
         int maximumRadius = radius;
         boolean safeSource = BiomeSourceSafety.prepare(level).allowed();
         boolean background = async && safeSource;
-        var cache = safeSource ? WorldgenCache.get(level) : null;
+        var cache = safeSource ? BiomeGenerationContext.get(level) : null;
         SamplingBudget budget = new SamplingBudget(maxSamples); budgets.add(budget);
         if(background && innerRadius<0) {
             context=cache;
             // 精确绑定起点 XYZ、采样设置和完整排除快照，不推断相邻起点的最近群系。
             memoKey=List.of(target,start,profile,exact,excluded);
-            var known=cache.prefix(memoKey);
+            var known=cache.result(memoKey);
             if(known!=null && known.upper<=(long)radius*radius && known.cost<=maxSamples && budget.take(known.cost)) {
                 memo=known;memoHit=true;return List.of();
             }
@@ -88,8 +88,8 @@ public final class BiomeSearch extends SearchJob {
             var meter=new BiomeSamplingMetrics();metrics.add(meter);
             final class ColumnSampler implements BiomeColumnLane.Sampler {
                 private int lastX=Integer.MIN_VALUE,lastZ=Integer.MIN_VALUE;
-                private WorldgenCache.StreamingColumn column;
-                private WorldgenCache.BiomeColumn hotColumn;
+                private BiomeGenerationContext.StreamingColumn column;
+                private BiomeGenerationContext.BiomeColumn hotColumn;
                 public List<SearchCandidate> sample(int dx,int dz,int y) {
                     int x=origin.getX()+dx*spacing,z=origin.getZ()+dz*spacing;
                     if(exact?failed.contains(BlockPos.asLong(x,y,z)):ignoredPositions.excludes(x,z))return List.of();
@@ -134,9 +134,8 @@ public final class BiomeSearch extends SearchJob {
         if(complete && memoKey!=null && memo==null && scan.result()!=null) {
             long before=System.nanoTime();
             try {
-                memo=new WorldgenCache.Prefix(start.getX(),start.getZ(),scan.result().distanceSquared(),
-                        samples(),java.util.Set.of(),List.of(scan.result()));
-                context.rememberPrefix(memoKey,memo);
+                memo=new BiomeGenerationContext.Memo(scan.result().position(),scan.result().distanceSquared(),samples());
+                context.rememberResult(memoKey,memo);
             }finally{mainNanos+=System.nanoTime()-before;}
         }
         return complete;

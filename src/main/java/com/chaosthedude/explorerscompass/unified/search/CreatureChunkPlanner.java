@@ -12,7 +12,7 @@ import net.minecraft.world.level.biome.Biome;
 /** 9×9窗口按短批次增量探测；只决定有限加载顺序，不预测实体存在。 */
 public final class CreatureChunkPlanner {
     public static final class Plan {
-        private final WorldgenCache cache;
+        private final BiomeGenerationContext cache;
         private final net.minecraft.world.level.biome.BiomeSource source;
         private final net.minecraft.world.level.biome.Climate.Sampler sampler;
         private final Set<Biome> allowed;
@@ -32,7 +32,7 @@ public final class CreatureChunkPlanner {
             this.anchor=anchor;this.origin=origin;this.count=count;this.radius=radius;this.excluded=Set.copyOf(excluded);
             cx=anchor.getX()>>4;cz=anchor.getZ()>>4;background=BiomeSourceSafety.prepare(level).allowed();
             feature=CreatureHabitats.get(level,target).feature();occupied=feature?GeneratedChunkHints.read(level,cx,cz):java.util.concurrent.CompletableFuture.completedFuture(Set.of());
-            cache=background?WorldgenCache.get(level):null;source=level.getChunkSource().getGenerator().getBiomeSource();sampler=level.getChunkSource().randomState().sampler();
+            cache=background?BiomeGenerationContext.get(level):null;source=level.getChunkSource().getGenerator().getBiomeSource();sampler=level.getChunkSource().randomState().sampler();
             allowed=Collections.newSetFromMap(new IdentityHashMap<>());var registry=level.registryAccess().registryOrThrow(Registries.BIOME);
             habitats.forEach(id->{var biome=registry.get(id);if(biome!=null)allowed.add(biome);});
             var hs=new LinkedHashSet<Integer>();hs.add(anchor.getY());

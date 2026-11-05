@@ -49,5 +49,14 @@ gradlew :runtime:test --offline
 - 首次组合测试命令把根测试过滤条件传播到 runtime，导致 runtime 报“无匹配测试”；已单独重跑 runtime 成功，该命令错误未当作测试通过。
 - 机器记录：仓库外 `.analysis/split/biome-extraction-validation.json`。未启动游戏，不将编译/单测当作独立安装验收。
 
+### 群系调用链与结构缓存解耦
+
+- 普通群系搜索、生境集合搜索、9×9 生物邻区规划改为直接调用 `BiomeGenerationContext.get`，不再初始化或引用 `WorldgenCache`。
+- 结构缓存改为组合而非继承公共群系上下文；结构高度预筛也共享同一群系实例，没有另开第二份点缓存或 Alex 线程作用域。
+- 群系完整查询结果从结构 `Prefix` 中分离为只含不可变位置、距离和 long 成本的 `Memo`，不再携带结构候选或结构分组。
+- 新增 3 项检查：结果位置防变、long 额度、公共上下文与群系调用方不得引入结构产品依赖。
+- 根工程定向 57 项测试通过，记录在仓库外 `maintenance/split-direct-context-tests.log`。首次编译发现参数名遮蔽字段，已改为 `this.biomes` 后重编译测试通过。
+- 本步骤仍处于单包过渡状态；尚未完成两个产品注册/网络和 JarJar 装配，不标记发布或启动验收通过。
+
 旧 settings.gradle 备份位于仓库外 `maintenance/split-backups/settings.gradle.before-split`。
 本阶段不修改原实例、原存档、第三方 jar 和已交付的 1.2.8 文件。

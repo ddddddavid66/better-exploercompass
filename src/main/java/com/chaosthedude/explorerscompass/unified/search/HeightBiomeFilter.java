@@ -21,14 +21,14 @@ final class HeightBiomeFilter {
     static final class Rejected extends RuntimeException {
         private Rejected(){super(null,null,false,false);}
     }
-    private final WorldgenCache cache;
+    private final BiomeGenerationContext cache;
     private final java.util.function.Predicate<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>> allowed;
     private final int minY,maxY;
     private final java.util.concurrent.atomic.LongAdder skipped=new java.util.concurrent.atomic.LongAdder();
     private final java.util.concurrent.atomic.LongAdder nanos=new java.util.concurrent.atomic.LongAdder();
     HeightBiomeFilter(ServerLevel level,Structure structure,int offset) {
         if(level.getChunkSource().getGenerator().getClass()!=NoiseBasedChunkGenerator.class)throw new IllegalArgumentException("未知高度边界");
-        cache=WorldgenCache.get(level);allowed=StructurePredictor.biomeRule(structure);
+        cache=BiomeGenerationContext.get(level);allowed=StructurePredictor.biomeRule(structure);
         minY=QuartPos.fromBlock(level.getMinBuildHeight()+offset);
         maxY=QuartPos.fromBlock(level.getMaxBuildHeight()+offset);
     }

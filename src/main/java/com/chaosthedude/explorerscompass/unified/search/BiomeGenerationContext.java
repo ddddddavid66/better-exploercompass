@@ -7,9 +7,32 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 
 /** 群系专用生成上下文；不持有结构预测器、结构计划或结构类型。
- * 迁移期间由旧 WorldgenCache 继承，调用方采样与缓存语义保持不变。
+ * 普通定位、生境规划和结构预筛复用同一实例，结构计划由产品单独持有。
  */
 class BiomeGenerationContext {
+    private static final java.util.Map<ServerLevel, BiomeGenerationContext> WORLDS = new java.util.IdentityHashMap<>();
+    static final class Memo {
+        final net.minecraft.core.BlockPos position;
+        final long upper, cost;
+        Memo(net.minecraft.core.BlockPos position, long upper, long cost) {
+            this.position=position.immutable(); this.upper=upper; this.cost=cost;
+        }
+    }
+    private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<java.util.List<?>, Memo> results =
+            new com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<>(256);
+    static BiomeGenerationContext get(ServerLevel level) {
+        if (!level.getServer().isSameThread()) throw new IllegalStateException("群系上下文只能由服务端线程获取");
+        var known=WORLDS.get(level);
+        if (known==null || !known.stamp.current(level)
+                || known.biomeSource!=level.getChunkSource().getGenerator().getBiomeSource()
+                || known.noise!=level.getChunkSource().randomState().sampler()
+                || known.sourceSafe!=BiomeSourceSafety.prepare(level).allowed()) {
+            known=new BiomeGenerationContext(level); WORLDS.put(level,known);
+        }
+        return known;
+    }
+    Memo result(java.util.List<?> key) { return results.peek(key); }
+    void rememberResult(java.util.List<?> key, Memo result) { results.remember(key,result); }
     final boolean sourceSafe;
     final GenerationStamp stamp;
     private final com.chaosthedude.explorerscompass.unified.data.BoundedMemoizer<Long, Biome> biomePredictions =
@@ -70,6 +93,7 @@ class BiomeGenerationContext {
     }
     final <T> T scoped(Supplier<T> action){return alex==null?action.get():alex.with(action);}
     static void clearSharedState() {
+        WORLDS.clear();
         GenerationStamp.invalidate();
         AetherSamplingHints.clear();
         BiomeSourceSafety.clear();

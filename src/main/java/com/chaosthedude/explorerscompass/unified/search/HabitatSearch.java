@@ -21,7 +21,7 @@ final class HabitatSearch extends SearchJob {
         this.quota=quota;this.async=async;this.profile=profile;
         boolean safe=BiomeSourceSafety.prepare(level).allowed(),background=async && safe;
         var source=level.getChunkSource().getGenerator().getBiomeSource();var noise=level.getChunkSource().randomState().sampler();
-        var cache=safe?WorldgenCache.get(level):null;
+        var cache=safe?BiomeGenerationContext.get(level):null;
         Map<Biome,ResourceLocation> allowed=new IdentityHashMap<>();var registry=level.registryAccess().registryOrThrow(Registries.BIOME);
         targets.forEach(id->{Biome b=registry.get(id);if(b!=null)allowed.put(b,id);});
         var budget=new SamplingBudget(Math.max(0,quota));budgets.add(budget);quotaDisabled=quota<=0;
