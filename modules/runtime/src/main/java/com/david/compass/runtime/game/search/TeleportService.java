@@ -506,14 +506,21 @@ public final class TeleportService {
                 task.relaxedLanding=null;
             }
             if(manualCompass(task) && task.fallback && !task.quickChecked) {
-                task.quickChecked=true;
                 var point=task.origin;
                 var chunk=task.level.getChunkSource().getChunkNow(point.getX()>>4,point.getZ()>>4);
                 if(chunk!=null) {
+                    task.quickChecked=true;
+                    // 降级普通目标可在同区块内偏移少量格子，避免角落候选先等四块 FULL。
+                    int localX=Math.max(2,Math.min(13,point.getX()&15));
+                    int localZ=Math.max(2,Math.min(13,point.getZ()&15));
+                    var interior=new BlockPos((point.getX()&~15)+localX,point.getY(),(point.getZ()&~15)+localZ);
                     int surface=chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                             point.getX()&15,point.getZ()&15)+1;
                     Vec3 quick=LandingChecks.compassFallback(task.player,task.level,point);
                     if(quick==null)quick=LandingChecks.compassFallback(task.player,task.level,point.atY(surface));
+                    if(quick==null)quick=LandingChecks.compassFallback(task.player,task.level,interior);
+                    if(quick==null){int innerSurface=chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,localX,localZ)+1;
+                        quick=LandingChecks.compassFallback(task.player,task.level,interior.atY(innerSurface));}
                     if(quick!=null){
                         task.landing=quick;task.relaxedLanding=quick;
                         if(task.clicked)move(task);

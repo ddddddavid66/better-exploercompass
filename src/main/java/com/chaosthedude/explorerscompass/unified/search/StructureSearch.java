@@ -49,7 +49,6 @@ public final class StructureSearch extends SearchJob {
         Group(StructurePlacement placement,List<Target> targets){this.placement=placement;this.targets=List.copyOf(targets);}
         StructurePlacement placement(){return placement;} List<Target> targets(){return targets;}
     }
-    private final LandingPreview landingPreview;
     private final List<ResourceLocation> keys;
     private final Set<Long> excluded;
     private final long maximumSamples;
@@ -62,7 +61,7 @@ public final class StructureSearch extends SearchJob {
     private boolean deferredPlacement;
     private final java.util.concurrent.atomic.AtomicBoolean degradedCataclysm=new java.util.concurrent.atomic.AtomicBoolean();
     private final HeightBiomeFilter.Metrics prefilter=new HeightBiomeFilter.Metrics();
-    @Override public String diagnostics(){return verification.diagnostics()+", "+landingPreview.diagnostics()+", biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum()+", policies="+preparations.stream().map(StartPrediction::reason).filter(r->!r.isEmpty()).toList();}
+    @Override public String diagnostics(){return verification.diagnostics()+", biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum()+", policies="+preparations.stream().map(StartPrediction::reason).filter(r->!r.isEmpty()).toList();}
     private WorldgenCache context;
     private final List<SearchCandidate> hints = new ArrayList<>();
     private java.util.concurrent.ConcurrentLinkedQueue<SearchCandidate> predictedPrefix;
@@ -79,7 +78,7 @@ public final class StructureSearch extends SearchJob {
     }
     private StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
                            Set<Long> excluded, int radius, long maximumSamples, boolean async, boolean compatiblePrediction) {
-        super(level, start, radius); landingPreview=new LandingPreview(level); this.keys = List.copyOf(keys); this.excluded = Set.copyOf(excluded);
+        super(level, start, radius); this.keys = List.copyOf(keys); this.excluded = Set.copyOf(excluded);
         this.maximumSamples = maximumSamples; this.async = async;
         this.compatiblePrediction = compatiblePrediction;
         verification = new StructureVerificationWindow(level, start);
@@ -90,7 +89,7 @@ public final class StructureSearch extends SearchJob {
     private void initializeScan() {
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
                 (long)radius * radius, async).withTieBreaker(TIE)
-                .withBatch(256, 4_000_000L).withEagerCandidates(false).withVerificationWindow(candidate -> verification.begin(candidate,actual -> {verified.put(candidate,actual);context.rememberHint(actual);landingPreview.offer(actual);}))
+                .withBatch(256, 4_000_000L).withEagerCandidates(false).withVerificationWindow(candidate -> verification.begin(candidate,actual -> {verified.put(candidate,actual);context.rememberHint(actual);}))
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
         // 宝藏和移动地牢均以保守下界证明最近性。
         if(keys.contains(TREASURE) || hasMovedAnchors())scan.withCandidateLowerBound(this::candidateBound);
@@ -339,12 +338,10 @@ public final class StructureSearch extends SearchJob {
         return candidate == null ? null : verified.getOrDefault(candidate, candidate);
     }
     void prepareLanding(net.minecraft.server.level.ServerPlayer player,net.minecraft.world.item.ItemStack stack,java.util.UUID token){
-        // 先释放名额但暂留 FULL 引用，传送端接管后再关闭，避免中间撤票。
-        landingPreview.yieldSlot();
+        // 最近性已证明后立即准备；过早 FULL 预生成会拖慢整合包，已由实测撤回。
         com.david.compass.runtime.game.search.TeleportService.prepareStructure(player,stack,token);
-        landingPreview.close();
     }
-    @Override public void cancel() { landingPreview.close();verification.cancel(); super.cancel(); }
+    @Override public void cancel() { verification.cancel(); super.cancel(); }
     @Override public void prime() {
         // 有提示时先在正常 tick 中核对，再按真实上界启动，避免首批计算无关远处位置。
         if (hints.isEmpty() && preparations.stream().noneMatch(StartPrediction::preparing)) super.prime();
@@ -353,7 +350,6 @@ public final class StructureSearch extends SearchJob {
     @Override public long confirmationNanos() { return verification.mainNanos(); }
     @Override public long waitingNanos() { return verification.waitingNanos(); }
     @Override public boolean step() throws Exception {
-        landingPreview.expire();
         if (scan.cancelled()) return false;
         for (StartPrediction policy : preparations) if (policy.preparing()) {
             long begin = System.nanoTime();
