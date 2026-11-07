@@ -7,4 +7,9 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 
 public record SearchCandidate(BlockPos position, ResourceLocation key, Structure structure,
-                              StructurePlacement placement, ChunkPos chunk, long distanceSquared) {}
+                              StructurePlacement placement, ChunkPos chunk, long distanceSquared, PortalHint portal) {
+    public SearchCandidate(BlockPos position, ResourceLocation key, Structure structure,
+                           StructurePlacement placement, ChunkPos chunk, long distanceSquared) {
+        this(position,key,structure,placement,chunk,distanceSquared,null);
+    }
+}

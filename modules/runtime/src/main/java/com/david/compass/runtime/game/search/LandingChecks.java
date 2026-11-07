@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.tags.FluidTags;
@@ -19,12 +20,19 @@ final class LandingChecks {
     private static final Set<Block> FORBIDDEN = Set.of(Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_GATEWAY, Blocks.POWDER_SNOW);
     private LandingChecks() {}
     static boolean ready(ServerPlayer player, ServerLevel level, BlockPos point, boolean biome) {
+        return missing(player,level,point,biome)==null;
+    }
+    static java.util.List<ChunkPos> footprint(ServerPlayer player,BlockPos point,boolean biome){
+        var box=player.getDimensions(Pose.STANDING).makeBoundingBox(point.getX()+.5,point.getY(),point.getZ()+.5);
+        return LandingFootprint.chunks(box.minX,box.maxX,box.minZ,box.maxZ,biome?4:1);
+    }
+    static ChunkPos missing(ServerPlayer player,ServerLevel level,BlockPos point,boolean biome) {
         var box = player.getDimensions(Pose.STANDING).makeBoundingBox(point.getX()+.5, point.getY(), point.getZ()+.5);
         int margin = biome ? 4 : 1;
         for (int x = ((int)Math.floor(box.minX-margin))>>4; x <= ((int)Math.floor(box.maxX+margin))>>4; x++)
             for (int z = ((int)Math.floor(box.minZ-margin))>>4; z <= ((int)Math.floor(box.maxZ+margin))>>4; z++)
-                if (level.getChunkSource().getChunkNow(x,z)==null) return false;
-        return true;
+                if (level.getChunkSource().getChunkNow(x,z)==null) return new ChunkPos(x,z);
+        return null;
     }
     static Vec3 find(ServerPlayer player, ServerLevel level, ResourceLocation biome, BlockPos point, boolean relaxed) { return find(player,level,biome,point,relaxed,true); }
     static Vec3 find(ServerPlayer player, ServerLevel level, ResourceLocation biome, BlockPos point, boolean relaxed, boolean requireBiome) {
@@ -44,6 +52,10 @@ final class LandingChecks {
     }
     static boolean valid(ServerPlayer player, ServerLevel level, ResourceLocation biome, Vec3 landing, boolean relaxed) { return valid(player,level,biome,landing,relaxed,true); }
     static boolean valid(ServerPlayer player, ServerLevel level, ResourceLocation biome, Vec3 landing, boolean relaxed, boolean requireBiome) {
+        return valid(player,level,biome,landing,relaxed,requireBiome,false);
+    }
+    private static boolean valid(ServerPlayer player,ServerLevel level,ResourceLocation biome,Vec3 landing,
+                                 boolean relaxed,boolean requireBiome,boolean centerOnly) {
         BlockPos point=BlockPos.containing(landing);
         if(!ready(player,level,point,!relaxed && biome!=null)) return false;
         var box=player.getDimensions(Pose.STANDING).makeBoundingBox(landing.x,landing.y,landing.z);
@@ -58,7 +70,7 @@ final class LandingChecks {
         if(requireBiome && !relaxed && biome!=null && !level.getBiome(point).unwrapKey().map(key->key.location().equals(biome)).orElse(false)) return false;
         var vehicle=player.getRootVehicle();
         return (vehicle==player || !vehicle.getBoundingBox().intersects(box)) && level.noCollision(player,box)
-                && LandingSafety.allowed(level,landing,level.getFluidState(point).is(FluidTags.WATER));
+                && LandingSafety.allowed(level,landing,level.getFluidState(point).is(FluidTags.WATER),centerOnly);
     }
     static boolean standing(ServerPlayer player,ServerLevel level,ResourceLocation biome,Vec3 landing,boolean relaxed) { return standing(player,level,biome,landing,relaxed,true); }
     static boolean standing(ServerPlayer player,ServerLevel level,ResourceLocation biome,Vec3 landing,boolean relaxed, boolean requireBiome) {
@@ -93,6 +105,28 @@ final class LandingChecks {
         if(!level.getFluidState(BlockPos.containing(point.x,eye,point.z)).isEmpty())return false;
         var fluid=level.getFluidState(feet);
         return Math.abs(feet.getY()+fluid.getHeight(level,feet)-.25-point.y)<.01;
+    }
+    /** 降级仅要求附近有可承重面；不要求传送瞬间脚贴着碰撞面。 */
+    static boolean compassRelaxed(ServerPlayer player,ServerLevel level,Vec3 point){
+        if(!valid(player,level,null,point,true,false,true))return false;
+        BlockPos feet=BlockPos.containing(point);
+        for(int depth=0;depth<=4;depth++){
+            BlockPos floor=feet.below(depth);
+            var state=level.getBlockState(floor);
+            if(bad(state,true))return false;
+            for(var shape:state.getCollisionShape(level,floor).toAabbs()){
+                double gap=point.y-(floor.getY()+shape.maxY);
+                if(gap>=-.005 && gap<=3.005 && shape.minX<=.5 && shape.maxX>=.5
+                        && shape.minZ<=.5 && shape.maxZ>=.5)return true;
+            }
+        }
+        return waterStanding(player,level,point);
+    }
+    static Vec3 compassFallback(ServerPlayer player,ServerLevel level,BlockPos feet){
+        Vec3 point=Vec3.atBottomCenterOf(feet);
+        if(compassRelaxed(player,level,point))return point;
+        Vec3 support=find(player,level,null,feet,true,false);
+        return support!=null?support:waterSurface(player,level,feet);
     }
     static boolean allowsUnanchored(ServerPlayer player,ServerLevel level,Vec3 point){
         var box=player.getDimensions(Pose.STANDING).makeBoundingBox(point);

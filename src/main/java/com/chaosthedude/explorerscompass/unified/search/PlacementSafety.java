@@ -28,14 +28,28 @@ final class PlacementSafety {
             boolean jungle=placement.getClass().getName().equals(
                     "com.yungnickyoung.minecraft.betterjungletemples.world.placement.BetterJungleTemplePlacement")
                     && version("betterjungletemples","1.20-Forge-2.0.5") && version("yungsapi","1.20-Forge-4.0.5");
-            boolean cataclysm=placement.getClass().getName().equals("com.github.L_Ender.cataclysm.world.structures.placements.CataclysmRandomSpread") && version("cataclysm","3.16");
+            boolean cataclysm=placement.getClass().getName().equals("com.github.L_Ender.cataclysm.world.structures.placements.CataclysmRandomSpread") && (version("cataclysm","3.08") || version("cataclysm","3.16"));
             if(!vanilla && !jungle && !cataclysm)return false;
+            // 已注册 HolderSet 是实际排斥集合，空集合也是合法结果。
+            if(cataclysm && !cataclysmExclusions(level,placement,path))return false;
             var json=StructurePlacement.CODEC.encodeStart(RegistryOps.create(JsonOps.INSTANCE,level.registryAccess()),placement)
                     .result().orElseThrow().getAsJsonObject();
             for(String field:java.util.List.of("exclusion_zone","enhanced_exclusion_zone","super_exclusion_zone"))
-                if(json.has(field) && !references(level,json.getAsJsonObject(field).get("other_set"),path))return false;
+                if((!cataclysm || !field.equals("super_exclusion_zone")) && json.has(field)
+                        && !references(level,json.getAsJsonObject(field).get("other_set"),path))return false;
             return true;
         } finally {path.remove(placement);}
+    }
+    private static boolean cataclysmExclusions(ServerLevel level,StructurePlacement placement,Set<StructurePlacement> path) {
+        try {
+            var optional=(java.util.Optional<?>)placement.getClass().getMethod("superExclusionZone").invoke(placement);
+            if(optional.isEmpty())return true;
+            var zone=optional.get();
+            var holders=(net.minecraft.core.HolderSet<?>)zone.getClass().getMethod("otherSet").invoke(zone);
+            for(var holder:holders)
+                if(!(holder.value() instanceof StructureSet set) || !inspect(level,set.placement(),path))return false;
+            return true;
+        }catch(ReflectiveOperationException | ClassCastException error){return false;}
     }
     private static boolean references(ServerLevel level,JsonElement value,Set<StructurePlacement> path) {
         if(value==null)return false;

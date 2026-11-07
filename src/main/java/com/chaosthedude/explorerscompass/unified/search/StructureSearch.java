@@ -49,6 +49,7 @@ public final class StructureSearch extends SearchJob {
         Group(StructurePlacement placement,List<Target> targets){this.placement=placement;this.targets=List.copyOf(targets);}
         StructurePlacement placement(){return placement;} List<Target> targets(){return targets;}
     }
+    private final LandingPreview landingPreview;
     private final List<ResourceLocation> keys;
     private final Set<Long> excluded;
     private final long maximumSamples;
@@ -59,8 +60,9 @@ public final class StructureSearch extends SearchJob {
     private long preparationNanos;
     private final List<StartPrediction> preparations = new ArrayList<>();
     private boolean deferredPlacement;
+    private final java.util.concurrent.atomic.AtomicBoolean degradedCataclysm=new java.util.concurrent.atomic.AtomicBoolean();
     private final HeightBiomeFilter.Metrics prefilter=new HeightBiomeFilter.Metrics();
-    @Override public String diagnostics(){return verification.diagnostics()+", biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum()+", policies="+preparations.stream().map(StartPrediction::reason).filter(r->!r.isEmpty()).toList();}
+    @Override public String diagnostics(){return verification.diagnostics()+", "+landingPreview.diagnostics()+", biome_prefilter_ms="+(prefilter.nanos.sum()/1e6)+", skipped_height="+prefilter.skipped.sum()+", policies="+preparations.stream().map(StartPrediction::reason).filter(r->!r.isEmpty()).toList();}
     private WorldgenCache context;
     private final List<SearchCandidate> hints = new ArrayList<>();
     private java.util.concurrent.ConcurrentLinkedQueue<SearchCandidate> predictedPrefix;
@@ -77,7 +79,7 @@ public final class StructureSearch extends SearchJob {
     }
     private StructureSearch(ServerLevel level, BlockPos start, List<ResourceLocation> keys,
                            Set<Long> excluded, int radius, long maximumSamples, boolean async, boolean compatiblePrediction) {
-        super(level, start, radius); this.keys = List.copyOf(keys); this.excluded = Set.copyOf(excluded);
+        super(level, start, radius); landingPreview=new LandingPreview(level); this.keys = List.copyOf(keys); this.excluded = Set.copyOf(excluded);
         this.maximumSamples = maximumSamples; this.async = async;
         this.compatiblePrediction = compatiblePrediction;
         verification = new StructureVerificationWindow(level, start);
@@ -88,7 +90,7 @@ public final class StructureSearch extends SearchJob {
     private void initializeScan() {
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
                 (long)radius * radius, async).withTieBreaker(TIE)
-                .withBatch(256, 4_000_000L).withEagerCandidates(false).withVerificationWindow(candidate -> verification.begin(candidate,actual -> {verified.put(candidate,actual);context.rememberHint(actual);}))
+                .withBatch(256, 4_000_000L).withEagerCandidates(false).withVerificationWindow(candidate -> {landingPreview.offer(candidate);return verification.begin(candidate,actual -> {verified.put(candidate,actual);context.rememberHint(actual);landingPreview.offer(actual);});})
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
         // 宝藏和移动地牢均以保守下界证明最近性。
         if(keys.contains(TREASURE) || hasMovedAnchors())scan.withCandidateLowerBound(this::candidateBound);
@@ -116,6 +118,7 @@ public final class StructureSearch extends SearchJob {
                             grouped.computeIfAbsent(placement,ignored->new ArrayList<>()).add(new Target(key,holder.value(),
                                     cached.biomeRule(holder.value()),!compatiblePrediction && (placement.getClass().getName().equals(GelGridPlacement.TYPE)
                                     || AetherStructures.supported(holder.value())
+                                    || StartPrediction.cataclysmPolicy(key)
                                     || holder.value().getClass()==net.minecraft.world.level.levelgen.structure.structures.JigsawStructure.class
                                     || holder.value().getClass()==net.minecraft.world.level.levelgen.structure.structures.RuinedPortalStructure.class
                                     || holder.value().getClass().getName().equals("com.yungnickyoung.minecraft.yungsapi.world.structure.YungJigsawStructure"))
@@ -157,6 +160,7 @@ public final class StructureSearch extends SearchJob {
             boolean supported = PlacementSafety.supported(level,placement);
             if(async && !supported)com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.info("结构放置兼容验证 {}：未审核放置类或排斥依赖 {}",keys,placement.getClass().getName());
             boolean predict = async && !compatiblePrediction && supported && sourceSafe;
+            var groupPredictionFailed=new java.util.concurrent.atomic.AtomicBoolean();
             SamplingBudget budget=outerReady?budgets.get(0):new SamplingBudget(maximumSamples);
             if(!outerReady)budgets.add(budget);
             // 闭包只引用不可变快照；未知规则的闭包始终在主线程采样。
@@ -174,11 +178,22 @@ public final class StructureSearch extends SearchJob {
                     SearchCandidate hint=hinted.get(target.structure());
                     if(hint!=null && hint.chunk().equals(chunk))continue;
                     StartPrediction policy = target.dungeons();
-                    BlockPos point = predict && (policy==null || policy.allowed()) ? (policy==null
+                    BlockPos point;
+                    try {
+                        point = predict && !groupPredictionFailed.get() && (policy==null || policy.allowed()) ? (policy==null
                             ? PredictionTemplates.with(Map.of(),()->cached.predict(target.structure(),target.biomes(),chunk))
                             : policy.predict(prefilter,()->cached.predict(target.structure(),target.biomes(),chunk)))
                             : gel != null && gel.backgroundAllowed && policy != null && policy.allowed()
                                 ? policy.predict(prefilter,() -> cached.predict(target.structure(), target.biomes(), chunk)) : locate;
+                    } catch (RuntimeException error) {
+                        if(!StartPrediction.cataclysmPolicy(target.key()))throw error;
+                        if(groupPredictionFailed.compareAndSet(false,true)){
+                            degradedCataclysm.set(true);
+                            com.chaosthedude.explorerscompass.ExplorersCompass.LOGGER.warn(
+                                    "灾变预测组 {} 转入真实区块核对",target.key(),error);
+                        }
+                        point=locate;
+                    }
                     if(point!=null) {
                         SearchCandidate candidate=new SearchCandidate(AetherStructures.moved(target.structure())?point:new BlockPos(locate.getX(), point.getY(), locate.getZ()),
                                 target.key(), target.structure(), placement, chunk, distance(origin,locate));
@@ -323,7 +338,13 @@ public final class StructureSearch extends SearchJob {
         var candidate = super.result();
         return candidate == null ? null : verified.getOrDefault(candidate, candidate);
     }
-    @Override public void cancel() { verification.cancel(); super.cancel(); }
+    void prepareLanding(net.minecraft.server.level.ServerPlayer player,net.minecraft.world.item.ItemStack stack,java.util.UUID token){
+        // 先释放名额但暂留 FULL 引用，传送端接管后再关闭，避免中间撤票。
+        landingPreview.yieldSlot();
+        com.david.compass.runtime.game.search.TeleportService.prepareStructure(player,stack,token);
+        landingPreview.close();
+    }
+    @Override public void cancel() { landingPreview.close();verification.cancel(); super.cancel(); }
     @Override public void prime() {
         // 有提示时先在正常 tick 中核对，再按真实上界启动，避免首批计算无关远处位置。
         if (hints.isEmpty() && preparations.stream().noneMatch(StartPrediction::preparing)) super.prime();
@@ -332,6 +353,7 @@ public final class StructureSearch extends SearchJob {
     @Override public long confirmationNanos() { return verification.mainNanos(); }
     @Override public long waitingNanos() { return verification.waitingNanos(); }
     @Override public boolean step() throws Exception {
+        landingPreview.expire();
         if (scan.cancelled()) return false;
         for (StartPrediction policy : preparations) if (policy.preparing()) {
             long begin = System.nanoTime();
@@ -354,7 +376,7 @@ public final class StructureSearch extends SearchJob {
     }
     @Override public String mode() {
         String mode = super.mode();
-        return mode.equals("async") && (compatiblePrediction || deferredPlacement || preparations.stream().anyMatch(policy -> !policy.allowed())) ? "mixed" : mode;
+        return mode.equals("async") && (compatiblePrediction || deferredPlacement || degradedCataclysm.get() || preparations.stream().anyMatch(policy -> !policy.allowed())) ? "mixed" : mode;
     }
     public SearchJob synchronousFallback() {
         // 已知网格保留后台候选，只撤掉失败的预测；再次异常不能无限重试。

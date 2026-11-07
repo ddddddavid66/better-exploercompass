@@ -40,6 +40,10 @@ public final class ExplorerLandingAdapter implements TeleportService.RecordedCom
         return new TeleportService.RecordedTarget(SearchService.token(stack),key,biome,
                 compass.getFoundStructureX(stack),y,compass.getFoundStructureZ(stack));
     }
+    @Override public com.david.compass.runtime.game.search.PortalHint portal(ItemStack stack) {
+        return stack.getTag()==null?null:StrongholdPortal.read(stack.getTag());
+    }
+    @Override public boolean portalRequired(ResourceLocation key) {return StrongholdPortal.applies(key);}
     @Override public void bindLegacy(ServerPlayer player,ItemStack stack,UUID token) {
         var tag=stack.getOrCreateTag();
         if (SearchService.token(stack)==null) tag.putUUID("ECFiltersSearchToken",token);
@@ -48,6 +52,14 @@ public final class ExplorerLandingAdapter implements TeleportService.RecordedCom
     @Override public void status(ServerPlayer player,UUID token,TeleportService.State state,long revision,String reason) {
         UnifiedNetwork.send(player,new TeleportStatusPacket(token,TeleportStatusPacket.State.valueOf(state.name()),revision,reason));
     }
+    @Override public void preparationFailed(ServerPlayer player,ResourceLocation key,int x,int y,int z,String reason) {
+        var dimension=player.level().dimension().location();
+        player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                "filters.teleport_repeated_chunk_failure",key.toString(),dimension.toString(),x,y,z,
+                net.minecraft.network.chat.Component.translatable("filters.teleport_reason_"+reason))
+                .withStyle(net.minecraft.ChatFormatting.RED),false);
+    }
+
     @Override public void moved(ServerPlayer player,boolean biome,ResourceLocation key,ResourceLocation dimension,Vec3 point) {
         TeleportEvents.succeeded(player,biome?TeleportSucceededPacket.Kind.BIOME:TeleportSucceededPacket.Kind.STRUCTURE,
                 key,dimension,point.x,point.y,point.z);

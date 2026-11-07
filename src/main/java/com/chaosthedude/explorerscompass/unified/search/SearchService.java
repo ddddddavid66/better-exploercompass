@@ -284,6 +284,7 @@ public final class SearchService {
     private static void begin(Session session) {
         SearchReplacement.replace(ExplorersCompass.MODID,session.player);
         CompoundTag tag = session.stack.getOrCreateTag();
+        StrongholdPortal.store(tag,null);
         tag.remove(KIND); tag.remove(BIOME_KEY); tag.remove(FOUND_Y); tag.remove(TARGET_DIMENSION); tag.remove("ECUnifiedFeatureExpanded");
         if (session.job instanceof EndDungeonSearch || session.job instanceof GoldenCrateSearch) tag.putString(KIND,"feature");
         tag.putString(TARGET_DIMENSION, session.level.dimension().location().toString());
@@ -367,6 +368,7 @@ public final class SearchService {
             compass.setDisplayCoordinates(session.stack, ConfigHandler.GENERAL.displayCoordinates.get());
             session.stack.getOrCreateTag().putInt(FOUND_Y, candidate.position().getY());
             session.stack.getOrCreateTag().putString(TARGET_DIMENSION, session.level.dimension().location().toString());
+            StrongholdPortal.store(session.stack.getOrCreateTag(),candidate.portal());
             if (session.job.biome()) {
                 session.stack.getOrCreateTag().putInt(FOUND_Y, candidate.position().getY());
                 var key = new CacheKey(session.player.getUUID(), session.level.dimension().location(), session.category);
@@ -390,12 +392,16 @@ public final class SearchService {
         }
         status(session);
         lifecycle(session,true,candidate!=null?"found":session.job.stage(),candidate==null?"":candidate.key().toString());
-        if (candidate != null) TeleportService.prepare(session.player, session.stack, session.token);
+        if (candidate != null) {
+            if(session.job instanceof StructureSearch structure)structure.prepareLanding(session.player,session.stack,session.token);
+            else TeleportService.prepare(session.player,session.stack,session.token);
+        }
         CompassUnified.LOGGER.info("搜索 {} {}：{}，{} 次采样，{} 个候选，{} 次核对，{} 次区块请求，主线程 {} ms，总耗时 {} ms",
                 session.token, session.job.biome() ? "群系" : "结构", candidate == null ? "未找到" : candidate.position(),
                 session.job.samples(), session.job.candidates(), session.job.confirmations, session.job.chunkLoads,
                 session.job.mainNanos / 1_000_000.0, (System.nanoTime() - session.job.startedNanos) / 1_000_000.0);
-        if(!session.job.diagnostics().isEmpty())CompassUnified.LOGGER.info("搜索 {} 阶段摘要：{}",session.token,session.job.diagnostics());
+        CompassUnified.LOGGER.info("搜索 {} 模式={} 后台={} ms 阶段摘要：{}",
+                session.token,session.job.mode(),session.job.workerNanos()/1_000_000.0,session.job.diagnostics());
         session.job.cancel(); sessions.remove(session.player.getUUID());
         complete(session,candidate,candidate!=null?"found":session.job.stage());
     }

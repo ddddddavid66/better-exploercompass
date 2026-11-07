@@ -131,6 +131,7 @@ public final class RectFrontier {
     }
     public boolean available(long limit) { long bound=lowerBound();return bound!=Long.MAX_VALUE&&bound<=limit; }
     public long next() {
+        if(seed==null && !leaf && size==0)throw new IllegalStateException("Frontier exhausted");
         if(seed!=null) {Rect first=seed;seed=null;add(first.minX,first.minZ,first.maxX,first.maxZ);}
         if (!leaf) {
             while (size > 0) {

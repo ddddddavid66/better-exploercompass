@@ -35,7 +35,7 @@ public final class ServerSearchRuntime {
         long deadline=SCHEDULER.deadline(budget,preparation);
         TeleportService.maintain();
         var lanes=new ArrayList<BudgetedSearchScheduler.Lane>(PRODUCTS.size()+1);
-        lanes.add(new BudgetedSearchScheduler.Lane(TeleportService.active()?1:0,ignored->TeleportService.active() && TeleportService.step()));
+        lanes.add(new BudgetedSearchScheduler.Lane(TeleportService.foregroundCount(),d->TeleportService.step(d,true)));
         for(var product:PRODUCTS.values()) {
             product.maintain(server,deadline);
             var lane=product.lane(preparation,budget);
@@ -45,6 +45,7 @@ public final class ServerSearchRuntime {
         PRODUCTS.values().forEach(Participant::afterTick);
     }
     private static boolean background(long deadline){
+        if(System.nanoTime()<deadline && VerificationSlots.queued()==0 && TeleportService.step(deadline,false))return true;
         for(var product:PRODUCTS.values())if(System.nanoTime()<deadline && product.background(deadline))return true;
         return false;
     }

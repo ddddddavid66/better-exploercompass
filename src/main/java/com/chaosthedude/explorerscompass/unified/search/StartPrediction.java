@@ -26,6 +26,20 @@ final class StartPrediction {
             "snowy_temple", "snowy_temple.SnowyTempleStructure", "soul_prison", "soul_prison.SoulPrisonStructure");
     private static final Set<String> JIGSAW = Set.of("leviathan", "end_ruins", "warped_garden",
             "reanimated_ruins_mossy", "reanimated_ruins_mesa", "reanimated_ruins_frozen");
+    private static final String CATACLYSM_PREFIX="com.github.L_Ender.cataclysm.structures.";
+    private static final Map<String,String> CATACLYSM_STUBS=Map.of(
+            "sunken_city","Sunken_City_Structure","cursed_pyramid","Cursed_Pyramid_Structure",
+            "burning_arena","Burning_Arena_Structure","ruined_citadel","RuinedCitadelStructure");
+    private static final Set<String> CATACLYSM_JIGSAW=Set.of("acropolis","frosted_prison","soul_black_smith");
+
+    static boolean cataclysmJigsaw(ResourceLocation key,Structure structure) {
+        return key.getNamespace().equals("cataclysm") && CATACLYSM_JIGSAW.contains(key.getPath())
+                && structure.getClass().getName().equals(CATACLYSM_PREFIX+"jisaw.CataclysmJigsawStructure")
+                && version("cataclysm","3.08");
+    }
+
+    static boolean cataclysmPolicy(ResourceLocation key) { return key.getNamespace().equals("cataclysm"); }
+
     private static final Set<String> ELEMENTS = Set.of("minecraft:single_pool_element", "minecraft:legacy_single_pool_element",
             "structure_gel:gel_single_pool_element", "minecraft:empty_pool_element");
     private final ServerLevel level;
@@ -71,7 +85,15 @@ final class StartPrediction {
                 && version("yungsapi","1.20-Forge-4.0.5")
                 && (key.getNamespace().equals("betterjungletemples") && version("betterjungletemples","1.20-Forge-2.0.5")
                     || key.getNamespace().equals("betteroceanmonuments") && version("betteroceanmonuments","1.20-Forge-3.0.4"));
-        if(!vanilla && !yung && !ancient) {
+        boolean cataclysm=cataclysmJigsaw(key,structure);
+        if(cataclysmPolicy(key) && !vanilla && !cataclysm) {
+            String stub=CATACLYSM_STUBS.get(key.getPath());
+            // 3.08 的这些生成入口只求起点，组装回调仍由 Minecraft 执行。
+            if(version("cataclysm","3.08") && stub!=null
+                    && structure.getClass().getName().equals(CATACLYSM_PREFIX+stub))return;
+            reject("未经核对的灾变生成入口: "+structure.getClass().getName());return;
+        }
+        if(!vanilla && !yung && !ancient && !cataclysm) {
             if(!version("dungeons_plus","1.5.0") || !version("structure_gel","2.16.2")) {reject("未经核对的结构版本");return;}
             String simple=SIMPLE.get(key.getPath());
             if(key.getNamespace().equals("dungeons_plus") && simple!=null && structure.getClass().getName().equals(PREFIX+simple))return;

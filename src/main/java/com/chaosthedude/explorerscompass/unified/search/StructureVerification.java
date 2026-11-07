@@ -108,7 +108,7 @@ public final class StructureVerification {
     private boolean acquire() {
         boolean granted=background?VerificationSlots.acquireBackground(flight):VerificationSlots.acquire(flight);
         if(!granted)return false;
-        level.getChunkSource().chunkMap.getDistanceManager().addTicket(TICKET, flight.chunk, TICKET_LEVEL, flight.id);
+        com.david.compass.runtime.game.search.ChunkPreparationBroker.retain(level,flight.chunk,ChunkStatus.STRUCTURE_STARTS);
         flight.ticket=true;tickets++;chunkRequests++;
         return true;
     }
@@ -129,7 +129,7 @@ public final class StructureVerification {
                 Math.max(box.minZ(),Math.min(box.maxZ(),anchor.getZ())));
         }
         confirmed = new SearchCandidate(position, candidate.key(), candidate.structure(), candidate.placement(),
-                candidate.chunk(), SearchJob.distance(origin, position));
+                candidate.chunk(), SearchJob.distance(origin, position), StrongholdPortal.extract(level,candidate.key(),start));
         release();
         return ScanCoordinator.Confirmation.ACCEPT;
     }
@@ -139,7 +139,7 @@ public final class StructureVerification {
     private void release() {
         if(flight!=null && --flight.refs==0) {
             if(flight.ticket) {
-                level.getChunkSource().chunkMap.getDistanceManager().removeTicket(TICKET,flight.chunk,TICKET_LEVEL,flight.id);
+                com.david.compass.runtime.game.search.ChunkPreparationBroker.release(level,flight.chunk,ChunkStatus.STRUCTURE_STARTS);
                 tickets--;
             }
             VerificationSlots.release(flight);

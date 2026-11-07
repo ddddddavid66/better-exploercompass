@@ -14,7 +14,9 @@ import net.minecraftforge.fml.ModList;
 /** 可选客户端桥接：仅调用公开 API，不读取或重写 Xaero 私有文件格式。 */
 public final class XaeroWaypoints {
     private static final Map<UUID,Object> starts=new HashMap<>();
-    private static final Map<UUID,Object[]> pending=new LinkedHashMap<>();
+    private static final Map<UUID,Pending> pending=new LinkedHashMap<>();
+    private record Pending(ResourceLocation dimension, ResourceLocation id, boolean biome,
+                           int x, int y, int z, Object world, Object session, long expiresAt) {}
     private static final Set<Object> dirty=Collections.newSetFromMap(new IdentityHashMap<>());
     private static final Map<String,Method> methods=new HashMap<>();
     private static Connection connection;
@@ -22,7 +24,6 @@ public final class XaeroWaypoints {
     private static Constructor<?> constructor;
     private static Object session;
     private static boolean failed,warned;
-    private static long saveAt;
     private XaeroWaypoints() {}
     private static Object call(Object object,String name,Class<?>[] types,Object...args)throws ReflectiveOperationException {
         String key=object.getClass().getName()+"#"+name+Arrays.toString(types);
@@ -38,7 +39,10 @@ public final class XaeroWaypoints {
             currentSession=Class.forName("xaero.common.XaeroMinimapSession").getMethod("getCurrentSession");
             constructor=Class.forName("xaero.common.minimap.waypoints.Waypoint").getConstructor(int.class,int.class,int.class,String.class,String.class,int.class);
         }
-        session=currentSession.invoke(null);return session!=null;
+        Object active=currentSession.invoke(null);
+        if(active==null)return false;
+        if(session!=null && session!=active){flush();starts.clear();}
+        session=active;return true;
     }
     private static Object world(ResourceLocation dimension)throws ReflectiveOperationException {
         Object manager=call(session,"getWaypointsManager"),world=call(manager,"getAutoWorld");
@@ -51,54 +55,83 @@ public final class XaeroWaypoints {
         if(mc.getConnection()==null || source!=mc.getConnection().getConnection() || mc.player==null
                 || !data.hasUUID("player") || !mc.player.getUUID().equals(data.getUUID("player")))return;
         if(connection!=source){clear();connection=source;}
+        if (!ModList.get().isLoaded("xaeroworldmap") || failed) return;
         try {
-            if(!available())return;
-            var dimension=ResourceLocation.tryParse(data.getString("dimension"));if(dimension==null)return;
-            if(!packet.terminal()){Object world=world(dimension);if(world!=null)starts.put(packet.token(),world);return;}
+            if (!ModList.get().isLoaded("xaerominimap")) {
+                if (packet.terminal() && data.getString("result").equals("found"))
+                    warning("自动路径点需要同时安装 Xaero 的小地图。");
+                return;
+            }
+            var dimension=ResourceLocation.tryParse(data.getString("dimension"));
+            if (dimension==null || dimension.getPath().isEmpty()) return;
+            boolean ready=available();
+            if(!packet.terminal()) {
+                starts.clear(); // 探险者每次只接受一个前台搜索。
+                Object world=ready?world(dimension):null;
+                if(world!=null)starts.put(packet.token(),world);
+                return;
+            }
             Object world=starts.remove(packet.token());
-            if(!data.getString("result").equals("found") || data.getIntArray("foundPos").length!=3)return;
-            if(world==null)world=world(dimension);
-            pending.putIfAbsent(packet.token(),new Object[]{packet,world});tick();
-        }catch(ReflectiveOperationException|RuntimeException error){error(error);}
+            int[] p=data.getIntArray("foundPos");
+            var id=ResourceLocation.tryParse(data.getString("foundId"));
+            if(!data.getString("result").equals("found") || p.length!=3 || id==null || id.getPath().isEmpty())return;
+            if(world==null && ready)world=world(dimension);
+            if(pending.size()>=64 && !pending.containsKey(packet.token()))pending.remove(pending.keySet().iterator().next());
+            pending.putIfAbsent(packet.token(),new Pending(dimension,id,data.getString("kind").equals("biome"),
+                    p[0],p[1],p[2],world,session,System.nanoTime()+10_000_000_000L));
+            tick();
+        }catch(ReflectiveOperationException|RuntimeException|LinkageError error){error(error);}
     }
     public static void tick() {
         if(connection==null || failed)return;
         try {
+            var mc=Minecraft.getInstance();
+            if(mc.getConnection()==null || mc.getConnection().getConnection()!=connection)return;
+            long now=System.nanoTime();
+            pending.values().removeIf(item -> now>=item.expiresAt());
             if(!available())return;
-            for(var it=pending.entrySet().iterator();it.hasNext();) {
-                var entry=it.next();var item=entry.getValue();var data=((SearchLifecyclePacket)item[0]).data();
-                Object world=item[1]!=null?item[1]:world(new ResourceLocation(data.getString("dimension")));
+            for(var it=pending.values().iterator();it.hasNext();) {
+                Pending item=it.next();
+                if(item.session()!=null && item.session()!=session){it.remove();continue;}
+                Object world=world(item.dimension());
                 if(world==null)continue;
-                var key=new ResourceLocation(data.getString("foundId"));
-                String name=data.getString("kind").equals("biome")?FilterUi.biomeName(key):StructureUtils.getPrettyStructureName(key);
-                int[] p=data.getIntArray("foundPos");Object set=call(world,"getCurrentSet");
+                if(item.world()!=null && item.world()!=world){it.remove();continue;}
+                Object set=call(world,"getCurrentSet");
+                if(set==null)continue;
+                String name=item.biome()?FilterUi.biomeName(item.id()):StructureUtils.getPrettyStructureName(item.id());
                 boolean exists=false;
                 for(Object waypoint:(Iterable<?>)call(set,"getWaypoints"))
-                    if(name.equals(call(waypoint,"getName")) && (int)call(waypoint,"getX")==p[0]
-                            && (int)call(waypoint,"getY")==p[1] && (int)call(waypoint,"getZ")==p[2]){exists=true;break;}
+                    if(name.equals(call(waypoint,"getName")) && (int)call(waypoint,"getX")==item.x()
+                            && (int)call(waypoint,"getY")==item.y() && (int)call(waypoint,"getZ")==item.z()){exists=true;break;}
                 if(!exists) {
-                    Object waypoint=constructor.newInstance(p[0],p[1],p[2],name,"C",3);
+                    Object waypoint=constructor.newInstance(item.x(),item.y(),item.z(),name,"C",3);
                     call(waypoint,"setYIncluded",new Class<?>[]{boolean.class},true);
                     call(set,"add",new Class<?>[]{constructor.getDeclaringClass()},waypoint);
-                    call(call(session,"getWaypointsManager"),"updateWaypoints");dirty.add(world);saveAt=System.nanoTime()+2_000_000_000L;
-                    ExplorersCompass.LOGGER.info("Xaero waypoint {} {} {}",key,Arrays.toString(p),data.getString("dimension"));
+                    call(call(session,"getWaypointsManager"),"updateWaypoints");
+                    dirty.add(world);
+                    ExplorersCompass.LOGGER.info("Xaero waypoint {} ({}, {}, {}) {}",item.id(),item.x(),item.y(),item.z(),item.dimension());
                 }
                 it.remove();
             }
-            if(!dirty.isEmpty() && System.nanoTime()>=saveAt)flush();
-        }catch(ReflectiveOperationException|RuntimeException error){error(error);}
+            // Xaero 26.1.0 会先销毁小地图模块，再触发 Forge 的退出事件。
+            // 本次队列写入在仍拥有有效会话时合并保存，不把持久化推迟到退出。
+            if(!dirty.isEmpty())flush();
+        }catch(ReflectiveOperationException|RuntimeException|LinkageError error){error(error);}
     }
     private static void flush()throws ReflectiveOperationException {
         if(session==null || dirty.isEmpty())return;
-        Object manager=call(session,"getWaypointsManager"),io=call(manager,"getWorldManagerIO");
+        Object manager=call(session,"getWaypointsManager");
+        if(manager==null)return;
+        Object io=call(manager,"getWorldManagerIO");
+        if(io==null)return;
         Class<?> worldClass=Class.forName("xaero.hud.minimap.world.MinimapWorld");
         for(Object world:dirty)call(io,"saveWorld",new Class<?>[]{worldClass},world);
         dirty.clear();
     }
     public static void clear() {
-        try{flush();}catch(ReflectiveOperationException|RuntimeException error){error(error);}
+        try{flush();}catch(ReflectiveOperationException|RuntimeException|LinkageError error){error(error);}
         starts.clear();pending.clear();dirty.clear();connection=null;session=null;failed=false;warned=false;
     }
-    private static void error(Exception error){failed=true;ExplorersCompass.LOGGER.warn("Xaero 自动标记不可用",error);warning("Xaero 自动路径点失败，搜索与传送仍可使用；详情见日志。");}
+    private static void error(Throwable error){failed=true;ExplorersCompass.LOGGER.warn("Xaero 自动标记不可用",error);warning("Xaero 自动路径点失败，搜索与传送仍可使用；详情见日志。");}
     private static void warning(String message){if(warned)return;warned=true;var player=Minecraft.getInstance().player;if(player!=null)player.displayClientMessage(Component.literal(message),false);}
 }

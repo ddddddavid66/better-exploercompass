@@ -13,11 +13,11 @@ CORE = "com/david/compass/runtime/"
 CREATURE = "com/chaosthedude/explorerscompass/unified/creature/"
 EXPLORER = "com/chaosthedude/explorerscompass/"
 PRODUCTS = {
-    "runtime": ("compass_runtime", "1.0.0", "Compass Runtime (Internal)", "compass-runtime"),
-    "creature": ("creaturecompass", "1.0.0", "生物定位指南针 / Creature Compass", "creaturecompass"),
-    "explorer": ("explorerscompass", "1.20.1-1.4.0-unified-1.3.0", "探险者指南针 统一 1.3.0", "explorerscompass-unified"),
+    "runtime": ("compass_runtime", "1.0.2", "Compass Runtime (Internal)", "compass-runtime"),
+    "creature": ("creaturecompass", "1.0.2", "生物定位指南针 / Creature Compass", "creaturecompass"),
+    "explorer": ("explorerscompass", "1.20.1-1.4.0-unified-1.3.3", "探险者指南针 统一 1.3.3", "explorerscompass-unified"),
 }
-CORE_PATH = "META-INF/jarjar/compass-runtime-1.0.0.jar"
+CORE_PATH = "META-INF/jarjar/compass-runtime-1.0.2.jar"
 
 
 def owner(path):
@@ -51,7 +51,7 @@ def metadata(group):
               'authors="ChaosTheDude, David"\n')
     dependencies = [("forge", "[47,)", True), ("minecraft", "[1.20.1,1.20.2)", True)]
     if group != "runtime":
-        dependencies.append(("compass_runtime", "[1.0.0]", True))
+        dependencies.append(("compass_runtime", "[1.0.2]", True))
     if group == "explorer":
         dependencies.append(("explorerscompassfilters", "[0]", False))
     for dep, versions, required in dependencies:
@@ -132,11 +132,11 @@ def main(source, destination, jdeps):
         groups = partition(original)
     core = archive(groups["runtime"])
     descriptor = encode_json({"jars": [{"identifier": {"group": "com.david.compass", "artifact": "compass-runtime"},
-                                       "version": {"range": "[1.0.0]", "artifactVersion": "1.0.0"},
+                                       "version": {"range": "[1.0.2]", "artifactVersion": "1.0.2"},
                                        "path": CORE_PATH, "isObfuscated": True}]})
     destination.mkdir(parents=True, exist_ok=True)
-    for group, filename in [("explorer", "ExplorersCompassUnified-1.20.1-forge-1.3.0.jar"),
-                            ("creature", "CreatureCompass-1.20.1-forge-1.0.0.jar")]:
+    for group, filename in [("explorer", "ExplorersCompassUnified-1.20.1-forge-1.3.3.jar"),
+                            ("creature", "CreatureCompass-1.20.1-forge-1.0.2.jar")]:
         files = groups[group]
         files[CORE_PATH] = core
         files["META-INF/jarjar/metadata.json"] = descriptor

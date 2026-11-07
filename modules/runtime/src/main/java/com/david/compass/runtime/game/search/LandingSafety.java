@@ -13,8 +13,14 @@ final class LandingSafety {
     private static final Map<ServerLevel,Map<Long,Integer>> roofs=new WeakHashMap<>();
     private static int lastTick=-1;
     private LandingSafety() {}
-    static void invalidate(ServerLevel level){roofs.remove(level);}
+    static void invalidate(ServerLevel level,Vec3 point){
+        var cache=roofs.get(level);
+        if(cache!=null){var pos=BlockPos.containing(point);cache.remove(BlockPos.asLong(pos.getX(),0,pos.getZ()));}
+    }
     static boolean allowed(ServerLevel level,Vec3 point,boolean water) {
+        return allowed(level,point,water,false);
+    }
+    static boolean allowed(ServerLevel level,Vec3 point,boolean water,boolean centerOnly) {
         if(!level.dimension().equals(Level.OVERWORLD)) {
             int tick=level.getServer().getTickCount();
             if(lastTick!=tick){roofs.clear();lastTick=tick;}
@@ -29,7 +35,8 @@ final class LandingSafety {
         if(point.y<level.getMinBuildHeight()+4)return false;
         int x=(int)Math.floor(point.x),z=(int)Math.floor(point.z),y=(int)Math.floor(point.y);
         // 邻列地面可以略低，但不能把水柱或岛屿边缘当作可落脚的平台。
-        for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++) {
+        int span=centerOnly?0:1;
+        for(int dx=-span;dx<=span;dx++)for(int dz=-span;dz<=span;dz++) {
             BlockPos p=new BlockPos(x+dx,y,z+dz);
             if(level.getChunkSource().getChunkNow(p.getX()>>4,p.getZ()>>4)==null)return false;
             if(water) {
@@ -59,8 +66,13 @@ final class LandingSafety {
         var chunk=level.getChunkSource().getChunkNow(point.getX()>>4,point.getZ()>>4);
         if(chunk==null)return level.getMinBuildHeight();
         // 排除底部基岩；生成高度、维度高度不一致时仍以实际方块为准。
-        for(int y=level.getMaxBuildHeight()-1;y>=level.getMinBuildHeight()+8;y--)
-            if(chunk.getBlockState(new BlockPos(point.getX(),y,point.getZ())).is(Blocks.BEDROCK))return y;
+        var cursor=new BlockPos.MutableBlockPos(point.getX(),0,point.getZ());
+        int bottom=level.getMinBuildHeight()+8;
+        for(int y=level.getMaxBuildHeight()-1;y>=bottom;){
+            int section=level.getSectionIndex(y),first=Math.max(bottom,y&~15);
+            if(!chunk.getSection(section).maybeHas(state->state.is(Blocks.BEDROCK))){y=first-1;continue;}
+            for(;y>=first;y--)if(chunk.getBlockState(cursor.set(point.getX(),y,point.getZ())).is(Blocks.BEDROCK))return y;
+        }
         return Integer.MAX_VALUE;
     }
     private static double top(ServerLevel level,BlockPos point) {
