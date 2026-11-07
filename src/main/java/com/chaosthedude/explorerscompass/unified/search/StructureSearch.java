@@ -90,7 +90,7 @@ public final class StructureSearch extends SearchJob {
     private void initializeScan() {
         scan = new ScanCoordinator<>(createLanes(), SearchCandidate::distanceSquared, ignored -> false,
                 (long)radius * radius, async).withTieBreaker(TIE)
-                .withBatch(256, 4_000_000L).withEagerCandidates(false).withVerificationWindow(candidate -> {landingPreview.offer(candidate);return verification.begin(candidate,actual -> {verified.put(candidate,actual);context.rememberHint(actual);landingPreview.offer(actual);});})
+                .withBatch(256, 4_000_000L).withEagerCandidates(false).withVerificationWindow(candidate -> verification.begin(candidate,actual -> {verified.put(candidate,actual);context.rememberHint(actual);landingPreview.offer(actual);}))
                 .withResolvedCandidate(candidate -> verified.getOrDefault(candidate, candidate));
         // 宝藏和移动地牢均以保守下界证明最近性。
         if(keys.contains(TREASURE) || hasMovedAnchors())scan.withCandidateLowerBound(this::candidateBound);
