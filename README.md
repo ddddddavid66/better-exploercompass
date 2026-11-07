@@ -1,11 +1,13 @@
 # 双指南针 · Minecraft 1.20.1 Forge
 
+**1.3.3 为性能候选构建：六项冷态全程均未达到1秒，不能宣传为一秒加速已完成。**
+
 两个独立模组，可单装，也可同装。需要 Java 17；验收环境为 Forge 47.4.18。两个文件各自内嵌相同的 Compass Runtime，玩家无需额外安装前置。
 
 | 产品 | 版本 | 模组 ID | 协议 |
 | --- | --- | --- | --- |
-| [探险者指南针 统一](modules/explorer/README.md) | 1.3.0 | `explorerscompass` | `explorer-1` |
-| [生物定位指南针](modules/creature/README.md) | 1.0.0 | `creaturecompass` | `creature-1` |
+| [探险者指南针 统一](modules/explorer/README.md) | 1.3.3 | `explorerscompass` | `explorer-1` |
+| [生物定位指南针](modules/creature/README.md) | 1.0.2 | `creaturecompass` | `creature-1` |
 
 ## 安装和迁移
 
@@ -29,6 +31,6 @@ flowchart TD
  R --> T[落点引擎、传送保护]
 ```
 
-两个产品独立注册物品、网络、界面与配置。核心统一控制前台任务替换及预算；低优先级预探索不抢占前台。拆分不重写搜索算法。[1.2.8 搜索架构](docs/search-architecture-1.2.8.md)仍适用于探险者搜索内部。
+两个产品独立注册物品、网络、界面与配置。核心统一控制前台任务替换及预算；低优先级预探索不抢占前台。拆分不重写搜索算法。[1.2.8 搜索架构](docs/search-architecture-1.2.8.md)仍适用于探险者搜索内部。新增的[传送与灾变架构](docs/explorer-architecture-1.3.3.md)说明 1.3.3 的调整。
 
 Explorer’s Compass Unified 由 David 维护，基于 ChaosTheDude / MattCzyr 的 Explorer’s Compass Forge 1.20.1 1.4.0，非官方衍生版本。见 [许可证](LICENSE.md)、[署名](NOTICE.txt)、[第三方说明](THIRD_PARTY.md)。

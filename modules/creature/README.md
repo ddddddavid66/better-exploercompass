@@ -1,4 +1,4 @@
-# 生物定位指南针 1.0.0
+# 生物定位指南针 1.0.2
 
 Minecraft 1.20.1、Forge、Java 17。可单装，不依赖探险者指南针。合成：原版指南针＋腐肉（无序）。新物品 ID：`creaturecompass:creature_compass`，旧物品不自动迁移。
 
@@ -6,3 +6,5 @@ Minecraft 1.20.1、Forge、Java 17。可单装，不依赖探险者指南针。�
 
 数据包目录从 `data/explorerscompass/creature_catalog/` 迁移至 `data/creaturecompass/creature_catalog/`；加载器也兼容其他命名空间的同名目录。详见[目录格式](../../CREATURE_CATALOG.md)。见[安装与迁移](../../README.md#安装和迁移)。
 
+
+1.0.2 仅同步内嵌运行时，与探险者 1.3.3 共用 1.0.2 核心；生物指南针功能及协议不变。
