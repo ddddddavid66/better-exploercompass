@@ -151,6 +151,7 @@ public class ExplorersCompassItem extends Item {
 	}
 
 	public void setInactive(ItemStack stack, Player player) {
+if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) com.chaosthedude.explorerscompass.api.StructureSearchSnapshot.publish(serverPlayer, java.util.UUID.randomUUID(), "CANCELLED", player.level().dimension().location().toString(), null);
 		if (ItemUtils.verifyNBT(stack)) {
 			stack.getTag().putInt("State", CompassState.INACTIVE.getID());
 			stack.getTag().remove("PrevPos");

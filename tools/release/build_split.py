@@ -15,7 +15,7 @@ EXPLORER = "com/chaosthedude/explorerscompass/"
 PRODUCTS = {
     "runtime": ("compass_runtime", "1.0.2", "Compass Runtime (Internal)", "compass-runtime"),
     "creature": ("creaturecompass", "1.0.2", "生物定位指南针 / Creature Compass", "creaturecompass"),
-    "explorer": ("explorerscompass", "1.20.1-1.4.0-unified-1.3.3", "探险者指南针 统一 1.3.3", "explorerscompass-unified"),
+    "explorer": ("explorerscompass", "1.20.1-1.4.0-unified-1.3.4", "探险者指南针 统一 1.3.4", "explorerscompass-unified"),
 }
 CORE_PATH = "META-INF/jarjar/compass-runtime-1.0.2.jar"
 
@@ -135,7 +135,7 @@ def main(source, destination, jdeps):
                                        "version": {"range": "[1.0.2]", "artifactVersion": "1.0.2"},
                                        "path": CORE_PATH, "isObfuscated": True}]})
     destination.mkdir(parents=True, exist_ok=True)
-    for group, filename in [("explorer", "ExplorersCompassUnified-1.20.1-forge-1.3.3.jar"),
+    for group, filename in [("explorer", "ExplorersCompassUnified-1.20.1-forge-1.3.4.jar"),
                             ("creature", "CreatureCompass-1.20.1-forge-1.0.2.jar")]:
         files = groups[group]
         files[CORE_PATH] = core

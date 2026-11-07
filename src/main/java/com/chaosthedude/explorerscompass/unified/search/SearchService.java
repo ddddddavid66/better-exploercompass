@@ -435,6 +435,11 @@ public final class SearchService {
     }
     private static void lifecycle(Session session,boolean terminal,String result,String found) {
         if(session.terminalSent)return;
+        com.chaosthedude.explorerscompass.api.StructureSearchSnapshot.publish(
+            session.player, session.token, !terminal ? "SEARCHING" : result.equals("found") ?
+                (session.job instanceof StructureSearch ? "FOUND" : "NON_STRUCTURE") : result.equals("cancelled") ? "CANCELLED" : "NOT_FOUND",
+            session.level.dimension().location().toString(), session.job.result());
+
         var data=new CompoundTag();
         data.putUUID("player",session.player.getUUID());data.putLong("startedAt",session.startedAt);
         data.putString("category",session.category.toString());data.putString("kind",session.job.biome()?"biome":"structure");

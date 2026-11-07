@@ -39,3 +39,4 @@ __pycache__/
 .venv/
 
 fresh123-*.txt
+*.pre-magnet.bak
